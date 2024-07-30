@@ -1,0 +1,6 @@
+.ipynb_checkpoints/
+domains
+saved_models
+.DS_Store
+.idea/
+*venv

@@ -1,0 +1,13 @@
+fsspec==2024.2.0
+datasets==2.18.0
+transformers==4.39.3
+bitsandbytes==0.42.0
+huggingface-hub==0.23.4
+accelerate==0.30.0
+torch
+peft
+trl
+ninja
+packaging
+jupyter
+adapters
