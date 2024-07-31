@@ -87,7 +87,7 @@ login(token="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")
 
 """# LLama Model"""
 
-model_id =  llama3 # llama2
+model_id = llama3 # llama2
 
 # Load 4-bit quantized model
 model = AutoModelForCausalLM.from_pretrained(
