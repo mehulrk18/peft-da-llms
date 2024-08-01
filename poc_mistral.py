@@ -81,7 +81,7 @@ llama3_model_id = "meta-llama/Meta-Llama-3-8B-Instruct" # "meta-llama/Meta-Llama
 mistral_model_id = "mistralai/Mistral-7B-v0.3" # "mistralai/Mixtral-8x7B-v0.1"  # "meta-llama/Meta-Llama-3-8B-Instruct" #  "meta-llama/Llama-2-7b-hf" # "TheBloke/Llama-2-7B-Chat-GGML"
 llama2 = "meta-llama/Llama-2-7b-hf"
 dgpt = "distilgpt2"
-model_id =  llama2
+model_id = mistral_model_id
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # device = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -200,7 +200,7 @@ else:
 
 """# Tokenizer"""
 
-tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="right", tokenizer_type='llama' if 'llama' in model_id else None, trust_remote_code=True, use_fast=True)
+tokenizer = AutoTokenizer.from_pretrained(model_id) #, padding_side="right", tokenizer_type=None, trust_remote_code=True, use_fast=True)
 tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
 model.config.torch_dtype=torch.float32# (torch.float16 if fp16 else (torch.bfloat16 if bf16 else torch.float16))
@@ -235,7 +235,6 @@ def find_all_linear_names(bits, model):
         if isinstance(module, cls):
             names = name.split('.')
             lora_module_names.add(names[0] if len(names) == 1 else names[-1])
-
 
     if 'lm_head' in lora_module_names: # needed for 16-bit
         lora_module_names.remove('lm_head')
@@ -318,12 +317,12 @@ Also, no more memory!
 # PEFT - LoRA (QLoRA)
 """
 
-modules = find_all_linear_names(bits, model) # bits
+# modules = find_all_linear_names(bits, model) # bits
 
 lora_config = LoraConfig(
     r=8, # 16
     lora_alpha=16,
-    target_modules=modules,
+    target_modules=None, #modules,
     lora_dropout=0.00,  # dropout probability for layers
     bias="none",
     task_type=TaskType.CAUSAL_LM #SEQ_2_SEQ_LM
