@@ -7,6 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/19K9hAj3vdrmB3tBxBPnhyMV6b8v6JbNA
 """
 from peft import prepare_model_for_kbit_training
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 try:
   from google.colab import drive
@@ -40,7 +42,8 @@ print("Environment variable TORCH_USE_CUDA_DSA set. Please restart the runtime."
 import torch
 import pandas as pd
 from accelerate import Accelerator, init_empty_weights, load_checkpoint_and_dispatch
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Seq2SeqTrainingArguments, BitsAndBytesConfig, set_seed
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Seq2SeqTrainingArguments, \
+    BitsAndBytesConfig, set_seed, Seq2SeqTrainer
 from datasets import load_dataset, load_from_disk, DatasetDict, Dataset
 from adapters import AdapterTrainer, LoRAConfig, LlamaAdapterModel, Seq2SeqAdapterTrainer
 from transformers import DataCollatorForLanguageModeling, DataCollatorForSeq2Seq
@@ -63,12 +66,12 @@ dataset_info_dict = {
     }
 }
 max_seq_len = 256 # context window # 1024
-ddtype = torch.bfloat16 # float32
+ddtype = torch.float32 # bfloat16
 bits = 4 #8
 bf16 = False
-bf32 = True
-fp16 = False
-compute_dtype = torch.bfloat16 # torch.bfloat16 if bf16 else torch.float32
+bf32 = False
+fp16 = True
+compute_dtype = torch.float32 # torch.bfloat16 if bf16 else torch.float32
 
 # Model Config
 llama31 = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -91,7 +94,7 @@ login(token="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")
 model_id = llama3 # llama2
 
 # Load 4-bit quantized model
-model = LlamaAdapterModel.from_pretrained( #AutoModelForCausalLM.from_pretrained(
+model = AutoModelForCausalLM.from_pretrained( #LlamaAdapterModel.from_pretrained(
     model_id,
     device_map="auto",
     quantization_config=BitsAndBytesConfig(
@@ -104,46 +107,59 @@ model = LlamaAdapterModel.from_pretrained( #AutoModelForCausalLM.from_pretrained
     torch_dtype=ddtype,
 )
 model.config.use_cache = False
+
+setattr(model, 'model_parallel', True)
+setattr(model, 'is_parallelizable', True)
+
 """# Tokenizer"""
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="right", tokenizer_type="llama",
                                           trust_remote_code=True, use_fast=True)
 tokenizer.pad_token = tokenizer.eos_token
 model.resize_token_embeddings(len(tokenizer))
-model.config.torch_dtype=torch.float32
-model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
-# model.config.torch_dtype=torch.float32# (torch.float16 if fp16 else (torch.bfloat16 if bf16 else torch.float16))
-# if 'llama' in model_id:
+model.config.torch_dtype = torch.float32
 tokenizer.add_special_tokens({
             "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
             "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
-            # "unk_token": tokenizer.convert_ids_to_tokens(
-            #     model.config.pad_token_id if model.config.pad_token_id != -1 else tokenizer.pad_token_id
-            # ),
-    })
+})
+
+model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
+model.config.torch_dtype=torch.float32# (torch.float16 if fp16 else (torch.bfloat16 if bf16 else torch.float16))
+# if 'llama' in model_id:
 # else:
 #   tokenizer.pad_token = tokenizer.eos_token
 
 """# Adding Adapter / LoRA"""
-import adapters
-adapters.init(model)
+# import adapters
+# adapters.init(model)
 
-lora_config = LoRAConfig(
-    selfattn_lora=True, intermediate_lora=True, output_lora=True,
-    attn_matrices=["q", "k", "v"],
-    alpha=16, r=64, dropout=0.1,
-)
+# lora_config = LoRAConfig(
+#     selfattn_lora=True, intermediate_lora=True, output_lora=True,
+#     attn_matrices=["q", "k", "v"],
+#     alpha=16, r=64, dropout=0.1,
+# )
 
-model.add_adapter("arxiv_adapter", config=lora_config)
+from peft import LoraConfig, TaskType
+
+peft_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, r=8, #target_modules=["q", "v"],
+                         lora_alpha=16, lora_dropout=0.1, modules_to_save=["arxiv_lora"])
+
+# model.add_adapter("arxiv_adapter", config=peft_config)
 # model.add_seq2seq_lm_head("arxiv_adapter")
-model.set_active_adapters("arxiv_adapter")
-model.train_adapter("arxiv_adapter")
+# model.set_active_adapters("arxiv_adapter")
+# model.train_adapter("arxiv_adapter")
 
-print(model.adapter_summary())
+
+from peft import get_peft_model
+
+model = get_peft_model(model, peft_config)
+model.print_trainable_parameters()
+
+# print(model.adapter_summary())
 
 """### To correctly train bottleneck adapters or prefix tuning, uncomment the following lines to move the adapter weights to GPU explicitly:"""
 
-model.adapter_to("arxiv_adapter", device="cuda")
+# model.adapter_to("arxiv_adapter", device="cuda")
 
 """Some final preparations for 4bit training: we cast a few parameters to float32 for stability.
 
@@ -165,25 +181,25 @@ model.enable_input_require_grads()
 
 # Dataset helper
 def loading_dataset(dataset_name, force_run=False):
-  local_path = dir + dataset_info_dict[dataset_name]["local_path"]
-  if not os.path.exists(local_path) or force_run:
-    dataset_id = dataset_info_dict[dataset_name]["dataset_id"]
-    dataset = load_dataset(path=dataset_id, streaming=True, trust_remote_code=True)
-    dataset_dict = {}
-    for split, data in dataset.items():
-        # if split == "train":
-        data = list(data)[:500] # TODO: selecting random 1k or 5k or 10k
-        df = pd.DataFrame(data)
-        dataset_dict[split] = Dataset.from_pandas(df) # dataset[split].to_pandas())
-    _dataset = DatasetDict(dataset_dict)
-    _dataset.save_to_disk(local_path)
-    return _dataset
-  else:
-    dataset = load_from_disk(local_path)
+    local_path = dir + dataset_info_dict[dataset_name]["local_path"]
+    if not os.path.exists(local_path) or force_run:
+        dataset_id = dataset_info_dict[dataset_name]["dataset_id"]
+        dataset = load_dataset(path=dataset_id, streaming=True, trust_remote_code=True)
+        dataset_dict = {}
+        for split, data in dataset.items():
+            # if split == "train":
+            data = list(data)[:500] # TODO: selecting random 1k or 5k or 10k
+            df = pd.DataFrame(data)
+            dataset_dict[split] = Dataset.from_pandas(df) # dataset[split].to_pandas())
+        _dataset = DatasetDict(dataset_dict)
+        _dataset.save_to_disk(local_path)
+        return _dataset
+    else:
+        dataset = load_from_disk(local_path)
     return dataset
 
 def preprocess_dataset(_data):
-  return {"text": _data["article"], "summary": _data["abstract"]}
+    return {"text": _data["article"], "summary": _data["abstract"]}
 
 def tokenization_process(input_data):
     input_data.pop("article", None)
@@ -206,6 +222,7 @@ dataset_arxiv = loading_dataset("arxiv") #, force_run=True)
 # Encode the input data
 dataset_arxiv = dataset_arxiv.map(preprocess_dataset, batched=True)#, num_proc=os.cpu_count())
 dataset_arxiv = dataset_arxiv.map(tokenization_process, batched=True)# , num_proc=os.cpu_count())
+# dataset_arxiv.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
 print("Arxiv: ", dataset_arxiv)
 # dataset_pubmed = dataset_pubmed.map(preprocess_dataset, batched=True)
 # print("Pubmed: ", dataset_pubmed)
@@ -214,49 +231,31 @@ print("Arxiv: ", dataset_arxiv)
 set_seed(42)
 tr_arxiv = dataset_arxiv["train"]    #  [:500]
 val_arxiv = dataset_arxiv["validation"]  # [:500]
-
+torch.enable_grad()
 training_args = Seq2SeqTrainingArguments( #Seq2SeqTrainingArguments
-output_dir=dir+'results',
-    evaluation_strategy="epoch",
-    learning_rate=2e-4,
-    # gradient_checkpointing=True,
-    optim="paged_adamw_32bit",
+    output_dir="results/llama_qlora",
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
-    gradient_accumulation_steps=16,
+    evaluation_strategy="steps",
+    logging_steps=10,
+    save_steps=500,
+    eval_steps=187,
     num_train_epochs=1,
-    weight_decay=0.01,
-    bf16=bf16,
-    fp16=True,
-    tf32=False,
-    logging_dir=dir+"logs",
-    logging_steps=1,
+    save_total_limit=3,
+    gradient_accumulation_steps=16,
+    max_steps=30,
     lr_scheduler_type="constant",
-    disable_tqdm=False
-
-    # output_dir="results/llama_qlora",
-    # per_device_train_batch_size=1,
-    # per_device_eval_batch_size=1,
-    # evaluation_strategy="steps",
-    # logging_steps=10,
-    # save_steps=500,
-    # eval_steps=187,
-    # num_train_epochs=1,
-    # save_total_limit=3,
-    # gradient_accumulation_steps=16,
-    # max_steps=30,
-    # lr_scheduler_type="constant",
-    # optim="paged_adamw_32bit",
-    # learning_rate=0.0002,
-    # group_by_length=True,
-    # bf16=True,
-    # warmup_ratio=0.03,
-    # max_grad_norm=0.3
+    optim="paged_adamw_32bit",
+    learning_rate=0.0002,
+    group_by_length=True,
+    bf16=True,
+    warmup_ratio=0.03,
+    max_grad_norm=0.3
 )
 
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding="max_length", max_length=max_seq_len, label_pad_token_id=-100)
 # data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
-trainer = Seq2SeqAdapterTrainer( # AdapterTrainer
+trainer = Seq2SeqTrainer( #Seq2SeqAdapterTrainer( # AdapterTrainer
     model=model,
     tokenizer=tokenizer,
     data_collator=data_collator,
@@ -267,7 +266,7 @@ trainer = Seq2SeqAdapterTrainer( # AdapterTrainer
 
 from transformers import TrainerCallback
 trainer.add_callback(TrainerCallback)
-# trainer = accelerator.prepare(trainer)
+trainer = accelerator.prepare(trainer)
 trainer.train()
 
 results = trainer.evaluate()
@@ -292,7 +291,7 @@ print(results)
 
 """# Merge LoRA weights"""
 
-model.merge_adapter("arxiv_adapter")
+# model.merge_adapter("arxiv_adapter")
 
 # print(summarization_model(model, "Text"))
 
@@ -307,28 +306,29 @@ gen_art = dataset_arxiv["test"]
 
 i = 1
 texts ,sums = [], []
+
+
 def summarization_model(model, text, true_summary=""):
-  # for k, t in enumerate(gen_art):
-  #   if k < i:
-  #     texts.append(t["text"])
-  #     sums.append(t["summary"])
+    inputs = tokenizer(text, return_tensors="pt", max_length=max_seq_len, truncation=True, padding="max_length")
+    inputs = inputs.to(model.device)
+    # model.eval()
+    # outputs = model.generate(inputs.input_ids, max_length=1024, num_beams=5, early_stopping=True)
+    outputs = model.generate(
+        input_ids=inputs.input_ids,
+        attention_mask=inputs.attention_mask,
+        max_length=1024,
+        num_beams=5,
+        early_stopping=True
+    )
+    # pred_summary = tokenizer.decode(outputs, skip_special_tokens=True)
+    pred_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    # for s1, s2 in zip(sums, summaries):
+    if len(true_summary) > 0:
+        print("actual: ", true_summary)
+    print("\n\npred: ", pred_summary)
 
 
-
-
-  inputs = tokenizer(text, return_tensors="pt", max_length=max_seq_len, truncation=True, padding="max_length")
-  inputs = inputs.to(model.device)
-  # model.eval()
-  outputs = model.generate(inputs.input_ids, max_length=1024, num_beams=5, early_stopping=True)
-  pred_summary = tokenizer.decode(outputs, skip_special_tokens=True)
-  # for s1, s2 in zip(sums, summaries):
-  if len(true_summary) > 0:
-    print("actual: ", true_summary)
-  print("\n\npred: ", pred_summary)
-
-# gen_art[4].keys()
 # print(gen_art[4]["text"])
-# print("************(************(************(************(************")
-# print(gen_art[4]["summary"])
-
+print("************(************(************(************(************")
+print(gen_art[4].keys()) #gen_art[4]["summary"])
 summarization_model(model, gen_art[4]["text"],gen_art[4]["summary"])
