@@ -74,7 +74,7 @@ fp16 = True
 compute_dtype = torch.float32 # torch.bfloat16 if bf16 else torch.float32
 
 # Model Config
-llama31 = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+llama31 = "meta-llama/Meta-Llama-3.1-8B-Instruct" # works only with transformers==4.43.3
 llama3 = "meta-llama/Meta-Llama-3-8B-Instruct"
 llama2 = "meta-llama/Llama-2-7b-hf"
 
@@ -91,7 +91,7 @@ login(token="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")
 
 """# LLama Model"""
 
-model_id = llama3 # llama2
+model_id = llama31 # llama2
 
 # Load 4-bit quantized model
 model = AutoModelForCausalLM.from_pretrained( #LlamaAdapterModel.from_pretrained(
@@ -118,10 +118,10 @@ tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="right", tokeni
 tokenizer.pad_token = tokenizer.eos_token
 model.resize_token_embeddings(len(tokenizer))
 model.config.torch_dtype = torch.float32
-tokenizer.add_special_tokens({
-            "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
-            "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
-})
+# tokenizer.add_special_tokens({
+#             "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
+#             "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
+# })
 
 model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 model.config.torch_dtype=torch.float32# (torch.float16 if fp16 else (torch.bfloat16 if bf16 else torch.float16))
