@@ -272,6 +272,11 @@ trainer.train()
 results = trainer.evaluate()
 print(results)
 
+"""# Save Adapter """
+
+adapter_save_dir = "saved_models/"
+model.save_pretrained("{}/arxiv_lora_adapter".format(adapter_save_dir))
+
 """# Inference"""
 
 # from transformers import logging
@@ -308,7 +313,7 @@ i = 1
 texts ,sums = [], []
 
 
-def summarization_model(model, text, true_summary=""):
+def summarization_model(model, text, true_summary=None):
     inputs = tokenizer(text, return_tensors="pt", max_length=max_seq_len, truncation=True, padding="max_length")
     inputs = inputs.to(model.device)
     # model.eval()
@@ -323,12 +328,22 @@ def summarization_model(model, text, true_summary=""):
     # pred_summary = tokenizer.decode(outputs, skip_special_tokens=True)
     pred_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
     # for s1, s2 in zip(sums, summaries):
-    if len(true_summary) > 0:
-        print("actual: ", true_summary)
+    # if len(true_summary) > 0:
+    print("actual: ", true_summary)
     print("\n\npred: ", pred_summary)
 
+    return ([true_summary], [pred_summary]) if isinstance(pred_summary, str) else (true_summary, pred_summary)
 
-# print(gen_art[4]["text"])
+
+"""# Rouge Evaluation"""
+
+import evaluate
+
+rouge = evaluate.load("rouge")
+
 print("************(************(************(************(************")
 print(gen_art[4].keys()) #gen_art[4]["summary"])
-summarization_model(model, gen_art[4]["text"],gen_art[4]["summary"])
+
+truth, preds = summarization_model(model, gen_art[4]["text"],gen_art[4]["summary"])
+
+print("\n\n\nRouge Scores: ", rouge.compute(references=truth, predictions=preds))

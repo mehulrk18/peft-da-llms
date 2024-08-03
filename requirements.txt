@@ -5,6 +5,9 @@ transformers==4.43.3
 bitsandbytes==0.42.0
 huggingface-hub==0.23.4
 accelerate==0.30.0
+evaluate==0.4.2
+nltk
+rouge_score
 peft
 trl
 ninja
