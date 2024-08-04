@@ -47,7 +47,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,
     BitsAndBytesConfig, set_seed, Seq2SeqTrainer
 from datasets import load_dataset, load_from_disk, DatasetDict, Dataset
 from adapters import AdapterTrainer, LoRAConfig, LlamaAdapterModel, Seq2SeqAdapterTrainer, AutoAdapterModel, \
-    AdapterConfig
+    AdapterConfig, SeqBnConfig
 from transformers import DataCollatorForLanguageModeling, DataCollatorForSeq2Seq
 
 
@@ -67,7 +67,7 @@ dataset_info_dict = {
         "local_path": "domains/pubmed_summarization"
     }
 }
-max_seq_len = 1024 # context window # 1024
+max_seq_len = 256 # context window # 1024
 ddtype = torch.float32 # bfloat16
 bits = 4 #8
 bf16 = False
@@ -96,44 +96,49 @@ login(token="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")
 model_id = llama3 # llama2
 
 # Load 4-bit quantized model
-# model = AutoAdapterModel.from_pretrained(model_name)
-model = LlamaAdapterModel.from_pretrained(
+model = AutoAdapterModel.from_pretrained(
+# model = AutoModelForCausalLM.from_pretrained(   #  LlamaAdapterModel.from_pretrained(
     model_id,
     device_map="auto",
-    # quantization_config=BitsAndBytesConfig(
-    #     load_in_4bit=bits == 4,
-    #     load_in_8bit=bits == 8,
-    #     bnb_4bit_quant_type="nf4",
-    #     bnb_4bit_use_double_quant=True,
-    #     bnb_4bit_compute_dtype=compute_dtype,
-    # ),
+    quantization_config=BitsAndBytesConfig(
+        load_in_4bit=bits == 4,
+        load_in_8bit=bits == 8,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=compute_dtype,
+    ),
     torch_dtype=ddtype,
 )
 model.config.use_cache = False
+setattr(model, 'model_parallel', True)
+setattr(model, 'is_parallelizable', True)
 
-# setattr(model, 'model_parallel', True)
-# setattr(model, 'is_parallelizable', True)
 
+# def find_all_linear_names(bits, model):
+clsi = bitsandbytes.nn.Linear4bit if bits == 4 else (bitsandbytes.nn.Linear8bitLt if bits == 8 else torch.nn.Linear)
+lora_module_names = set()
+for name, module in model.named_modules():
+    if isinstance(module, clsi):
+        names = name.split('.')
+        lora_module_names.add(names[0] if len(names) == 1 else names[-1])
 """# Tokenizer"""
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="right", tokenizer_type="llama",
                                           trust_remote_code=True, use_fast=True)
 tokenizer.pad_token = tokenizer.eos_token
+tokenizer.add_special_tokens({
+            "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
+            "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
+})
 model.resize_token_embeddings(len(tokenizer))
 model.config.torch_dtype = torch.float32
-# tokenizer.add_special_tokens({
-#             "eos_token": tokenizer.convert_ids_to_tokens(model.config.eos_token_id),
-#             "bos_token": tokenizer.convert_ids_to_tokens(model.config.bos_token_id),
-# })
-
-model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 model.config.torch_dtype=torch.float32# (torch.float16 if fp16 else (torch.bfloat16 if bf16 else torch.float16))
 # if 'llama' in model_id:
 # else:
 #   tokenizer.pad_token = tokenizer.eos_token
 
 """# Adding Adapter / LoRA"""
-import adapters
+# import adapters
 # adapters.init(model)
 
 # lora_config = LoRAConfig(
@@ -144,48 +149,45 @@ import adapters
 
 adapter_config = AdapterConfig.load("seq_bn")
 
-model.add_adapter("arxiv_adapter", config=adapter_config)
-# model.add_seq2seq_lm_head("arxiv_adapter")
-model.set_active_adapters("arxiv_adapter")
-model.train_adapter("arxiv_adapter")
+adapter_name = "arxiv_adapter"
+"""### To correctly train bottleneck adapters or prefix tuning, uncomment the following lines to move the adapter weights to GPU explicitly:"""
+# model.add_adapter(adapter_name, adapter_config=adapter_config) #config=adapter_config)
+model.add_adapter(adapter_name, config=adapter_config)
+model.add_causal_lm_head(adapter_name)
+# model.add_causal_lm_head("arxiv_adapter")
+model.set_active_adapters(adapter_name)
+model.train_adapter(adapter_name)
+# Correctly set the adapter to the appropriate device
+# model.get_adapter(adapter_name).to(device)
 
-
+# Enable gradient checkpointing to reduce required memory if needed
+# model = model.to(device)
+model.adapter_to(adapter_name, device=device)
+model.gradient_checkpointing_enable()
+model.enable_input_require_grads()
+model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 print(model.adapter_summary())
 
-"""### To correctly train bottleneck adapters or prefix tuning, uncomment the following lines to move the adapter weights to GPU explicitly:"""
 
-# model.adapter_to("arxiv_adapter", device="cuda")
-
-"""Some final preparations for 4bit training: we cast a few parameters to float32 for stability.
 
 # Loading Dataset - Arxiv
-"""
 
+"""Some final preparations for 4bit training: we cast a few parameters to float32 for stability.
+"""
 for param in model.parameters():
     if param.ndim == 1:
         # cast the small parameters (e.g. layernorm) to fp32 for stability
         param.data = param.data.to(torch.float32)
 
-
-# def find_all_linear_names(bits, model):
-# clsi = bitsandbytes.nn.Linear4bit if bits == 4 else (bitsandbytes.nn.Linear8bitLt if bits == 8 else torch.nn.Linear)
-# lora_module_names = set()
-# for name, module in model.named_modules():
-#     if isinstance(module, clsi):
-#         names = name.split('.')
-#         lora_module_names.add(names[0] if len(names) == 1 else names[-1])
-
-
-# if 'lm_head' in lora_module_names: # needed for 16-bit
-#     lora_module_names.remove('lm_head')
+if 'lm_head' in lora_module_names: # needed for 16-bit
+    lora_module_names.remove('lm_head')
 # return list(lora_module_names)
-# Enable gradient checkpointing to reduce required memory if needed
-model.gradient_checkpointing_enable()
-model.enable_input_require_grads()
+
+print("Model: ", model)
 
 # class CastOutputToFloat(torch.nn.Sequential):
 #     def forward(self, x): return super().forward(x).to(torch.float32)
-# model.causal_lm = CastOutputToFloat(model.causal_lm)
+# model.CausalLM = CastOutputToFloat(model.CausalLM)
 
 # Dataset helper
 def loading_dataset(dataset_name, force_run=False):
@@ -212,19 +214,25 @@ def preprocess_dataset(_data):
 def tokenization_process(input_data):
     input_data.pop("article", None)
     input_data.pop("abstract", None)
-    inputs = tokenizer(input_data['text'], max_length=max_seq_len, truncation=True, padding="max_length",
+
+    text = input_data.get('text', "")
+    summary = input_data.get('summary', "")
+
+    inputs = tokenizer(text, max_length=max_seq_len, truncation=True, padding="max_length",
                        return_tensors="pt")
     # targets = tokenizer(input_data['summary'], max_length=max_seq_len, truncation=True, padding="max_length",
     #                     return_tensors="pt")
     with tokenizer.as_target_tokenizer():
-        targets = tokenizer(input_data['summary'], max_length=max_seq_len, truncation=True, padding="max_length",
+        targets = tokenizer(summary, max_length=max_seq_len, truncation=True, padding="max_length",
                             return_tensors="pt")
 
     # For causal LM, concatenate the input and output for training
-    input_ids = inputs['input_ids']
-    labels = targets['input_ids']
-    return {'text': input_data["text"], "input_ids": input_ids,  # 'attention_mask': inputs['attention_mask'],
-            'label': labels}
+    input_ids = inputs['input_ids'].clone()
+    labels = targets['input_ids'].clone()
+    return {"input_ids": input_ids, "attention_mask": inputs['attention_mask'].clone(), "labels": labels}
+    # return {"input_ids": torch.tensor(input_ids, device=device),
+    #         "attention_mask": torch.tensor(inputs['attention_mask'], device=device),
+    #         "labels": torch.tensor(labels, device=device)}
 
 
 dataset_arxiv = loading_dataset("arxiv") #, force_run=True)
@@ -232,19 +240,21 @@ dataset_arxiv = loading_dataset("arxiv") #, force_run=True)
 
 
 # Encode the input data
-dataset_arxiv_updated = dataset_arxiv.map(preprocess_dataset, batched=True)#, num_proc=os.cpu_count())
-dataset_arxiv = dataset_arxiv_updated.map(tokenization_process, batched=True)# , num_proc=os.cpu_count())
-dataset_arxiv.set_format(type='torch', columns=['input_ids', 'labels'])
+dataset_arxiv = dataset_arxiv.map(preprocess_dataset, batched=True)#, num_proc=os.cpu_count())
+
+tr_arxiv = dataset_arxiv["train"].map(tokenization_process, batched=True, remove_columns=["text", "summary"])    #  [:500]
+val_arxiv = dataset_arxiv["validation"].map(tokenization_process, batched=True, remove_columns=["text", "summary"]) # [:500]
+test_arxiv = dataset_arxiv["test"].map(tokenization_process, batched=True) # , num_proc=os.cpu_count())
+# dataset_arxiv.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
 print("Arxiv: ", dataset_arxiv)
 # dataset_pubmed = dataset_pubmed.map(preprocess_dataset, batched=True)
 # print("Pubmed: ", dataset_pubmed)
 
 """# Training"""
 set_seed(42)
-tr_arxiv = dataset_arxiv["train"]    #  [:500]
-val_arxiv = dataset_arxiv["validation"]  # [:500]
 torch.enable_grad()
-training_args = Seq2SeqTrainingArguments( #Seq2SeqTrainingArguments
+training_args = Seq2SeqTrainingArguments(
+    remove_unused_columns=False,
     output_dir="results/llama_qlora",
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
@@ -276,8 +286,10 @@ trainer = Seq2SeqAdapterTrainer( # AdapterTrainer # Seq2SeqTrainer(
     args=training_args,
 )
 
+# import pdb; pdb.set_trace()
+
 from transformers import TrainerCallback
-trainer.add_callback(TrainerCallback)
+# trainer.add_callback(TrainerCallback)
 trainer = accelerator.prepare(trainer)
 trainer.train()
 
@@ -320,9 +332,6 @@ model.save_adapter(adapter_save_dir+"arxiv_lora_adapter_aml", "arxiv_adapter")
 # trainer = accelerator.prepare(trainer)
 
 # new_articles = ["New article text here..."]
-
-gen_art = dataset_arxiv_updated["test"]
-
 i = 1
 texts ,sums = [], []
 
@@ -356,8 +365,8 @@ import evaluate
 rouge = evaluate.load("rouge")
 
 print("************(************(************(************(************")
-print(gen_art[4].keys()) #gen_art[4]["summary"])
+print(test_arxiv[4].keys()) #gen_art[4]["summary"])
 
-truth, preds = summarization_model(model, gen_art[4]["article"],gen_art[4]["abstract"])
+truth, preds = summarization_model(model, test_arxiv[4]["text"],test_arxiv[4]["summary"])
 
 print("\n\n\nRouge Scores: ", rouge.compute(references=truth, predictions=preds))
