@@ -47,7 +47,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,
     BitsAndBytesConfig, set_seed, Seq2SeqTrainer
 from datasets import load_dataset, load_from_disk, DatasetDict, Dataset
 from adapters import AdapterTrainer, LoRAConfig, LlamaAdapterModel, Seq2SeqAdapterTrainer, AutoAdapterModel, \
-    AdapterConfig, SeqBnConfig
+    AdapterConfig, SeqBnConfig, DoubleSeqBnConfig, DoubleSeqBnInvConfig, ParBnConfig, IA3Config
 from transformers import DataCollatorForLanguageModeling, DataCollatorForSeq2Seq
 
 
@@ -96,7 +96,7 @@ login(token="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")
 model_id = llama3 # llama2
 
 # Load 4-bit quantized model
-model = AutoAdapterModel.from_pretrained(
+model = LlamaAdapterModel.from_pretrained( # AutoAdapterModel
 # model = AutoModelForCausalLM.from_pretrained(   #  LlamaAdapterModel.from_pretrained(
     model_id,
     device_map="auto",
@@ -110,8 +110,8 @@ model = AutoAdapterModel.from_pretrained(
     torch_dtype=ddtype,
 )
 model.config.use_cache = False
-setattr(model, 'model_parallel', True)
-setattr(model, 'is_parallelizable', True)
+# setattr(model, 'model_parallel', True)
+# setattr(model, 'is_parallelizable', True)
 
 
 # def find_all_linear_names(bits, model):
@@ -121,6 +121,9 @@ for name, module in model.named_modules():
     if isinstance(module, clsi):
         names = name.split('.')
         lora_module_names.add(names[0] if len(names) == 1 else names[-1])
+
+if 'lm_head' in lora_module_names: # needed for 16-bit
+    lora_module_names.remove('lm_head')
 """# Tokenizer"""
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="right", tokenizer_type="llama",
@@ -141,18 +144,32 @@ model.config.torch_dtype=torch.float32# (torch.float16 if fp16 else (torch.bfloa
 # import adapters
 # adapters.init(model)
 
-# lora_config = LoRAConfig(
-#     selfattn_lora=True, intermediate_lora=True, output_lora=True,
-#     attn_matrices=["q", "k", "v"],
-#     alpha=16, r=64, dropout=0.1,
-# )
+lora_config = LoRAConfig(
+    selfattn_lora=True, intermediate_lora=True, output_lora=True,
+    attn_matrices=["q", "k", "v"],
+    alpha=16, r=64, dropout=0.1,
+)
 
-adapter_config = AdapterConfig.load("seq_bn")
+ia3_config = IA3Config(
+    selfattn_lora=True, intermediate_lora=True, output_lora=True,
+    attn_matrices=["q", "k", "v"],
+    alpha=1, r=1, dropout=0.1,
+)
+
+# adapter_config = AdapterConfig.load("double_seq_bn")
 
 adapter_name = "arxiv_adapter"
 """### To correctly train bottleneck adapters or prefix tuning, uncomment the following lines to move the adapter weights to GPU explicitly:"""
-# model.add_adapter(adapter_name, adapter_config=adapter_config) #config=adapter_config)
-model.add_adapter(adapter_name, config=adapter_config)
+# model.add_adapter(adapter_name,
+#                   config=ParBnConfig(
+#                       mh_adapter=True,
+#                       output_adapter=True,
+#                       reduction_factor=16,
+#                       non_linearity="relu"
+#                   ))
+
+model.add_adapter(adapter_name,
+                  config=ia3_config)
 model.add_causal_lm_head(adapter_name)
 # model.add_causal_lm_head("arxiv_adapter")
 model.set_active_adapters(adapter_name)
@@ -178,9 +195,6 @@ for param in model.parameters():
     if param.ndim == 1:
         # cast the small parameters (e.g. layernorm) to fp32 for stability
         param.data = param.data.to(torch.float32)
-
-if 'lm_head' in lora_module_names: # needed for 16-bit
-    lora_module_names.remove('lm_head')
 # return list(lora_module_names)
 
 print("Model: ", model)
@@ -253,7 +267,7 @@ print("Arxiv: ", dataset_arxiv)
 """# Training"""
 set_seed(42)
 torch.enable_grad()
-training_args = Seq2SeqTrainingArguments(
+training_args = TrainingArguments( # Seq2Seq
     remove_unused_columns=False,
     output_dir="results/llama_qlora",
     per_device_train_batch_size=1,
@@ -277,7 +291,7 @@ training_args = Seq2SeqTrainingArguments(
 
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding="max_length", max_length=max_seq_len, label_pad_token_id=-100)
 # data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
-trainer = Seq2SeqAdapterTrainer( # AdapterTrainer # Seq2SeqTrainer(
+trainer = AdapterTrainer( # AdapterTrainer # Seq2SeqTrainer(
     model=model,
     tokenizer=tokenizer,
     data_collator=data_collator,
@@ -289,7 +303,7 @@ trainer = Seq2SeqAdapterTrainer( # AdapterTrainer # Seq2SeqTrainer(
 # import pdb; pdb.set_trace()
 
 from transformers import TrainerCallback
-# trainer.add_callback(TrainerCallback)
+trainer.add_callback(TrainerCallback)
 trainer = accelerator.prepare(trainer)
 trainer.train()
 
@@ -300,7 +314,8 @@ print(results)
 
 adapter_save_dir = "saved_models/"
 # model.save_pretrained("{}/arxiv_lora_adapter".format(adapter_save_dir))
-model.save_adapter(adapter_save_dir+"arxiv_lora_adapter_aml", "arxiv_adapter")
+# model.save_adapter(adapter_save_dir+"arxiv_lora_adapter_aml", "arxiv_adapter")
+model.save_adapter(adapter_save_dir+"arxiv_ia3_ahub", "arxiv_adapter")
 
 
 """# Inference"""
@@ -339,15 +354,26 @@ texts ,sums = [], []
 def summarization_model(model, text, true_summary=None):
     inputs = tokenizer(text, return_tensors="pt", max_length=max_seq_len, truncation=True, padding="max_length")
     inputs = inputs.to(model.device)
-    # model.eval()
-    # outputs = model.generate(inputs.input_ids, max_length=1024, num_beams=5, early_stopping=True)
+
+    # Beam Search
+    # outputs = model.generate(
+    #     input_ids=inputs.input_ids,
+    #     attention_mask=inputs.attention_mask,
+    #     max_length=1024,
+    #     num_beams=1,
+    #     early_stopping=True
+    # )
+
     outputs = model.generate(
-        input_ids=inputs.input_ids,
-        # attention_mask=inputs.attention_mask,
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
         max_length=1024,
-        num_beams=5,
+        do_sample=True,  # Enable sampling
+        top_k=50,  # Top-k sampling
+        num_return_sequences=1,  # Generate a single sequence
         early_stopping=True
     )
+
     # pred_summary = tokenizer.decode(outputs, skip_special_tokens=True)
     pred_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
     # for s1, s2 in zip(sums, summaries):
