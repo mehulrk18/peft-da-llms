@@ -158,7 +158,7 @@ ia3_config = IA3Config(
 
 # adapter_config = AdapterConfig.load("double_seq_bn")
 
-adapter_name = "arxiv_adapter"
+adapter_name = "bn_arxiv_adapter"
 """### To correctly train bottleneck adapters or prefix tuning, uncomment the following lines to move the adapter weights to GPU explicitly:"""
 # model.add_adapter(adapter_name,
 #                   config=ParBnConfig(
@@ -169,7 +169,7 @@ adapter_name = "arxiv_adapter"
 #                   ))
 
 model.add_adapter(adapter_name,
-                  config=ia3_config)
+                  config=lora_config)
 model.add_causal_lm_head(adapter_name)
 # model.add_causal_lm_head("arxiv_adapter")
 model.set_active_adapters(adapter_name)
@@ -180,8 +180,8 @@ model.train_adapter(adapter_name)
 # Enable gradient checkpointing to reduce required memory if needed
 # model = model.to(device)
 model.adapter_to(adapter_name, device=device)
-model.gradient_checkpointing_enable()
-model.enable_input_require_grads()
+# model.gradient_checkpointing_enable() # removing for bn
+# model.enable_input_require_grads() # removing for bn
 model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 print(model.adapter_summary())
 
@@ -249,7 +249,7 @@ def tokenization_process(input_data):
     #         "labels": torch.tensor(labels, device=device)}
 
 
-dataset_arxiv = loading_dataset("arxiv") #, force_run=True)
+dataset_arxiv = loading_dataset("pubmed") #, force_run=True)
 # dataset_pubmed = loading_dataset("pubmed")
 
 
@@ -315,7 +315,7 @@ print(results)
 adapter_save_dir = "saved_models/"
 # model.save_pretrained("{}/arxiv_lora_adapter".format(adapter_save_dir))
 # model.save_adapter(adapter_save_dir+"arxiv_lora_adapter_aml", "arxiv_adapter")
-model.save_adapter(adapter_save_dir+"arxiv_ia3_ahub", "arxiv_adapter")
+model.save_adapter(adapter_save_dir+"arxiv_ia3_ahub", adapter_name)
 
 
 """# Inference"""

@@ -4,5 +4,7 @@ saved_models
 results
 .DS_Store
 .idea/
+logs/
+wandb
 *venv
 __pycache__*

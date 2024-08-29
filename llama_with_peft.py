@@ -10,6 +10,7 @@ import bitsandbytes
 from peft import prepare_model_for_kbit_training
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from trl import SFTTrainer
 
 try:
   from google.colab import drive
@@ -46,7 +47,6 @@ from accelerate import Accelerator, init_empty_weights, load_checkpoint_and_disp
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Seq2SeqTrainingArguments, \
     BitsAndBytesConfig, set_seed, Seq2SeqTrainer
 from datasets import load_dataset, load_from_disk, DatasetDict, Dataset
-from adapters import AdapterTrainer, LoRAConfig, LlamaAdapterModel, Seq2SeqAdapterTrainer
 from transformers import DataCollatorForLanguageModeling, DataCollatorForSeq2Seq
 
 
@@ -66,7 +66,7 @@ dataset_info_dict = {
         "local_path": "domains/pubmed_summarization"
     }
 }
-max_seq_len = 256 # context window # 1024
+max_seq_len = 1024 # context window # 1024
 ddtype = torch.float32 # bfloat16
 bits = 4 #8
 bf16 = False
@@ -78,6 +78,7 @@ compute_dtype = torch.float32 # torch.bfloat16 if bf16 else torch.float32
 llama31 = "meta-llama/Meta-Llama-3.1-8B-Instruct" # works only with transformers==4.43.3
 llama3 = "meta-llama/Meta-Llama-3-8B-Instruct"
 llama2 = "meta-llama/Llama-2-7b-hf"
+mistral = "mistralai/Mistral-7B-v0.3"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # device = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -92,7 +93,8 @@ login(token="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")
 
 """# LLama Model"""
 
-model_id = llama3 # llama2
+model_id = mistral # llama3
+dataset_name = "pubmed"
 
 # Load 4-bit quantized model
 model = AutoModelForCausalLM.from_pretrained( #LlamaAdapterModel.from_pretrained(
@@ -114,7 +116,7 @@ setattr(model, 'is_parallelizable', True)
 
 """# Tokenizer"""
 
-tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="right", tokenizer_type="llama",
+tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="right", tokenizer_type=None,
                                           trust_remote_code=True, use_fast=True)
 tokenizer.pad_token = tokenizer.eos_token
 model.resize_token_embeddings(len(tokenizer))
@@ -140,10 +142,15 @@ model.config.torch_dtype=torch.float32# (torch.float16 if fp16 else (torch.bfloa
 #     alpha=16, r=64, dropout=0.1,
 # )
 
-from peft import LoraConfig, TaskType
+from peft import LoraConfig, IA3Config, TaskType
 
-peft_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, r=8, #target_modules=["q", "v"],
-                         lora_alpha=16, lora_dropout=0.1, modules_to_save=["arxiv_lora"])
+# peft_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, r=8, #target_modules=["q", "v"],
+#                          lora_alpha=16, lora_dropout=0.1, modules_to_save=["mistral_{}_lora".format(dataset_name)])
+
+peft_config = IA3Config(
+    task_type=TaskType.CAUSAL_LM, target_modules=["k_proj", "v_proj", "down_proj"], feedforward_modules=["down_proj"],
+    modules_to_save=["mistral_{}_ia3".format(dataset_name)]
+)
 
 # model.add_adapter("arxiv_adapter", config=peft_config)
 # model.add_seq2seq_lm_head("arxiv_adapter")
@@ -194,6 +201,34 @@ model.enable_input_require_grads()
 # model.causal_lm = CastOutputToFloat(model.causal_lm)
 
 # Dataset helper
+
+DEFAULT_SYSTEM_PROMPT = """
+    Given below is an article. Write a concise and informative Summary for the article.
+""".strip()
+
+def generate_training_prompt(article: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    prompt = """### Instruction: {}\n\n### Article: {}\n\n### Summary: {}""".format(system_prompt, article, summary)
+
+    return prompt.strip()
+
+
+def preprocess_dataset(_sample):
+    texts = [generate_training_prompt(article=article, summary=summary)
+             for article, summary in zip(_sample["article"], _sample["abstract"])]
+
+    return {
+        # "content": _sample["article"],
+        # "summary": _sample["abstract"],
+        "text": texts
+    }
+
+
+def process_dataset_with_prompt(_dataset: Dataset):
+    return (_dataset.map(preprocess_dataset, batched=True, # remove_columns=["article", "abstract"]
+                         ).shuffle(seed=42))
+    # return data
+
+
 def loading_dataset(dataset_name, force_run=False):
     local_path = dir + dataset_info_dict[dataset_name]["local_path"]
     if not os.path.exists(local_path) or force_run:
@@ -212,30 +247,48 @@ def loading_dataset(dataset_name, force_run=False):
         dataset = load_from_disk(local_path)
     return dataset
 
-def preprocess_dataset(_data):
-    return {"text": _data["article"], "summary": _data["abstract"]}
+# def preprocess_dataset(_data):
+#     return {"text": _data["article"], "summary": _data["abstract"]}
+#
+# def tokenization_process(input_data):
+#     input_data.pop("article", None)
+#     input_data.pop("abstract", None)
+#     inputs = tokenizer(input_data['text'], max_length=max_seq_len, truncation=True, padding="max_length",
+#                        return_tensors="pt")
+#     targets = tokenizer(input_data['summary'], max_length=max_seq_len, truncation=True, padding="max_length",
+#                         return_tensors="pt")
+#
+#     # For causal LM, concatenate the input and output for training
+#     input_ids = inputs['input_ids']
+#     labels = targets['input_ids']
+#     return {'input_ids': input_ids, 'attention_mask': inputs['attention_mask'], 'labels': labels}
 
 def tokenization_process(input_data):
-    input_data.pop("article", None)
-    input_data.pop("abstract", None)
-    inputs = tokenizer(input_data['text'], max_length=max_seq_len, truncation=True, padding="max_length",
+    # text = input_data.pop('text', "")
+    # summary = input_data.pop('summary', "")
+    # input_data.pop("content")
+
+    inputs = tokenizer(input_data["text"], max_length=max_seq_len, truncation=True, padding="max_length",
                        return_tensors="pt")
-    targets = tokenizer(input_data['summary'], max_length=max_seq_len, truncation=True, padding="max_length",
-                        return_tensors="pt")
+    # with tokenizer.as_target_tokenizer():
+    #     targets = tokenizer(summary, max_length=max_seq_len, truncation=True, padding="max_length",
+    #                         return_tensors="pt")
+    # labels = targets["input_ids"].squeeze()
+    input_ids = inputs['input_ids'].clone()
+    # labels = targets['input_ids'].clone()
+    return {"input_ids": input_ids}  # , "labels": labels}
 
-    # For causal LM, concatenate the input and output for training
-    input_ids = inputs['input_ids']
-    labels = targets['input_ids']
-    return {'input_ids': input_ids, 'attention_mask': inputs['attention_mask'], 'labels': labels}
 
-
-dataset_arxiv = loading_dataset("arxiv") #, force_run=True)
+dataset_arxiv = loading_dataset(dataset_name=dataset_name) #, force_run=True)
 # dataset_pubmed = loading_dataset("pubmed")
-
+dataset_arxiv["train"] = process_dataset_with_prompt(dataset_arxiv["train"])
+dataset_arxiv["validation"] = process_dataset_with_prompt(dataset_arxiv["validation"])
 
 # Encode the input data
-dataset_arxiv = dataset_arxiv.map(preprocess_dataset, batched=True)#, num_proc=os.cpu_count())
-dataset_arxiv = dataset_arxiv.map(tokenization_process, batched=True)# , num_proc=os.cpu_count())
+dataset_arxiv["train"] = dataset_arxiv["train"].map(preprocess_dataset, batched=True)#, num_proc=os.cpu_count())
+dataset_arxiv["validation"] = dataset_arxiv["validation"].map(preprocess_dataset, batched=True)#, num_proc=os.cpu_count())
+# dataset_arxiv["train"] = dataset_arxiv["train"].map(tokenization_process, batched=True)# , num_proc=os.cpu_count())
+# dataset_arxiv["validation"] = dataset_arxiv["validation"].map(tokenization_process, batched=True)# , num_proc=os.cpu_count())
 # dataset_arxiv.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
 print("Arxiv: ", dataset_arxiv)
 # dataset_pubmed = dataset_pubmed.map(preprocess_dataset, batched=True)
@@ -243,53 +296,64 @@ print("Arxiv: ", dataset_arxiv)
 
 """# Training"""
 set_seed(42)
-tr_arxiv = dataset_arxiv["train"]    #  [:500]
-val_arxiv = dataset_arxiv["validation"]  # [:500]
+tr_arxiv = dataset_arxiv["train"].map(tokenization_process, batched=True, remove_columns=["text", "article", "abstract"])# , num_proc=os.cpu_count())
+val_arxiv = dataset_arxiv["validation"].map(tokenization_process, batched=True, remove_columns=["text", "article", "abstract"])# , num_proc=os.cpu_count())
 torch.enable_grad()
-training_args = Seq2SeqTrainingArguments( #Seq2SeqTrainingArguments
-    output_dir="results/llama_qlora",
+training_args = TrainingArguments( #Seq2SeqTrainingArguments
+    output_dir="results/mistral_{}_lora".format(dataset_name),
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
-    evaluation_strategy="steps",
+    evaluation_strategy="epoch",
     logging_steps=10,
-    save_steps=500,
-    eval_steps=187,
-    num_train_epochs=1,
+    save_steps=50,
+    eval_steps=10,
     save_total_limit=3,
-    gradient_accumulation_steps=16,
-    max_steps=30,
+    num_train_epochs=1,
+    gradient_accumulation_steps=10,
+    # max_steps=1875,
     lr_scheduler_type="constant",
     optim="paged_adamw_32bit",
     learning_rate=0.0002,
     group_by_length=True,
     bf16=True,
     warmup_ratio=0.03,
-    max_grad_norm=0.3
+    report_to="tensorboard"
 )
 
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding="max_length", max_length=max_seq_len, label_pad_token_id=-100)
 # data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
-trainer = Seq2SeqTrainer( #Seq2SeqAdapterTrainer( # AdapterTrainer
+# trainer = Seq2SeqTrainer( #Seq2SeqAdapterTrainer( # AdapterTrainer
+#     model=model,
+#     tokenizer=tokenizer,
+#     data_collator=data_collator,
+#     train_dataset=tr_arxiv,
+#     eval_dataset=val_arxiv,
+#     args=training_args,
+# )
+
+trainer = SFTTrainer(
     model=model,
-    tokenizer=tokenizer,
-    data_collator=data_collator,
     train_dataset=tr_arxiv,
     eval_dataset=val_arxiv,
+    peft_config=peft_config,
+    dataset_text_field="text",
+    max_seq_length=max_seq_len,
+    tokenizer=tokenizer,
     args=training_args,
 )
-
 from transformers import TrainerCallback
 trainer.add_callback(TrainerCallback)
 trainer = accelerator.prepare(trainer)
 trainer.train()
 
 results = trainer.evaluate()
+ft_model = trainer.model
 print(results)
 
 """# Save Adapter """
 
 adapter_save_dir = "saved_models/"
-model.save_pretrained("{}/arxiv_lora_adapter".format(adapter_save_dir))
+model.save_pretrained("{}/{}_ia3_adapter".format(adapter_save_dir, dataset_name))
 
 """# Inference"""
 
@@ -327,20 +391,27 @@ i = 1
 texts ,sums = [], []
 
 
+def inference_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    prompt = """### Instruction: {}\n### Article: {}\n### Summary:""".format(system_prompt.strip(), article.strip())
+
+    return prompt.strip()
+
 def summarization_model(model, text, true_summary=None):
+    text = inference_prompt(text)
     inputs = tokenizer(text, return_tensors="pt", max_length=max_seq_len, truncation=True, padding="max_length")
     inputs = inputs.to(model.device)
+    in_len = len(inputs["input_ids"][0])
     # model.eval()
     # outputs = model.generate(inputs.input_ids, max_length=1024, num_beams=5, early_stopping=True)
     outputs = model.generate(
-        input_ids=inputs.input_ids,
-        attention_mask=inputs.attention_mask,
+        **inputs,
+        # attention_mask=inputs.attention_mask,
         max_length=1024,
         num_beams=5,
         early_stopping=True
     )
     # pred_summary = tokenizer.decode(outputs, skip_special_tokens=True)
-    pred_summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    pred_summary = tokenizer.decode(outputs[0][in_len:], skip_special_tokens=True)
     # for s1, s2 in zip(sums, summaries):
     # if len(true_summary) > 0:
     print("actual: ", true_summary)
@@ -358,6 +429,6 @@ rouge = evaluate.load("rouge")
 print("************(************(************(************(************")
 print(gen_art[4].keys()) #gen_art[4]["summary"])
 
-truth, preds = summarization_model(model, gen_art[4]["text"],gen_art[4]["summary"])
+truth, preds = summarization_model(ft_model, gen_art[3]["article"],gen_art[3]["abstract"])
 
 print("\n\n\nRouge Scores: ", rouge.compute(references=truth, predictions=preds))
