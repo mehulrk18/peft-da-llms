@@ -314,10 +314,6 @@ def tokenization_process(input_data):
 #         "labels": inputs["input_ids"].squeeze()  # This is for causal LM where labels are the input ids shifted by 1
 #     }
 
-
-
-# model.add_causal_lm_head("simple_causal_lm_head")
-# model.adapter_to("simple_causal_lm_head", device=device)
 test_data = pd.DataFrame(pubmed_data["test"][:5])
 
 sample = test_data.iloc[3]

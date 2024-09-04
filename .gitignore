@@ -1,8 +1,9 @@
 .ipynb_checkpoints/
 domains
 saved_models
-results
+results/
 .DS_Store
+.env
 .idea/
 logs/
 wandb

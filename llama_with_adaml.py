@@ -160,13 +160,13 @@ ia3_config = IA3Config(
 
 adapter_name = "bn_arxiv_adapter"
 """### To correctly train bottleneck adapters or prefix tuning, uncomment the following lines to move the adapter weights to GPU explicitly:"""
-# model.add_adapter(adapter_name,
-#                   config=ParBnConfig(
-#                       mh_adapter=True,
-#                       output_adapter=True,
-#                       reduction_factor=16,
-#                       non_linearity="relu"
-#                   ))
+model.add_adapter(adapter_name,
+                  config=ParBnConfig(
+                      mh_adapter=True,
+                      output_adapter=True,
+                      reduction_factor=16,
+                      non_linearity="relu"
+                  ))
 
 model.add_adapter(adapter_name,
                   config=lora_config)
