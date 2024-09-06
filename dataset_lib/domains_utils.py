@@ -4,7 +4,7 @@ import pandas as pd
 import huggingface_hub
 from datasets import list_datasets, load_dataset
 
-from dataset_lib import generate_training_prompt
+from .prompt_utils import generate_training_prompt
 
 
 class SumDatasets(Enum):

@@ -4,7 +4,7 @@ import random
 import pandas as pd
 from datasets import load_dataset, Dataset, DatasetDict, load_from_disk
 
-from dataset_lib import datasets_info_dict, SumDatasets, preprocessing_scientific_or_medical, \
+from .domains_utils import datasets_info_dict, SumDatasets, preprocessing_scientific_or_medical, \
     preprocessing_legal, preprocessing_news, preprocessing_low_resource_domain
 
 DATASET_STORAGE_DIR = "domains/"   # fetch from configs
@@ -31,8 +31,27 @@ class SumDataLoader:
     @classmethod
     def sample_dataset(cls, dataset_split, sample_size=1000):
         random.seed(42)
-        sampled_indices = random.sample(range(len(dataset_split)), sample_size)
-        return dataset_split.select(sampled_indices)
+        # dataset_split = dataset_split.to_dataset()
+        print("datasplit: ", dataset_split)
+        # import pdb; pdb.set_trace()
+
+        sampled_data = []
+
+        # Manually iterate through the IterableDataset
+        for idx, example in enumerate(dataset_split):
+            # Decide whether to include the example based on the current index
+            if len(sampled_data) < sample_size:
+                # Always add samples if we have not reached the desired sample size
+                sampled_data.append(example)
+            else:
+                # Once we have enough samples, replace elements with decreasing probability
+                j = random.randint(0, idx)
+                if j < sample_size:
+                    sampled_data[j] = example
+
+        return sampled_data
+        # sampled_indices = random.sample(range(dataset_split.num_rows), sample_size)
+        # return dataset_split.select(sampled_indices)
 
     def loading_dataset_from_hf(self):
         local_path = DATASET_STORAGE_DIR + self.local_path
@@ -49,9 +68,9 @@ class SumDataLoader:
             #     dataset_dict[split] = Dataset.from_pandas(df)  # dataset[split].to_pandas())
             # _dataset = DatasetDict(dataset_dict)
 
-            self.train_set = self.sample_dataset(loaded_dataset["train"], self.training_samples)
-            self.validation_set = self.sample_dataset(loaded_dataset["validation"])
-            self.test_set = self.sample_dataset(loaded_dataset["test"])
+            self.train_set = Dataset.from_list(self.sample_dataset(loaded_dataset["train"], self.training_samples))
+            self.validation_set = Dataset.from_list(self.sample_dataset(loaded_dataset["validation"]))
+            self.test_set = Dataset.from_list(self.sample_dataset(loaded_dataset["test"]))
 
             dataset_dict = DatasetDict({
                 "train": self.train_set,
@@ -60,7 +79,7 @@ class SumDataLoader:
             })
 
             dataset_dict.save_to_disk(local_path)
-            del dataset_dict
+            # del dataset_dict
             # return _dataset
         else:
             loaded_dataset = load_from_disk(local_path)
@@ -68,11 +87,12 @@ class SumDataLoader:
             self.validation_set = loaded_dataset["validation"]
             self.test_set = loaded_dataset["test"]
 
-        return self  # .train_set, self.validation_set, self.test_set
+        return self.train_set, self.validation_set, self.test_set
 
     def loading_dataset_from_csv_or_excel(self):
         # TODO: To be implemented
         pass
+        return None, None, None
 
     def loading_dataset_splits(self):
         if self.dataset_source == "hugging_face":

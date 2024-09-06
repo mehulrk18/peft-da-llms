@@ -175,6 +175,11 @@ if __name__ == "__main__":
         print("Exception: ", e)
         main_directory = ""
 
+
+    from datetime import datetime
+
+    now = datetime.now().strftime("%d-%m-%Y__%H%M%S")
+
     training_args = TrainingArguments(  # Seq2Seq
         remove_unused_columns=False,
         output_dir=main_directory+"results/llama_{}_{}".format("arxiv", "lora"),  # pubmed_lora",
@@ -185,11 +190,12 @@ if __name__ == "__main__":
         learning_rate=1e-4,
         fp16=True,
         max_grad_norm=0.3,
-        num_train_epochs=7,  # 7
+        num_train_epochs=2,  # 7
         evaluation_strategy="epoch",
         eval_steps=0.2,
         warmup_ratio=0.05,
         save_strategy="epoch",
+        save_total_limit=1,
         group_by_length=True,
         logging_dir=main_directory+"logs/",
         # output_dir="results/",
@@ -198,6 +204,7 @@ if __name__ == "__main__":
         lr_scheduler_type="constant",  # "cosine",
         seed=42,
         load_best_model_at_end=True,
+        run_name="llama_{}_{}_{}".format("arxiv", "lora", now)
         # push_to_hub=True,
     )
 
