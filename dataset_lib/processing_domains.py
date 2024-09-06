@@ -26,17 +26,12 @@ class SumDataLoader:
 
         self.train_set, self.validation_set, self.test_set = None, None, None
 
-        self.preprocess_function = self.get_preprocess_function()
+        self.preprocess_function = self.__get_preprocess_function()
 
     @classmethod
     def sample_dataset(cls, dataset_split, sample_size=1000):
         random.seed(42)
-        # dataset_split = dataset_split.to_dataset()
-        print("datasplit: ", dataset_split)
-        # import pdb; pdb.set_trace()
-
         sampled_data = []
-
         # Manually iterate through the IterableDataset
         for idx, example in enumerate(dataset_split):
             # Decide whether to include the example based on the current index
@@ -79,6 +74,7 @@ class SumDataLoader:
             })
 
             dataset_dict.save_to_disk(local_path)
+            print("******* Dataset for Domain - '{}' is stored at {} !!!*******".format(self.dataset_name, local_path))
             # del dataset_dict
             # return _dataset
         else:
@@ -87,12 +83,17 @@ class SumDataLoader:
             self.validation_set = loaded_dataset["validation"]
             self.test_set = loaded_dataset["test"]
 
-        return self.train_set, self.validation_set, self.test_set
+        print("**Dataset Stats**\nTrain: {}\n\nValidation: {}\n\nTest: {}\n\n".format(self.train_set,
+                                                                                      self.validation_set,
+                                                                                      self.test_set))
+
+        # return self.train_set, self.validation_set, self.test_set
 
     def loading_dataset_from_csv_or_excel(self):
         # TODO: To be implemented
         pass
-        return None, None, None
+        raise NotImplementedError()
+        # return None, None, None
 
     def loading_dataset_splits(self):
         if self.dataset_source == "hugging_face":
@@ -102,9 +103,9 @@ class SumDataLoader:
             return self.loading_dataset_from_csv_or_excel()
 
         else:
-            NotImplementedError("Sources except hugging_face and tabular (csv or excel) NOT IMPLEMENTED")
+            NotImplementedError("~~~Sources except hugging_face and tabular (csv or excel) NOT IMPLEMENTED YET~~~")
 
-    def get_preprocess_function(self):
+    def __get_preprocess_function(self):
         if self.dataset_name in [SumDatasets.ARXIV.name, SumDatasets.PUBMED.name]:
             return preprocessing_scientific_or_medical
 

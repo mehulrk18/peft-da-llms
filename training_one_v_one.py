@@ -82,10 +82,8 @@ def llama_model_training(main_directory, training_arguments):
     # Loading dataset
     data = SumDataLoader(dataset_name="scientific", training_samples=5000, force_download=True)
 
-    data = data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
-
-    # Preprocessing the data splits for training and validation with prompts
-    preprocessing_function = data.get_preprocess_function()
+    # data.train_set, data.validation_set, data.test_set = data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
+    data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
 
     # Get Tokenized Train and Validation Set
     data.train_set = data.processing_data_with_prompt(data.train_set)
@@ -164,6 +162,7 @@ def llama_model_training(main_directory, training_arguments):
 
 
 if __name__ == "__main__":
+    from datetime import datetime
 
     # TODO: Add args parser
     try:
@@ -174,9 +173,6 @@ if __name__ == "__main__":
     except Exception as e:
         print("Exception: ", e)
         main_directory = ""
-
-
-    from datetime import datetime
 
     now = datetime.now().strftime("%d-%m-%Y__%H%M%S")
 
