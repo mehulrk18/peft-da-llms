@@ -7,8 +7,8 @@ def generate_datasets(name, force_download=False, training_samples=5000):
 
         data.loading_dataset_from_hf()
 
-        data.train_set = data.processing_data_with_prompt(data.train_set)
-        data.validation_set = data.processing_data_with_prompt(data.validation_set)
+        data.train_set = data.processing_data_with_training_prompt(data.train_set)
+        data.validation_set = data.processing_data_with_training_prompt(data.validation_set)
 
         print("**Dataset after it is processed with Prompt**\nTrain: {}\n\nValidation: {}\n\n".format(data.train_set, data.validation_set))
         del data

@@ -1,13 +1,99 @@
 import os
 import random
+from enum import Enum
 
 import pandas as pd
 from datasets import load_dataset, Dataset, DatasetDict, load_from_disk
 
-from .domains_utils import datasets_info_dict, SumDatasets, preprocessing_scientific_or_medical, \
-    preprocessing_legal, preprocessing_news, preprocessing_low_resource_domain
+# from .domains_utils import datasets_info_dict, SumDatasets, preprocessing_scientific_or_medical, \
+#     preprocessing_legal, preprocessing_news, preprocessing_low_resource_domain
 
-DATASET_STORAGE_DIR = "domains/"   # fetch from configs
+DATASET_STORAGE_DIR = ""   # fetch from configs
+
+DEFAULT_SYSTEM_PROMPT = """
+    Given below is an article. Write a concise and informative Summary for the article.
+""".strip()
+
+
+class SumDatasets(Enum):
+    ARXIV = "scientific"  # , "scientific"
+    PUBMED = "medical"  # , "medical"
+    MULTI_LEX = "legal"
+    NEWS = "news"
+
+
+datasets_info_dict = {
+    SumDatasets.ARXIV.name: {
+        "dataset_id": "ccdv/arxiv-summarization",
+        "local_path": "domains/arxiv_summarization",
+        "source": "hugging_face"
+    },
+    SumDatasets.PUBMED.name: {
+        "dataset_id": "ccdv/pubmed-summarization",
+        "local_path": "domains/pubmed_summarization",
+        "source": "hugging_face"
+    },
+    SumDatasets.MULTI_LEX.name: {
+        "dataset_id": "allenai/multi_lexsum",
+        "local_path": "domains/legal_summarization",
+        "source": "hugging_face"
+    },
+    SumDatasets.NEWS.name: {
+        "dataset_id": "",
+        "local_path": "domains/news_summarization",
+        "source": "csv_file"
+    }
+}
+
+
+def generate_training_prompt(article: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    prompt = """### Instruction: {}\n\n### Article: {}\n\n### Summary: {}""".format(system_prompt, article, summary)
+
+    return prompt.strip()
+
+
+def inference_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    prompt = """### Instruction: {}\n### Article: {}\n### Summary:""".format(system_prompt.strip(), article.strip())
+
+    return prompt.strip()
+
+
+def preprocessing_scientific_or_medical(sample):
+    texts = [generate_training_prompt(article=article, summary=summary)
+             for article, summary in zip(sample["article"], sample["abstract"])]
+
+    return {
+        "text": texts
+    }
+    # Process Scientific or Medical
+    # Process Legal dataset
+    # Process News
+
+
+def preprocessing_legal(sample):
+    pass
+# exp = list(dataset["validation"])[4]
+    #
+    # print(exp["sources"])
+    #
+    # for sum_len in ["long", "short", "tiny"]:
+    #     print(exp["summary/" + sum_len])  # Summaries of three lengths
+
+
+def preprocessing_news(sample):
+    pass
+
+
+def preprocessing_low_resource_domain(sample):
+    pass
+
+
+def read_news_summarization():
+    file_path = "domains/news_summarization.csv"
+
+    df = pd.read_csv(file_path)
+
+    # import pdb; pdb.set_trace()
 
 
 class SumDataLoader:
@@ -27,6 +113,11 @@ class SumDataLoader:
         self.train_set, self.validation_set, self.test_set = None, None, None
 
         self.preprocess_function = self.__get_preprocess_function()
+
+    def print_dataset_stats(self):
+        print("**Dataset Stats**\nTrain: {}\n\nValidation: {}\n\nTest: {}\n\n".format(self.train_set,
+                                                                                      self.validation_set,
+                                                                                      self.test_set))
 
     @classmethod
     def sample_dataset(cls, dataset_split, sample_size=1000):
@@ -79,13 +170,11 @@ class SumDataLoader:
             # return _dataset
         else:
             loaded_dataset = load_from_disk(local_path)
-            self.train_set = loaded_dataset["train"]
+            self.train_set = loaded_dataset["train"].select(range(self.training_samples))
             self.validation_set = loaded_dataset["validation"]
-            self.test_set = loaded_dataset["test"]
+            self.test_set = loaded_dataset["test"].select(range(500)) # for testing reducing the number of samples.
 
-        print("**Dataset Stats**\nTrain: {}\n\nValidation: {}\n\nTest: {}\n\n".format(self.train_set,
-                                                                                      self.validation_set,
-                                                                                      self.test_set))
+        self.print_dataset_stats()
 
         # return self.train_set, self.validation_set, self.test_set
 
@@ -118,17 +207,22 @@ class SumDataLoader:
         else:
             return preprocessing_low_resource_domain
 
-    def processing_data_with_prompt(self, dataset_split: Dataset):
+    def processing_data_with_training_prompt(self, dataset_split: Dataset):
+        return (dataset_split.map(self.preprocess_function, batched=True
+                                  ).shuffle(seed=42))
+
+    def processing_data_with_test_prompt(self, dataset_split: Dataset):
         return (dataset_split.map(self.preprocess_function, batched=True
                                   ).shuffle(seed=42))
 
     def tokenization_of_data_splits(self, tokenization_process: callable):
-        self.train_set = self.train_set.map(tokenization_process, batched=True)
-        self.train_set = self.train_set.remove_columns(
-            [col for col in self.train_set.column_names if col != "input_ids"])
+        cols_to_remove = [col for col in self.train_set.column_names if col != "input_ids"]
+        self.train_set = self.train_set.map(tokenization_process, batched=True, remove_columns=cols_to_remove)
+        # self.train_set = self.train_set.remove_columns(
+        #     [col for col in self.train_set.column_names if col != "input_ids"])
 
-        self.validation_set = self.validation_set.map(tokenization_process, batched=True)
-        self.validation_set = self.validation_set.remove_columns(
-            [col for col in self.validation_set.column_names if col != "input_ids"])
+        self.validation_set = self.validation_set.map(tokenization_process, batched=True, remove_columns=cols_to_remove)
+        # self.validation_set = self.validation_set.remove_columns(
+        #     [col for col in self.validation_set.column_names if col != "input_ids"])
 
         return self.train_set, self.validation_set, self.test_set

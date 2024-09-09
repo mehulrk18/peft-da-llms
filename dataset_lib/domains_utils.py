@@ -4,7 +4,7 @@ import pandas as pd
 import huggingface_hub
 from datasets import list_datasets, load_dataset
 
-from .prompt_utils import generate_training_prompt
+from .prompt_utils import generate_training_prompt1
 
 
 class SumDatasets(Enum):
@@ -39,7 +39,7 @@ datasets_info_dict = {
 
 
 def preprocessing_scientific_or_medical(sample):
-    texts = [generate_training_prompt(article=article, summary=summary)
+    texts = [generate_training_prompt1(article=article, summary=summary)
              for article, summary in zip(sample["article"], sample["abstract"])]
 
     return {
@@ -76,7 +76,7 @@ def read_news_summarization():
     # import pdb; pdb.set_trace()
 
 
-if __name__ == "__main__":
-    # read_scitldr("SciTLDR-A")
-    read_news_summarization()
+# if __name__ == "__main__":
+#     # read_scitldr("SciTLDR-A")
+#     read_news_summarization()
 

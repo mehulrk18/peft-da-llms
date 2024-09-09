@@ -185,7 +185,7 @@ loaded_dataset = loading_dataset(dataset_name)
 print("\nLoaded Dataset: ", loaded_dataset)
 
 pubmed_data = {
-    "train": process_dataset_with_prompt(loaded_dataset["train"]), #.map(process_tokenization_with_prompt, batched=True,
+    "train": process_dataset_with_prompt(loaded_dataset["train"].select(range(2500))), #.map(process_tokenization_with_prompt, batched=True,
                                          # remove_columns=["text", "summary"]),
     "val": process_dataset_with_prompt(loaded_dataset["validation"]), # .map(process_tokenization_with_prompt, batched=True,
                                             #remove_columns=["text", "summary"]),
@@ -452,13 +452,14 @@ training_args = TrainingArguments(  # Seq2Seq
     remove_unused_columns=False,
     output_dir="results/{}_{}_lora_seq2seq".format(model_name_dict[model_id], dataset_name), #pubmed_lora",
     per_device_train_batch_size=4,
-    gradient_accumulation_steps=4,
+    gradient_accumulation_steps=2,
     optim="paged_adamw_32bit",
-    logging_steps=100,
+    logging_steps=250,
     learning_rate=1e-4,
-    fp16=True,
+    fp16=fp16,
+    bf16=bf16,
     max_grad_norm=0.3,
-    num_train_epochs=7, # 7
+    num_train_epochs=1, # 7
     evaluation_strategy="epoch",
     eval_steps=0.2,
     warmup_ratio=0.05,
