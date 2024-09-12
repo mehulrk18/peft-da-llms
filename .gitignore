@@ -1,6 +1,13 @@
 .ipynb_checkpoints/
 domains
 saved_models
+results/
 .DS_Store
+.env
+*.txt
+*.csv
 .idea/
+logs/
+wandb
 *venv
+__pycache__*
