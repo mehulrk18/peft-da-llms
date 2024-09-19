@@ -74,7 +74,7 @@ def generate_summary(model, tokenizer, content, device):
     # return summary
 
 
-def llama_model_training(main_directory, training_arguments, peft_name, domain, fine_tuning=True):
+def llama_model_training(main_directory, training_arguments, peft_name, domain, fine_tuning=True, save_peft_name=None):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # TODO: fetch from Configs
@@ -180,9 +180,11 @@ def llama_model_training(main_directory, training_arguments, peft_name, domain, 
         results = trainer.evaluate()
         print("Results from Training: \n", results)
 
+        if save_peft_name is None:
+            save_peft_name = peft_name + "_temp_summarization"
         llama_model = trainer.model
         llama_model.merge_adapter(peft_name)
-        llama_model.save_adapter(peft_name+"_summarization_2000_5", peft_name)
+        llama_model.save_adapter("saved_models/"+save_peft_name, peft_name)
 
         train_loss = trainer_stats.training_loss
         print(f"Model Trained with Training loss: {train_loss}")
@@ -197,6 +199,7 @@ if __name__ == "__main__":
     parser.add_argument("--domain", type=str, default=None, help="Domain name for dataset")
     parser.add_argument("--train_epochs", type=int, default=1, help="Training Epochs")
     parser.add_argument("--ft", type=bool, default=True, help="Finetune the model or not")
+    parser.add_argument("--training_samples", type=int, default=1000, help="Number of training Samples")
 
     # TODO: Add args parser
     try:
@@ -214,6 +217,9 @@ if __name__ == "__main__":
     domain = args.domain
     training_epochs = args.training_epochs
     ft = args.ft  # False
+    training_samples = args.training_samples
+
+    save_peft_name = "{}_{}_{}_{}_summarization".format(domain, peft_name, training_samples, training_epochs)
 
     if peft_name is None:
         raise Exception("PEFT NAME NOT FOUND!! Provide one, your options are [lora, ia3, simple_adapter, reft]")
@@ -239,7 +245,7 @@ if __name__ == "__main__":
 
     training_args = TrainingArguments(  # Seq2Seq
         remove_unused_columns=False,
-        output_dir=main_directory+"results/llama_5_{}_{}_{}".format("arxiv", "lora", now),  # pubmed_lora",
+        output_dir=main_directory+"results/llama_{}_{}_{}_{}_{}".format(domain, peft_name, training_samples, training_epochs, now),  # pubmed_lora",
         per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=1,
@@ -262,13 +268,14 @@ if __name__ == "__main__":
         lr_scheduler_type="constant",  # "cosine",
         seed=42,
         load_best_model_at_end=True,
-        run_name="llama_{}_{}_{}_{}_{}".format(domain, peft_name, "fine_tuned" if ft else "no_fine_tuning",
-                                               training_epochs if ft else "", now)
+        run_name="llama_{}_{}_{}_{}_{}_{}".format(domain, peft_name, "fine_tuned" if ft else "no_fine_tuning",
+                                               training_samples if ft else "", training_epochs if ft else "", now)
         # push_to_hub=True,
     )
 
     trained_llama_model = llama_model_training(main_directory=main_directory, training_arguments=training_args,
-                                               fine_tuning=ft, peft_name=peft_name, domain=domain)
+                                               fine_tuning=ft, peft_name=peft_name, domain=domain,
+                                               save_peft_name=save_peft_name)
 
     print("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
 
