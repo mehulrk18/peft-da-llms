@@ -181,10 +181,10 @@ def llama_model_training(main_directory, training_arguments, peft_name, domain, 
         print("Results from Training: \n", results)
 
         if save_peft_name is None:
-            save_peft_name = peft_name + "_temp_summarization"
+            save_peft_name = peft_layer_name + "_temp_summarization"
         llama_model = trainer.model
-        llama_model.merge_adapter(peft_name)
-        llama_model.save_adapter("saved_models/"+save_peft_name, peft_name)
+        llama_model.merge_adapter(peft_layer_name)
+        llama_model.save_adapter("saved_models/["+save_peft_name, peft_layer_name)
 
         train_loss = trainer_stats.training_loss
         print(f"Model Trained with Training loss: {train_loss}")
@@ -213,9 +213,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("Args: \n", args)
+
+
     peft_name = args.peft
     domain = args.domain
-    training_epochs = args.training_epochs
+    training_epochs = args.train_epochs
     ft = args.ft  # False
     training_samples = args.training_samples
 
@@ -277,5 +280,6 @@ if __name__ == "__main__":
                                                fine_tuning=ft, peft_name=peft_name, domain=domain,
                                                save_peft_name=save_peft_name)
 
-    print("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
+    # print("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
+    print("\n\n Trained LLaMA Model: \n", trained_llama_model)
 
