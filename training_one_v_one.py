@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import adapters
@@ -13,31 +14,20 @@ from transformers import AutoTokenizer, TrainingArguments, DataCollatorForLangua
 from dataset_lib import SumDataLoader, inference_prompt
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
 from testing_scripts.evaluation_metrics_llms import rouge_metric
+from utils.helpers import read_yaml
 
-
-# Model Config
+MODEL_ID = "meta-llama/Meta-Llama-3-8B" # Meta-Llama-3-8B-Instruct
 # llama31 = "meta-llama/Meta-Llama-3.1-8B-Instruct"  # works only with transformers==4.43.3
-# llama3 = "meta-llama/Meta-Llama-3-8B-Instruct"
-# llama2 = "meta-llama/Llama-2-7b-hf"
-# mistral = "mistralai/Mistral-7B-v0.3"
+PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
 
-
-# model_name_dict = {
-#     llama3: "LLaMA3",
-#     llama31: "LLaMA3.1",
-#     llama2: "LLaMA2",
-#     mistral: "Mistral"
-# }
-
-
-def get_adapter_model(model_id: str, fine_tuning=True, quantization_config=None):
+def get_adapter_model(fine_tuning=True, quantization_config=None):
     ddtype = torch.bfloat16  # bfloat16
     compute_dtype = torch.bfloat16  # torch.bfloat16 if bf16 else torch.float32
 
     if fine_tuning:
         print("Loading Model from Adapter Hub")
         model = AutoAdapterModel.from_pretrained(
-            model_id,
+            MODEL_ID,
             device_map="auto",
             quantization_config=quantization_config,
             torch_dtype=ddtype
@@ -45,7 +35,7 @@ def get_adapter_model(model_id: str, fine_tuning=True, quantization_config=None)
 
     else:
         model = AutoModelForCausalLM.from_pretrained(
-            model_id,
+            MODEL_ID,
             device_map="auto",
             quantization_config=quantization_config,
             torch_dtype=ddtype
@@ -84,8 +74,7 @@ def generate_summary(model, tokenizer, content, device):
     # return summary
 
 
-def llama_model_training(main_directory, training_arguments, fine_tuning=True):
-    llama = "meta-llama/Meta-Llama-3-8B-Instruct"
+def llama_model_training(main_directory, training_arguments, peft_name, domain, fine_tuning=True):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # TODO: fetch from Configs
@@ -93,11 +82,11 @@ def llama_model_training(main_directory, training_arguments, fine_tuning=True):
     max_seq_len = 512
     dataset_name = "scientific"
 
-    llama_model = get_adapter_model(model_id=llama, fine_tuning=fine_tuning, quantization_config=None)
+    llama_model = get_adapter_model(fine_tuning=fine_tuning, quantization_config=None)
 
     # Tokenizer
     llama_tokenizer = AutoTokenizer.from_pretrained(
-        llama,
+        MODEL_ID,
         padding_side="right",
         tokenizer_type="llama",
         trust_remote_code=True,
@@ -110,11 +99,13 @@ def llama_model_training(main_directory, training_arguments, fine_tuning=True):
     })
 
     def tokenization_process(input_data):
+        # inputs = tokenizer.apply_chat_template(messages, tools=[get_current_temperature], add_generation_prompt=True)
+
         inputs = llama_tokenizer(input_data["text"], max_length=max_seq_len, truncation=True, padding="max_length",
                                  return_tensors="pt")
         return {"input_ids": inputs["input_ids"]}  # , "labels": labels}
 
-    peft_name = None
+    # peft_name = None
 
     # Loading dataset
     data = SumDataLoader(dataset_name=dataset_name, training_samples=2000)
@@ -132,29 +123,24 @@ def llama_model_training(main_directory, training_arguments, fine_tuning=True):
     # TODO: Add code block for generating Summary with Zero Shot Learning.
 
     if fine_tuning:
+
+        pefts_from_yaml = read_yaml(file_name=PEFT_CONFIGS_FILE)
+
         # Add PEFT from AdapterHub
-        lora = {
-            "selfattn_lora": True,
-            "intermediate_lora": True,
-            "output_lora": True,
-            "alpha": 16,
-            "r": 64,
-            "dropout": 0.1,
-            "attn_matrices": ["q_proj", "k_proj", "v_proj"]
-        }
+        peft_configs = pefts_from_yaml[peft_name]
 
         adapters.init(model=llama_model)
 
-        peft_config = pefts_configuration[PEFTEnum("lora").name](**lora)
+        config = pefts_configuration[PEFTEnum(peft_name).name](**peft_configs)
 
-        peft_name = "{}_{}_5".format("scientific", "lora")
+        peft_layer_name = "{}_{}".format(domain, peft_name)
 
-        llama_model.add_adapter(peft_name, config=peft_config)
-        llama_model.add_causal_lm_head(peft_name)
+        llama_model.add_adapter(peft_layer_name, config=config)
+        llama_model.add_causal_lm_head(peft_layer_name)
 
-        llama_model.set_active_adapters(peft_name)
-        llama_model.train_adapter(peft_name)
-        llama_model.adapter_to(peft_name, device=device)
+        llama_model.set_active_adapters(peft_layer_name)
+        llama_model.train_adapter(peft_layer_name)
+        llama_model.adapter_to(peft_layer_name, device=device)
         print("\nLLaMA Model's Summary:\n", llama_model.adapter_summary())
         llama_model.enable_input_require_grads()
         llama_model.gradient_checkpointing_enable()
@@ -163,17 +149,11 @@ def llama_model_training(main_directory, training_arguments, fine_tuning=True):
                 # cast the small parameters (e.g. layernorm) to fp32 for stability
                 param.data = param.data.to(torch.float32)
 
-    # for name, param in llama_model.named_parameters():
-    #     if param.requires_grad:
-    #         print(f"Trainable parameters of the model: {name} - {param.shape}")
+        # for name, param in llama_model.named_parameters():
+        #     if param.requires_grad:
+        #         print(f"Trainable parameters of the model: {name} - {param.shape}")
 
-
-
-    # Enabling Gradient and
-
-
-    # TODO: Check Hyperparameters for better results.
-    if fine_tuning:
+        # TODO: Check Hyperparameters for better results.
         # tokenize dataset
         data.train_set, data.validation_set, data.test_set = data.tokenization_of_data_splits(tokenization_process=tokenization_process)
         data.print_dataset_stats()
@@ -207,59 +187,16 @@ def llama_model_training(main_directory, training_arguments, fine_tuning=True):
         train_loss = trainer_stats.training_loss
         print(f"Model Trained with Training loss: {train_loss}")
 
-    # testing the model with Test data.
-    # def inference_prompt_processing(sample):
-    #     if "sources" in sample.keys():
-    #         sample["article"] = sample.pop("sources")
-    #
-    #     text = [inference_prompt(article=article) for article in sample["article"]]
-    #     return {
-    #         "text": text
-    #     }
-
-    random_ip = """
-        Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
-    """.strip()
-
-    summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_ip, device=device)
-    print("Summmmmmarrryyy: \n", summ)
-    try:
-        with open("random_ip_{}_{}_{}.txt".format(data.dataset_name, peft_name, ft), "w") as f:
-            f.write(summ)
-            print("Written Random article summary")
-    except:
-        pass
-
-    # data.test_set = data.test_set.map(inference_prompt_processing, batch=True)
-    df_test_data = pd.DataFrame(data=data.test_set)
-
-    # TODO: write the testing funciton with a metric.
-    test_summaries = {
-        "truth": [],
-        "prediction": []
-    }
-
-    # for arxiv and pubmed
-
-    for i in range(len(df_test_data)):
-        summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["article"][i], device=device)
-        test_summaries["truth"].append(df_test_data["abstract"][i])
-        test_summaries["prediction"].append(summary)
-
-    metric = rouge_metric()
-    scores = metric.compute(predictions=test_summaries["prediction"], references=test_summaries["truth"])
-    df_sum = pd.DataFrame(test_summaries)
-    # print("Rouge Scores: ", scores)
-    file_name = "Test_summaries_{}_{}.csv".format(data.dataset_name, peft_name if peft_name else "no_finetuning")
-    df_sum.to_csv(file_name, index=False)
-
-    print("\n\n\nSummaries with Rouge Score {} saved to file {}!!!!".format(scores, file_name))
-
     return llama_model
 
 
 if __name__ == "__main__":
-    from datetime import datetime
+    parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
+
+    parser.add_argument("--peft", type=str, default=None, help="peft name for config_file")
+    parser.add_argument("--domain", type=str, default=None, help="Domain name for dataset")
+    parser.add_argument("--train_epochs", type=int, default=1, help="Training Epochs")
+    parser.add_argument("--ft", type=bool, default=True, help="Finetune the model or not")
 
     # TODO: Add args parser
     try:
@@ -271,6 +208,15 @@ if __name__ == "__main__":
         print("Exception: ", e)
         main_directory = ""
 
+    args = parser.parse_args()
+
+    peft_name = args.peft
+    domain = args.domain
+    training_epochs = args.training_epochs
+    ft = args.ft  # False
+
+    from datetime import datetime
+
     load_dotenv(".env")
 
     hf_token = os.getenv("HF_TOKEN")
@@ -280,7 +226,7 @@ if __name__ == "__main__":
     wandb.login()
 
     now = datetime.now().strftime("%d-%m-%Y__%H%M%S")
-    ft = True # False
+
     bf16 = False
     bf32 = False
     fp16 = True
@@ -289,14 +235,15 @@ if __name__ == "__main__":
         remove_unused_columns=False,
         output_dir=main_directory+"results/llama_5_{}_{}_{}".format("arxiv", "lora", now),  # pubmed_lora",
         per_device_train_batch_size=4,
-        gradient_accumulation_steps=2,
+        per_device_eval_batch_size=4,
+        gradient_accumulation_steps=1,
         optim="paged_adamw_32bit",
         logging_steps=250,
-        learning_rate=1e-4,
+        learning_rate=2e-4,
         fp16=fp16,
         bf16=bf16,
         max_grad_norm=0.3,
-        num_train_epochs=5,  # 7
+        num_train_epochs=training_epochs,  # 7
         evaluation_strategy="epoch",
         eval_steps=0.2,
         warmup_ratio=0.05,
@@ -309,10 +256,13 @@ if __name__ == "__main__":
         lr_scheduler_type="constant",  # "cosine",
         seed=42,
         load_best_model_at_end=True,
-        run_name="llama_5_{}_{}_{}_{}".format("arxiv", "lora", "fine_tuned" if ft else "no_fine_tuning", now)
+        run_name="llama_{}_{}_{}_{}_{}".format(domain, peft_name, "fine_tuned" if ft else "no_fine_tuning",
+                                               training_epochs if ft else "", now)
         # push_to_hub=True,
     )
 
     trained_llama_model = llama_model_training(main_directory=main_directory, training_arguments=training_args,
-                                               fine_tuning=ft)
+                                               fine_tuning=ft, peft_name=peft_name, domain=domain)
+
+    print("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
 
