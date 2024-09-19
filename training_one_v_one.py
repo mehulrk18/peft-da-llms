@@ -215,6 +215,12 @@ if __name__ == "__main__":
     training_epochs = args.training_epochs
     ft = args.ft  # False
 
+    if peft_name is None:
+        raise Exception("PEFT NAME NOT FOUND!! Provide one, your options are [lora, ia3, simple_adapter, reft]")
+
+    if domain is None:
+        raise Exception("DOMAIN NAME NOT FOUND!! Provide one, your options are [scientific, medical, legal, news]")
+
     from datetime import datetime
 
     load_dotenv(".env")
