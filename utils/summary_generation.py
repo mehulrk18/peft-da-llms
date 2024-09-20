@@ -4,8 +4,10 @@ from dataset_lib import inference_prompt
 
 # TODO: Improve Generation and Evaluation.
 
-def generate_summary(model, tokenizer, text, device):
-    content = inference_prompt(text)
+def generate_summary(model, tokenizer, content, device):
+    # content = f"Summarize the following text:\n\n{text}"
+    content = inference_prompt(content)
+
     # print("Text: \n", text)
     inputs = tokenizer(content, return_tensors="pt").to(device)
     in_len = len(inputs["input_ids"][0])
@@ -17,9 +19,7 @@ def generate_summary(model, tokenizer, text, device):
                                      # early_stopping=True,
                                      # temprature=0.001,
                                      max_new_tokens=150)
-    # print("Truth:\n{}\n\n\nPrediction:\n{} ".format(truth, summary))
     summary = tokenizer.decode(summary_ids[0][in_len:], skip_special_tokens=True)
-
     return summary
 
 

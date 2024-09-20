@@ -2,87 +2,27 @@ import argparse
 import os
 
 import adapters
-import pandas as pd
 import torch
 import wandb
-from adapters import AutoAdapterModel, AdapterTrainer
+from adapters import AdapterTrainer
 from dotenv import load_dotenv
 from huggingface_hub import login
-from transformers import AutoTokenizer, TrainingArguments, DataCollatorForLanguageModeling, AutoModelForCausalLM, \
-    DataCollatorForSeq2Seq
+from transformers import AutoTokenizer, TrainingArguments, DataCollatorForLanguageModeling
 
-from dataset_lib import SumDataLoader, inference_prompt
+from dataset_lib import SumDataLoader
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
-from testing_scripts.evaluation_metrics_llms import rouge_metric
-from utils.helpers import read_yaml
+from utils import read_yaml, get_pretrained_model, MODEL_ID
 
-MODEL_ID = "meta-llama/Meta-Llama-3-8B" # Meta-Llama-3-8B-Instruct
-# llama31 = "meta-llama/Meta-Llama-3.1-8B-Instruct"  # works only with transformers==4.43.3
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
-
-def get_adapter_model(fine_tuning=True, quantization_config=None):
-    ddtype = torch.bfloat16  # bfloat16
-    compute_dtype = torch.bfloat16  # torch.bfloat16 if bf16 else torch.float32
-
-    if fine_tuning:
-        print("Loading Model from Adapter Hub")
-        model = AutoAdapterModel.from_pretrained(
-            MODEL_ID,
-            device_map="auto",
-            quantization_config=quantization_config,
-            torch_dtype=ddtype
-        )
-
-    else:
-        model = AutoModelForCausalLM.from_pretrained(
-            MODEL_ID,
-            device_map="auto",
-            quantization_config=quantization_config,
-            torch_dtype=ddtype
-        )
-
-    model.config.use_cache = False
-    setattr(model, 'model_parallel', True)
-    setattr(model, 'is_parallelizable', True)
-    model.config.torch_dtype = compute_dtype
-    # (torch.float16 if fp16 else (torch.bfloat16 if bf16 else torch.float16))
-
-    return model
+MAX_SEQ_LENGTH = 1024
 
 
-def generate_summary(model, tokenizer, content, device):
-    # content = f"Summarize the following text:\n\n{text}"
-    content = inference_prompt(content)
-
-    # print("Text: \n", text)
-    inputs = tokenizer(content, return_tensors="pt").to(device)
-    in_len = len(inputs["input_ids"][0])
-    with torch.inference_mode():
-        summary_ids = model.generate(**inputs,
-                                     # max_length=512, # do_sample=True,  # Enable sampling
-                                     top_k=50,  # Top-k sampling
-                                     num_return_sequences=1,  # Generate a single sequence
-                                     # early_stopping=True,
-                                     # temprature=0.001,
-                                     max_new_tokens=150)
-    summary = tokenizer.decode(summary_ids[0][in_len:], skip_special_tokens=True)
-    return summary
-
-    # print("Truth:\n{}\n\n\nPrediction:\n{} ".format(truth, summary))
-    #
-    # print("\n\n\nRouge Scores: ", rouge.compute(references=[truth], predictions=[summary]))
-    # return summary
-
-
-def llama_model_training(main_directory, training_arguments, peft_name, domain, fine_tuning=True, save_peft_name=None):
+def llama_model_training(main_directory, training_arguments, training_samples, peft_name, domain, fine_tuning=True, save_peft_name=None):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # TODO: fetch from Configs
     # bits = 4  # 8
-    max_seq_len = 512
-    dataset_name = "scientific"
-
-    llama_model = get_adapter_model(fine_tuning=fine_tuning, quantization_config=None)
+    llama_model = get_pretrained_model(fine_tuning=fine_tuning, quantization_config=None)
 
     # Tokenizer
     llama_tokenizer = AutoTokenizer.from_pretrained(
@@ -101,14 +41,14 @@ def llama_model_training(main_directory, training_arguments, peft_name, domain, 
     def tokenization_process(input_data):
         # inputs = tokenizer.apply_chat_template(messages, tools=[get_current_temperature], add_generation_prompt=True)
 
-        inputs = llama_tokenizer(input_data["text"], max_length=max_seq_len, truncation=True, padding="max_length",
+        inputs = llama_tokenizer(input_data["text"], max_length=MAX_SEQ_LENGTH, truncation=True, padding="max_length",
                                  return_tensors="pt")
         return {"input_ids": inputs["input_ids"]}  # , "labels": labels}
 
     # peft_name = None
 
     # Loading dataset
-    data = SumDataLoader(dataset_name=dataset_name, training_samples=2000)
+    data = SumDataLoader(dataset_name=domain, training_samples=training_samples)
     data.print_dataset_stats()
 
     # data.train_set, data.validation_set, data.test_set = data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
@@ -118,7 +58,6 @@ def llama_model_training(main_directory, training_arguments, peft_name, domain, 
     data.train_set = data.processing_data_with_training_prompt(data.train_set)
     data.validation_set = data.processing_data_with_training_prompt(data.validation_set)
     data.print_dataset_stats()
-
 
     # TODO: Add code block for generating Summary with Zero Shot Learning.
 
@@ -184,7 +123,7 @@ def llama_model_training(main_directory, training_arguments, peft_name, domain, 
             save_peft_name = peft_layer_name + "_temp_summarization"
         llama_model = trainer.model
         llama_model.merge_adapter(peft_layer_name)
-        llama_model.save_adapter("saved_models/["+save_peft_name, peft_layer_name)
+        llama_model.save_adapter(main_directory+"saved_models/"+save_peft_name, peft_layer_name)
 
         train_loss = trainer_stats.training_loss
         print(f"Model Trained with Training loss: {train_loss}")
@@ -193,6 +132,8 @@ def llama_model_training(main_directory, training_arguments, peft_name, domain, 
 
 
 if __name__ == "__main__":
+    global MAX_SEQ_LENGTH
+
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
     parser.add_argument("--peft", type=str, default=None, help="peft name for config_file")
@@ -200,6 +141,8 @@ if __name__ == "__main__":
     parser.add_argument("--train_epochs", type=int, default=1, help="Training Epochs")
     parser.add_argument("--ft", type=bool, default=True, help="Finetune the model or not")
     parser.add_argument("--training_samples", type=int, default=1000, help="Number of training Samples")
+    parser.add_argument("--max_seq_len", type=int, default=1024, help="Context window length")
+
 
     # TODO: Add args parser
     try:
@@ -221,6 +164,7 @@ if __name__ == "__main__":
     training_epochs = args.train_epochs
     ft = args.ft  # False
     training_samples = args.training_samples
+    MAX_SEQ_LENGTH = args.max_seq_len
 
     save_peft_name = "{}_{}_{}_{}_summarization".format(domain, peft_name, training_samples, training_epochs)
 
@@ -272,13 +216,13 @@ if __name__ == "__main__":
         seed=42,
         load_best_model_at_end=True,
         run_name="llama_{}_{}_{}_{}_{}_{}".format(domain, peft_name, "fine_tuned" if ft else "no_fine_tuning",
-                                               training_samples if ft else "", training_epochs if ft else "", now)
+                                                  training_samples if ft else "", training_epochs if ft else "", now)
         # push_to_hub=True,
     )
 
     trained_llama_model = llama_model_training(main_directory=main_directory, training_arguments=training_args,
-                                               fine_tuning=ft, peft_name=peft_name, domain=domain,
-                                               save_peft_name=save_peft_name)
+                                               training_samples=training_samples, fine_tuning=ft, peft_name=peft_name,
+                                               domain=domain, save_peft_name=save_peft_name)
 
     # print("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
     print("\n\n Trained LLaMA Model: \n", trained_llama_model)
