@@ -18,7 +18,7 @@ def generate_summary(model, tokenizer, content, device):
                                      num_return_sequences=1,  # Generate a single sequence
                                      # early_stopping=True,
                                      # temprature=0.001,
-                                     max_new_tokens=150)
+                                     max_new_tokens=256)
     summary = tokenizer.decode(summary_ids[0][in_len:], skip_special_tokens=True)
     return summary
 

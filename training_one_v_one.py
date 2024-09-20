@@ -14,7 +14,7 @@ from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
 from utils import read_yaml, get_pretrained_model, MODEL_ID
 
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
-MAX_SEQ_LENGTH = 1024
+global MAX_SEQ_LENGTH
 
 
 def llama_model_training(main_directory, training_arguments, training_samples, peft_name, domain, fine_tuning=True, save_peft_name=None):
@@ -132,6 +132,9 @@ def llama_model_training(main_directory, training_arguments, training_samples, p
 
 
 if __name__ == "__main__":
+    from warnings import simplefilter
+    simplefilter(action='ignore', category=FutureWarning)
+
     global MAX_SEQ_LENGTH
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
@@ -184,7 +187,7 @@ if __name__ == "__main__":
     login(token=hf_token)
     wandb.login()
 
-    now = datetime.now().strftime("%d-%m-%Y__%H%M%S")
+    now = datetime.now().strftime("%d-%m-%Y")
 
     bf16 = False
     bf32 = False

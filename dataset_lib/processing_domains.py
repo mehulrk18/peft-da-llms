@@ -11,9 +11,9 @@ from datasets import load_dataset, Dataset, DatasetDict, load_from_disk
 DATASET_STORAGE_DIR = ""   # fetch from configs
 
 DEFAULT_SYSTEM_PROMPT = """
-    Given below is an article. Write a concise and informative Summary for the article.
+    You are an AI assistant that excels at summarizing long-form articles. Please provide a concise and informative summary of the following article.
 """.strip()
-
+# Given below is an article. Write a concise and informative Summary for the article.
 
 class SumDatasets(Enum):
     ARXIV = "scientific"  # , "scientific"
@@ -52,6 +52,35 @@ def generate_training_prompt(article: str, summary: str, system_prompt: str = DE
     return prompt.strip()
 
 
+def llama3_training_prompt(article: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    prompt = """
+        <bos>
+        <|start_of_message|>system<|end_of_message|>
+        {}
+        <|start_of_message|>user<|end_of_message|>
+        Article:\n{}
+        <|end_of_message|>
+        <|start_of_message|>assistant<|end_of_message|>
+        Summary: \n{}
+    """.format(system_prompt, article, summary)
+
+    return prompt.strip()
+
+
+def llama3_testing_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    prompt = """
+        <bos>
+        <|start_of_message|>system<|end_of_message|>
+        {}
+        <|start_of_message|>user<|end_of_message|>
+        Article:\n{}
+        <|end_of_message|>
+        <|start_of_message|>assistant<|end_of_message|>
+    """.format(system_prompt, article)
+
+    return prompt.strip()
+
+
 def inference_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
     prompt = """### Instruction: {}\n### Article: {}\n### Summary:""".format(system_prompt.strip(), article.strip())
 
@@ -59,7 +88,8 @@ def inference_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
 
 
 def preprocessing_scientific_or_medical(sample):
-    texts = [generate_training_prompt(article=article, summary=summary)
+    texts = [llama3_training_prompt(article=article, summary=summary)
+        # generate_training_prompt(article=article, summary=summary)
              for article, summary in zip(sample["article"], sample["abstract"])]
 
     return {
