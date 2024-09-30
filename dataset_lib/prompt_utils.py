@@ -18,7 +18,7 @@ def inference_prompt1(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT1)
 
 # TODO: Define chat template
 # First, define a tool
-def get_current_temperature(location: str) -> float:
+def get_summary_from_ai(content: str) -> float:
     """
     Get the current temperature at a location.
 
@@ -31,7 +31,10 @@ def get_current_temperature(location: str) -> float:
 
 
 # Next, create a chat and apply the chat template
-messages = [
-    {"role": "system", "content": "You are a bot that generates precise and concise summary of the articles presented."},
-    {"role": "user", "content": "Hey, what's the temperature in Paris right now?"}
-]
+def get_chat_template_prompt(content: str):
+    messages = [
+        {"role": "system", "content": "You are a bot that generates precise and concise summary of the articles presented."},
+        {"role": "user", "content": "Summarize: \n{}".format(content)}
+    ]
+
+    return messages

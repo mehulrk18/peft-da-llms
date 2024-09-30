@@ -61,7 +61,7 @@ def llama3_training_prompt(article: str, summary: str, system_prompt: str = DEFA
         Article:\n{}
         <|end_of_message|>
         <|start_of_message|>assistant<|end_of_message|>
-        Summary: \n{}
+        # Summary: \n{}
     """.format(system_prompt, article, summary)
 
     return prompt.strip()
@@ -128,8 +128,10 @@ def read_news_summarization():
 
 class SumDataLoader:
 
-    def __init__(self, dataset_name: str, training_samples: int = 1000, force_download: bool = False):
+    def __init__(self, dataset_name: str, training_samples: int = 1000, force_download: bool = False,
+                 src_directory: str = ""):
 
+        self.src_directory = src_directory
         self.dataset = SumDatasets(dataset_name.lower())
         self.dataset_name = self.dataset.name
 
@@ -170,7 +172,7 @@ class SumDataLoader:
         # return dataset_split.select(sampled_indices)
 
     def loading_dataset_from_hf(self):
-        local_path = DATASET_STORAGE_DIR + self.local_path
+        local_path = self.src_directory + self.local_path
         if not os.path.exists(local_path) or self.force_download:
             if self.dataset_name == SumDatasets.MULTI_LEX.name:
                 loaded_dataset = load_dataset(path=self.dataset_id, name='v20230518', streaming=True, trust_remote_code=True)
@@ -246,7 +248,9 @@ class SumDataLoader:
                                   ).shuffle(seed=42))
 
     def tokenization_of_data_splits(self, tokenization_process: callable):
-        cols_to_remove = [col for col in self.train_set.column_names if col != "input_ids"]
+        # cols_to_remove = [col for col in self.train_set.column_names if col != "input_ids"]
+        cols_to_remove = [col for col in self.train_set.column_names if col not in ["input_ids", "attention_mask", "labels"]]
+        print("cols to remove: ", cols_to_remove)
         self.train_set = self.train_set.map(tokenization_process, batched=True, remove_columns=cols_to_remove)
         # self.train_set = self.train_set.remove_columns(
         #     [col for col in self.train_set.column_names if col != "input_ids"])
