@@ -6,10 +6,10 @@ import torch
 from transformers import AutoTokenizer
 
 from dataset_lib import inference_prompt, SumDataLoader
-from utils import generate_summary, get_pretrained_model, MODEL_ID, rouge_metric
+from utils import generate_summary, get_pretrained_model, MODEL_ID, rouge_metric, LLaMAModelClass
 
 
-def testing_model(llama_model, llama_tokenizer, domain, peft_full_name, device, provider):
+def testing_model(llama_model, llama_tokenizer, domain, peft_full_name, device):
     print("MODEL: \n", llama_model)
 
     # testing the model with Test data.
@@ -55,7 +55,7 @@ def testing_model(llama_model, llama_tokenizer, domain, peft_full_name, device, 
     }
 
     # for arxiv and pubmed
-    for i in range(len(df_test_data)):
+    for i in range(10) :# len(df_test_data)):
         summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["article"][i],
                                    device=device)
         test_summaries["truth"].append(df_test_data["abstract"][i])
@@ -65,7 +65,7 @@ def testing_model(llama_model, llama_tokenizer, domain, peft_full_name, device, 
     scores = metric.compute(predictions=test_summaries["prediction"], references=test_summaries["truth"])
     df_sum = pd.DataFrame(test_summaries)
     # print("Rouge Scores: ", scores)
-    file_name = "Test_summaries_{}.csv".format(peft_full_name)
+    file_name = "Test_summaries_{}_just10.csv".format(peft_full_name)
     df_sum.to_csv(file_name, index=False)
 
     print("\n\n\nSummaries with Rouge Score {} saved to file {}!!!!".format(scores, file_name))
@@ -78,6 +78,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
+    parser.add_argument("--ck_pt",type=str, default="", help="Path of the PT Model Checkpoint to be loaded." )
     parser.add_argument("--trained_peft_path", type=str, help="Path of the PEFT to be loaded.")
     parser.add_argument("--ah", type=bool, help="Load Model and Adapter from Adapter HUB")
     # parser.add_argument("--domain", type=str, help="Domain name for dataset")
@@ -97,25 +98,28 @@ if __name__ == "__main__":
     ah = False if args.ah is None else True
     peft_dir = trained_peft_path.split("/")[-1]
 
-    llama_model = get_pretrained_model(ah=ah)
+    # llama_model = get_pretrained_model(ah=ah)
+    llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantization_config=None)
+
+    print("Check point MODEL: \n", llama.model)
     # domain = args.domain
     device = "cuda" if torch.cuda.is_available() else "cpu"
     provider, domain, peft_type = tuple(peft_dir.split("_")[:3])
     peft_name = "{}_{}".format(domain, peft_type)
 
-    if ah:
-        loaded_peft = llama_model.load_adapter(trained_peft_path, with_head=True)
-        llama_model.set_active_adapters(loaded_peft)
-        llama_model.adapter_to(loaded_peft, device=device)
-
-        llama_model = llama_model.to(torch.bfloat16)
-
-        llama_model.enable_input_require_grads()
-        llama_model.gradient_checkpointing_enable()
-
-        print("\nLLaMA Model's Summary:\n", llama_model.adapter_summary())
-
-    else:
+    # if ah:
+    #     loaded_peft = llama_model.load_adapter(trained_peft_path, with_head=True)
+    #     llama_model.set_active_adapters(loaded_peft)
+    #     llama_model.adapter_to(loaded_peft, device=device)
+    #
+    #     llama_model = llama_model.to(torch.bfloat16)
+    #
+    #     llama_model.enable_input_require_grads()
+    #     llama_model.gradient_checkpointing_enable()
+    #
+    #     print("\nLLaMA Model's Summary:\n", llama_model.adapter_summary())
+    #
+    # else:
         # Method 1
         # from peft import PeftModel
         # llama_model = PeftModel.from_pretrained(llama_model, trained_peft_path, adapter_name=peft_name)
@@ -132,24 +136,27 @@ if __name__ == "__main__":
             # param.data = param.data.to(torch.float32)
 
         # Method 2
-        adapters.init(model=llama_model)
-        loaded_peft = llama_model.load_adapter(trained_peft_path, with_head=True)
-        llama_model.set_active_adapters([loaded_peft])
-        llama_model.adapter_to(loaded_peft, device=device)
+    adapters.init(model=llama.model)
+    loaded_peft = llama.model.load_adapter(trained_peft_path, with_head=True)
+    llama.model.set_active_adapters([loaded_peft])
+    llama.model.adapter_to(loaded_peft, device=device)
 
-        llama_model = llama_model.to(torch.bfloat16)
+    llama.model = llama.model.to(torch.bfloat16)
 
-        llama_model.enable_input_require_grads()
-        llama_model.gradient_checkpointing_enable()
-        print("\nMethod 2 LLaMA Model's Summary:\n", llama_model.adapter_summary())
+    llama.model.enable_input_require_grads()
+    llama.model.gradient_checkpointing_enable()
+    print("\nMethod 2 LLaMA Model's Summary:\n{}\n\n\n".format(llama.model.adapter_summary()))
 
-    llama_tokenizer = AutoTokenizer.from_pretrained(
-        MODEL_ID,
-        padding_side="right",
-        tokenizer_type="llama",
-        trust_remote_code=True,
-        use_fast=True
-    )
+    for name, param in llama.model.named_parameters():
+        print(f"Parameter: {name} | Device: {param.device}")
+    #
+    # llama_tokenizer = AutoTokenizer.from_pretrained(
+    #     MODEL_ID,
+    #     padding_side="right",
+    #     tokenizer_type="llama",
+    #     trust_remote_code=True,
+    #     use_fast=True
+    # )
 
-    testing_model(llama_model=llama_model, llama_tokenizer=llama_tokenizer, domain="medical", peft_full_name=peft_dir,
-                  device=device, provider="ah" if ah else "hf")
+    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, domain=domain, peft_full_name=peft_dir,
+                  device=device)

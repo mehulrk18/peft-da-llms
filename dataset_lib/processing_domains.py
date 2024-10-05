@@ -54,7 +54,7 @@ def generate_training_prompt(article: str, summary: str, system_prompt: str = DE
 
 def llama3_training_prompt(article: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
     prompt = """
-        <bos>
+        <|begin_of_text|>
         <|start_of_message|>system<|end_of_message|>
         {}
         <|start_of_message|>user<|end_of_message|>
@@ -62,6 +62,7 @@ def llama3_training_prompt(article: str, summary: str, system_prompt: str = DEFA
         <|end_of_message|>
         <|start_of_message|>assistant<|end_of_message|>
         # Summary: \n{}
+        <|end_of_text|>
     """.format(system_prompt, article, summary)
 
     return prompt.strip()
@@ -69,7 +70,7 @@ def llama3_training_prompt(article: str, summary: str, system_prompt: str = DEFA
 
 def llama3_testing_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
     prompt = """
-        <bos>
+        <|begin_of_text|>
         <|start_of_message|>system<|end_of_message|>
         {}
         <|start_of_message|>user<|end_of_message|>
@@ -88,8 +89,8 @@ def inference_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
 
 
 def preprocessing_scientific_or_medical(sample):
-    texts = [llama3_training_prompt(article=article, summary=summary)
-        # generate_training_prompt(article=article, summary=summary)
+    texts = [#llama3_training_prompt(article=article, summary=summary)
+        generate_training_prompt(article=article, summary=summary)
              for article, summary in zip(sample["article"], sample["abstract"])]
 
     return {

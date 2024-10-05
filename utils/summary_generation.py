@@ -1,5 +1,5 @@
 import torch
-from dataset_lib import inference_prompt
+from dataset_lib import inference_prompt, llama3_testing_prompt
 
 
 # TODO: Improve Generation and Evaluation.
@@ -7,6 +7,7 @@ from dataset_lib import inference_prompt
 def generate_summary(model, tokenizer, content, device):
     # content = f"Summarize the following text:\n\n{text}"
     content = inference_prompt(content)
+    # content = llama3_testing_prompt(content)
 
     # print("Text: \n", text)
     inputs = tokenizer(content, return_tensors="pt").to(device)
@@ -18,7 +19,7 @@ def generate_summary(model, tokenizer, content, device):
                                      num_return_sequences=1,  # Generate a single sequence
                                      # early_stopping=True,
                                      # temprature=0.001,
-                                     max_new_tokens=256)
+                                     max_new_tokens=100)
     summary = tokenizer.decode(summary_ids[0][in_len:], skip_special_tokens=True)
     return summary
 
