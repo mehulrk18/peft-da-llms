@@ -4,10 +4,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class LLaMAModelClass():
 
-    def __init__(self, version: float = 3.0, instruct_mode: bool = False, model_checkpoint: str = None, quantization_config=None):
+    def __init__(self, version: float = 3.0, instruct_mode: bool = False, model_checkpoint: str = None,
+                 quantization_config=None, mlm: bool = False):
         self.version = float(version)
         self.instruct_mode = instruct_mode
         self.quantization_config = quantization_config
+        self.mlm = mlm
         # MODEL_ID = "meta-llama/Meta-Llama-3-8B"  # Meta-Llama-3-8B-Instruct
 
         if self.version not in [2.0, 3.0, 3.1, 3.2]:
@@ -55,11 +57,20 @@ class LLaMAModelClass():
             trust_remote_code=True,
             use_fast=True
         )
-        self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.add_special_tokens({
             "eos_token": self.tokenizer.convert_ids_to_tokens(self.model.config.eos_token_id),
             "bos_token": self.tokenizer.convert_ids_to_tokens(self.model.config.bos_token_id),
         })
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        if self.mlm:
+            print("*** Adding the Mask to the LM Tokenizer ***")
+            self.tokenizer.add_special_tokens({
+                "mask_token": "[MASK]"
+            })
+            # self.tokenizer.mask_token_id = -100
+            self.model.resize_token_embeddings(len(self.tokenizer))
+
         print("*** Tokenizer Loaded ***")
 
     def return_model(self):

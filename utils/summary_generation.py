@@ -6,8 +6,8 @@ from dataset_lib import inference_prompt, llama3_testing_prompt
 
 def generate_summary(model, tokenizer, content, device):
     # content = f"Summarize the following text:\n\n{text}"
-    content = inference_prompt(content)
-    # content = llama3_testing_prompt(content)
+    # content = inference_prompt(content)
+    content = llama3_testing_prompt(content)
 
     # print("Text: \n", text)
     inputs = tokenizer(content, return_tensors="pt").to(device)
