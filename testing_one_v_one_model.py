@@ -94,13 +94,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     trained_peft_path = main_directory + args.trained_peft_path
+    mlm = False
+    if "mlm" in trained_peft_path:
+        mlm = True
     model_checkpoint = args.checkpoint
     test_samples = args.test_samples
     peft_path_splits = trained_peft_path.split("/")
     if peft_path_splits[0] == "results":
         peft_dir = "_".join(peft_path_splits)
-        domain = peft_path_splits[1]
-        peft_name = peft_path_splits[2]
+        domain = peft_path_splits[3].split("_")[0]
+        peft_name = peft_path_splits[3]
 
     elif trained_peft_path.split("/")[0] == "saved_models":
         peft_dir = peft_path_splits[1]
@@ -117,7 +120,8 @@ if __name__ == "__main__":
     logger = logging.getLogger()
 
     # llama_model = get_pretrained_model(ah=ah)
-    llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantization_config=None, model_checkpoint=model_checkpoint)
+    llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantization_config=None,
+                            model_checkpoint=model_checkpoint, mlm=mlm)
     # llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantization_config=None)
 
     logger.info("Check point MODEL: \n{}".format(llama.model))
