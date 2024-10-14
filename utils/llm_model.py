@@ -66,7 +66,7 @@ class LLaMAModelClass():
         if self.mlm:
             print("*** Adding the Mask to the LM Tokenizer ***")
             self.tokenizer.add_special_tokens({
-                "mask_token": "[MASK]"
+                "mask_token": "<|mask|>"
             })
             # self.tokenizer.mask_token_id = -100
             self.model.resize_token_embeddings(len(self.tokenizer))

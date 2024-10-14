@@ -11,7 +11,7 @@ from datasets import load_dataset, Dataset, DatasetDict, load_from_disk
 DATASET_STORAGE_DIR = ""   # fetch from configs
 
 DEFAULT_SYSTEM_PROMPT = """
-    You are an AI assistant that excels at summarizing long-form articles. Please provide a concise and informative summary of the following article.
+    You are an AI assistant that excels at summarizing long-form articles. Please provide a concise and informative summary of the following article provided by the user.
 """.strip()
 # Given below is an article. Write a concise and informative Summary for the article.
 
@@ -48,28 +48,59 @@ datasets_info_dict = {
 
 def generate_training_prompt(article: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
     prompt = """### Instruction: {}\n\n### Article: {}\n\n### Summary: {}""".format(system_prompt, article, summary)
-
     return prompt.strip()
 
 
 def llama3_training_prompt(article: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    # prompt = """
+    #     <|begin_of_text|><|start_of_message|>system<|end_of_message|>\n{}\n
+    #     <|start_of_message|>user<|end_of_message|>\nArticle:\n{}<|end_of_message|>\n
+    #     <|start_of_message|>assistant<|end_of_message|>\n{}<|end_of_text|>
+    # """.format(system_prompt, article, summary)
+
+    # This done after reading from the chat_template using tokenize=False
     prompt = """
-        <|begin_of_text|><|start_of_message|>system<|end_of_message|>\n{}\n
-        <|start_of_message|>user<|end_of_message|>\nArticle:\n{}<|end_of_message|>\n
-        <|start_of_message|>assistant<|end_of_message|>\nSummary:\n{}<|end_of_text|>
-    """.format(system_prompt, article, summary)
+            <|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}.<|eot_id|>\n
+            <|start_header_id|>user<|end_header_id|>\nArticle:\n{}<|eot_id|>\n
+            <|start_header_id|>assistant<|end_header_id|>\n{}<|eot_id|><|end_of_text|>
+        """.format(system_prompt, article, summary)
 
     return prompt.strip()
 
 
 def llama3_testing_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    # prompt = """
+    #     <|begin_of_text|><|start_of_message|>system<|end_of_message|>\n{}\n
+    #     <|start_of_message|>user<|end_of_message|>\nArticle:\n{}<|end_of_message|>\n
+    #     <|start_of_message|>assistant<|end_of_message|>\n
+    # """.format(system_prompt, article)
+
+    # This done after reading from the chat_template using tokenize=False
     prompt = """
-        <|begin_of_text|><|start_of_message|>system<|end_of_message|>\n{}\n
-        <|start_of_message|>user<|end_of_message|>\nArticle:\n{}<|end_of_message|>\n
-        <|start_of_message|>assistant<|end_of_message|>\nSummary:\n
-    """.format(system_prompt, article)
+                <|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}.<|eot_id|>\n
+                <|start_header_id|>user<|end_header_id|>\nArticle:\n{}<|eot_id|>\n
+                <|start_header_id|>assistant<|end_header_id|>\n
+            """.format(system_prompt, article)
 
     return prompt.strip()
+
+
+def chat_template_prompt_training(article: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT) -> list:
+    messages = [
+        {"role": "system", "content": system_prompt.strip()},
+        {"role": "user", "content": "Article:\n{}".format(article)},
+        {"role": "assistant", "content": "SUMMARY:\n{}".format(summary)}
+    ]
+    return messages
+
+
+def chat_template_prompt_inference(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    messages = [
+        {"role": "system", "content": system_prompt.strip()},
+        {"role": "user", "content": "Article:\n{}".format(article)}
+    ]
+
+    return messages
 
 
 def inference_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
@@ -78,11 +109,23 @@ def inference_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
     return prompt.strip()
 
 
+def preprocessing_data_with_chat_format(sample):
+    chats = [chat_template_prompt_training(article=article, summary=summary)
+             # generate_training_prompt(article=article, summary=summary)
+             for article, summary in zip(sample["article"], sample["abstract"])]
+    sample.pop("article", None)
+    sample.pop("abstract", None)
+    return {
+        "chat": chats
+    }
+
+
 def preprocessing_scientific_or_medical(sample):
     texts = [llama3_training_prompt(article=article, summary=summary)
         # generate_training_prompt(article=article, summary=summary)
              for article, summary in zip(sample["article"], sample["abstract"])]
-
+    sample.pop("article", None)
+    sample.pop("abstract", None)
     return {
         "text": texts
     }
@@ -119,23 +162,27 @@ def read_news_summarization():
 
 class SumDataLoader:
 
-    def __init__(self, dataset_name: str, training_samples: int = 1000, force_download: bool = False,
-                 src_directory: str = ""):
+    def __init__(self, dataset_name: str, force_download: bool = False, training_samples: int = 1000,
+                 eval_samples: int = 1000, test_samples: int = 500, src_directory: str = "", chat_template: bool = False,
+                 preprocess_function: callable = None, sort_dataset_on_article_len: bool = False):
 
         self.src_directory = src_directory
+        self.chat_template = chat_template
         self.dataset = SumDatasets(dataset_name.lower())
+        self.preprocess_function = preprocess_function
+        self.sort_dataset_on_article_len = sort_dataset_on_article_len
         self.dataset_name = self.dataset.name
 
         self.force_download = force_download
         self.training_samples = training_samples
+        self.eval_samples = eval_samples
+        self.test_samples = test_samples
 
         self.dataset_id = datasets_info_dict[self.dataset_name]["dataset_id"]
         self.local_path = datasets_info_dict[self.dataset_name]["local_path"]
         self.dataset_source = datasets_info_dict[self.dataset_name]["source"]
 
         self.train_set, self.validation_set, self.test_set = None, None, None
-
-        self.preprocess_function = self.__get_preprocess_function()
 
     def print_dataset_stats(self):
         print("**Dataset Stats**\nTrain: {}\n\nValidation: {}\n\nTest: {}\n\n".format(self.train_set,
@@ -193,9 +240,27 @@ class SumDataLoader:
             # return _dataset
         else:
             loaded_dataset = load_from_disk(local_path)
-            self.train_set = loaded_dataset["train"].select(range(self.training_samples))
-            self.validation_set = loaded_dataset["validation"]
-            self.test_set = loaded_dataset["test"].select(range(500)) # for testing reducing the number of samples.
+
+            if self.dataset_name in [SumDatasets.ARXIV.name, SumDatasets.PUBMED.name]:
+                loaded_dataset = loaded_dataset.map(lambda x: {"article_tokens": len(x["article"].split()),
+                                                               "abstract_tokens": len(x["abstract"].split())})
+
+                loaded_dataset = loaded_dataset.filter(lambda x: (x["article_tokens"] != 0 and
+                                                                  x["abstract_tokens"] != 0))
+
+                print("Min and Max number of tokens in articles in train dataset of {} are {} and {} "
+                      "respectively!".format(self.dataset_name, min(loaded_dataset["train"]["article_tokens"]),
+                                             max(loaded_dataset["train"]["article_tokens"])))
+
+                if self.sort_dataset_on_article_len:
+                    print("Sorting test data on number of tokens of articles")
+                    loaded_dataset = loaded_dataset.sort("article_tokens")
+                loaded_dataset = loaded_dataset.remove_columns(["article_tokens", "abstract_tokens"])
+
+                self.train_set = loaded_dataset["train"].select(range(self.training_samples))
+                self.validation_set = loaded_dataset["validation"].select(range(self.eval_samples))
+                self.test_set = loaded_dataset["test"].select(range(self.test_samples))
+                del loaded_dataset
 
         self.print_dataset_stats()
 
@@ -217,24 +282,34 @@ class SumDataLoader:
         else:
             NotImplementedError("~~~Sources except hugging_face and tabular (csv or excel) NOT IMPLEMENTED YET~~~")
 
-    def __get_preprocess_function(self):
-        if self.dataset_name in [SumDatasets.ARXIV.name, SumDatasets.PUBMED.name]:
-            return preprocessing_scientific_or_medical
+    # def __get_preprocess_function(self):
+    #     if self.dataset_name in [SumDatasets.ARXIV.name, SumDatasets.PUBMED.name]:
+    #         return preprocessing_scientific_or_medical
+    #
+    #     elif self.dataset_name == SumDatasets.MULTI_LEX:
+    #         return preprocessing_legal
+    #
+    #     elif self.dataset_name == SumDatasets.NEWS:
+    #         return preprocessing_news
+    #
+    #     else:
+    #         return preprocessing_low_resource_domain
 
-        elif self.dataset_name == SumDatasets.MULTI_LEX:
-            return preprocessing_legal
-
-        elif self.dataset_name == SumDatasets.NEWS:
-            return preprocessing_news
-
-        else:
-            return preprocessing_low_resource_domain
-
-    def processing_data_with_training_prompt(self, dataset_split: Dataset):
+    def processing_data_with_training_prompt(self, dataset_split: Dataset, preprocess_function: callable = None):
+        if preprocess_function is not None:
+            self.preprocess_function = preprocess_function
         return (dataset_split.map(self.preprocess_function, batched=True
                                   ).shuffle(seed=42))
 
-    def processing_data_with_test_prompt(self, dataset_split: Dataset):
+        # dataset_split = dataset_split.map(preprocess_function, batched=True
+        #                           ).shuffle(seed=42)
+        #
+        # dataset_split.to_csv("splitsssss.csv", index=False)
+        # return dataset_split
+
+    def processing_data_with_test_prompt(self, dataset_split: Dataset, preprocess_function: callable = None):
+        if preprocess_function is not None:
+            self.preprocess_function = preprocess_function
         return (dataset_split.map(self.preprocess_function, batched=True
                                   ).shuffle(seed=42))
 
@@ -242,6 +317,7 @@ class SumDataLoader:
         # cols_to_remove = [col for col in self.train_set.column_names if col != "input_ids"]
         cols_to_remove = [col for col in self.train_set.column_names if col not in ["input_ids", "attention_mask", "labels"]]
         print("cols to remove: ", cols_to_remove)
+        # print("texxxxttt: ", self.train_set[0].keys())
         self.train_set = self.train_set.map(tokenization_process, batched=True, remove_columns=cols_to_remove)
         # self.train_set = self.train_set.remove_columns(
         #     [col for col in self.train_set.column_names if col != "input_ids"])

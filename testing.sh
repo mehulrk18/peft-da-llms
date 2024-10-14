@@ -1,5 +1,8 @@
 #!/bin/bash
-#python testing_one_v_one_model.py --checkpoint results/llama_medical_lora_hf_1000_2_2048_06-10-2024_16-57-35/checkpoint-500 \
-#  --trained_peft_path saved_models/hf_medical_lora_1000_2_06-10-2024_16-57-35_summarization_method2 \
-  python testing_one_v_one_model.py --trained_peft_path results/llama_mlm_hf_medical_lora_1000_2_2048_06-10-2024_18-57-16/checkpoint-1000/medical_lora \
-  --test_samples 10
+  python testing_one_v_one_model.py \
+  --trained_peft_path results/llama_instruct_mlm_hf_scientific_lora_1000_2_8192_bs_2_11-10-2024_02-22-08/checkpoint-500/scientific_lora \
+  --training_samples 1 \
+  --eval_samples 1 \
+  --test_samples 5 \
+  --sorted_dataset "True" \
+  --chat_template "True"
