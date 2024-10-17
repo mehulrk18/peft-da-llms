@@ -1,17 +1,17 @@
 #!/bin/bash
 echo "Starting training" && \
 python training_one_v_one.py \
-  --peft lora \
+  --peft ia3 \
   --domain medical \
-  --train_epochs 1 \
+  --train_epochs 10 \
   --tokenization_with_attention "True" \
-  --max_seq_len 4096 \
+  --max_seq_len 2048 \
   --training_samples 1000 \
-  --eval_samples 1000 \
+  --eval_samples 500 \
   --test_samples 1 \
   --sorted_dataset "True" \
-  --use_instruct_model "True" \
-  --batch_size 2 \
-  --chat_template "True" \
+  --batch_size 4 \
   --return_overflowing_tokens "True"
+#  --chat_template "True" \
+#  --use_instruct_model "True" \
 #  --mlm "True" \

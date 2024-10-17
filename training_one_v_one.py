@@ -159,9 +159,9 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     peft_layer_name = "{}_{}".format(domain, peft_name)
     config = pefts_configuration[PEFTEnum(peft_name).name](**peft_configs)
 
-    summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
-    logger.info("Summary of Random Text Before adding ADapters: \n{}".format(summ))
     llama.model.add_adapter(peft_layer_name, config=config)
+    summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+    logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
 
     llama.model.train_adapter([peft_layer_name])
     llama.model.adapter_to(peft_layer_name, device=device)
@@ -218,6 +218,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     logger.info("Results from Training: {} \n".format( results))
     train_loss = trainer_stats.training_loss
     logger.info(f"\n\nModel Trained with Training loss: {train_loss}")
+    logger.info(f"\n\nModel Trained with stats: {trainer_stats}")
     llama.model = trainer.model
 
     summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
@@ -333,10 +334,10 @@ if __name__ == "__main__":
         remove_unused_columns=False,
         output_dir=main_directory+"results/"+run_name,
         per_device_train_batch_size=batch_size,
-        per_device_eval_batch_size=batch_size,
+        per_device_eval_batch_size=1,
         gradient_accumulation_steps=1,
         optim="paged_adamw_32bit",
-        logging_steps=200,
+        logging_steps=100,
         learning_rate=5e-4,
         fp16=fp16,
         bf16=bf16,
@@ -346,14 +347,14 @@ if __name__ == "__main__":
         eval_steps=0.4,
         warmup_ratio=0.02,
         do_train=True,
-        do_eval=True,
+        do_eval=False,
         save_strategy="epoch",
         save_total_limit=1,
         group_by_length=True,
         logging_dir=main_directory+"logs/",
         report_to="wandb",
         save_safetensors=True,
-        lr_scheduler_type="cosine_with_restarts",  # "cosine", "constant_with_warmup", "linear", "polynomial"
+        lr_scheduler_type="cosine",  # "cosine_with_restarts", "constant_with_warmup", "linear", "polynomial"
         seed=42,
         load_best_model_at_end=True,
         run_name=run_name

@@ -60,9 +60,9 @@ def llama3_training_prompt(article: str, summary: str, system_prompt: str = DEFA
 
     # This done after reading from the chat_template using tokenize=False
     prompt = """
-            <|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}.<|eot_id|>\n
-            <|start_header_id|>user<|end_header_id|>\nArticle:\n{}<|eot_id|>\n
-            <|start_header_id|>assistant<|end_header_id|>\n{}<|eot_id|><|end_of_text|>
+            <|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}<|eot_id|>\n
+            <|start_header_id|>user<|end_header_id|>\nPlease provide the summary for the article:\n{}<|eot_id|>\n
+            <|start_header_id|>assistant<|end_header_id|>\nHere is your Summary:\n{}<|eot_id|><|end_of_text|>
         """.format(system_prompt, article, summary)
 
     return prompt.strip()
@@ -77,9 +77,9 @@ def llama3_testing_prompt(article: str, system_prompt: str = DEFAULT_SYSTEM_PROM
 
     # This done after reading from the chat_template using tokenize=False
     prompt = """
-                <|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}.<|eot_id|>\n
-                <|start_header_id|>user<|end_header_id|>\nArticle:\n{}<|eot_id|>\n
-                <|start_header_id|>assistant<|end_header_id|>\n
+            <|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}<|eot_id|>\n
+            <|start_header_id|>user<|end_header_id|>\nPlease provide the summary for the article:\n{}<|eot_id|>\n
+            <|start_header_id|>assistant<|end_header_id|>\nHere is your Summary:\n
             """.format(system_prompt, article)
 
     return prompt.strip()

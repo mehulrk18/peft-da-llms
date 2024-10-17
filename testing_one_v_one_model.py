@@ -12,7 +12,8 @@ from utils import generate_summary, get_pretrained_model, MODEL_ID, rouge_metric
 global CHAT_TEMPLATE
 
 
-def testing_model(llama_model, llama_tokenizer, domain, samples, peft_full_name, device):
+def testing_model(llama_model, llama_tokenizer, domain, training_samples, eval_samples, test_samples,
+                  sort_data, peft_full_name, device):
     # testing the model with Test data.
     def inference_prompt_processing(sample):
         if "sources" in sample.keys():
@@ -49,7 +50,8 @@ def testing_model(llama_model, llama_tokenizer, domain, samples, peft_full_name,
         logger.error("Exception: ".format(e))
         pass
 
-    data = SumDataLoader(dataset_name=domain)
+    data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
+                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
     data.loading_dataset_splits()
 
     data.train_set = None
@@ -65,7 +67,7 @@ def testing_model(llama_model, llama_tokenizer, domain, samples, peft_full_name,
     }
 
     # for arxiv and pubmed
-    min_samples = min(samples, len(df_test_data))
+    min_samples = min(test_samples, len(df_test_data))
     for i in range(min_samples):
         summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["article"][i],
                                    device=device)
@@ -112,7 +114,10 @@ if __name__ == "__main__":
     trained_peft_path = main_directory + args.trained_peft_path
     mlm = True if "mlm" in trained_peft_path else False
     model_checkpoint = args.checkpoint
+    training_samples = args.training_samples
+    eval_samples = args.eval_samples
     test_samples = args.test_samples
+    sort_data = args.sorted_dataset
     CHAT_TEMPLATE = True if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True if "instruct" in trained_peft_path else False
 
@@ -200,5 +205,6 @@ if __name__ == "__main__":
     #     use_fast=True
     # )
 
-    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, domain=domain, samples=test_samples,
-                  peft_full_name=peft_dir, device=device)
+    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, domain=domain,
+                  training_samples=training_samples, eval_samples=eval_samples, test_samples=test_samples,
+                  sort_data=sort_data, peft_full_name=peft_dir, device=device)
