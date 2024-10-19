@@ -30,7 +30,7 @@ class WandBLogger(logging.StreamHandler):
 
 
 def llama_model_training(main_directory, training_arguments, logger, training_samples, eval_samples, test_samples,
-                         peft_name, domain, sort_data=False, mlm=False, save_peft_name=None, return_overflowing_tokens=False):
+                         peft_name, domain, provider, sort_data=False, mlm=False, save_peft_name=None, return_overflowing_tokens=False):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # from transformers import BitsAndBytesConfig
     # qc = BitsAndBytesConfig(
@@ -128,23 +128,6 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
 
     # TODO: Add code block for generating Summary with Zero Shot Learning.
     pefts_from_yaml = read_yaml(file_name=PEFT_CONFIGS_FILE)
-    # METHOD - 1
-    # peft_configs = pefts_from_yaml[provider][peft_name]
-    #
-    # peft_layer_name = "{}_{}".format(domain, peft_name)
-    # from peft import TaskType
-    # peft_configs.update({
-    #     "task_type": TaskType.CAUSAL_LM,
-    #     # "modules_to_save": peft_layer_name
-    # })
-    # from peft import LoraConfig
-    # config = LoraConfig(**peft_configs)
-    #
-    # from peft import get_peft_model
-    #
-    # llama_model = get_peft_model(llama_model, config)
-
-    # METHOD 2
     random_text = """
                 Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
             """.strip()
@@ -152,50 +135,76 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     # summ = summarize(inputs=random_text, return_text=False)
     summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
     logger.info("Summary of Random Text Before init AdapterHub: \n{}".format(summ))
-    adapters.init(model=llama.model)
+    # METHOD - 1
+    if provider == "hf":
+        peft_configs = pefts_from_yaml[provider][peft_name]
 
-    peft_configs = pefts_from_yaml["ah"][peft_name]
+        peft_layer_name = "{}_{}".format(domain, peft_name)
+        from peft import TaskType
+        peft_configs.update({
+            "task_type": TaskType.CAUSAL_LM,
+            # "modules_to_save": peft_layer_name
+        })
+        from peft import LoraConfig
+        config = LoraConfig(**peft_configs)
 
-    peft_layer_name = "{}_{}".format(domain, peft_name)
-    config = pefts_configuration[PEFTEnum(peft_name).name](**peft_configs)
+        from peft import get_peft_model
 
-    llama.model.add_adapter(peft_layer_name, config=config)
-    summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
-    logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
+        llama_model = get_peft_model(llama.model, config)
+        llama.model.enable_input_require_grads()
+        llama.model.gradient_checkpointing_enable()
+        for param in llama.model.parameters():
+            if param.ndim == 1:
+                # cast the small parameters (e.g. layernorm) to fp32 for stability
+                param.data = param.data.to(torch.float32)
 
-    llama.model.train_adapter([peft_layer_name])
-    llama.model.adapter_to(peft_layer_name, device=device)
-    logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
-    logger.info("\n\nLLaMA Model's Summary:\n{}".format(llama.model.adapter_summary()))
+        logger.info("Trainable Parameters: ")
+        llama_model.print_trainable_parameters()
+        data_collator = DataCollatorForLanguageModeling(llama.tokenizer, mlm=mlm, return_tensors="pt")
+        trainer = SFTTrainer(
+            model=llama_model,
+            train_dataset=data.train_set,
+            eval_dataset=data.validation_set,
+            data_collator=data_collator,
+            peft_config=config,
+            dataset_text_field="chat" if CHAT_TEMPLATE else "text",
+            max_seq_length=MAX_SEQ_LENGTH,
+            tokenizer=llama.tokenizer,
+            args=training_arguments,
+        )
+    # METHOD 2
+    else:
+        adapters.init(model=llama.model)
 
-    llama.model.enable_input_require_grads()
-    llama.model.gradient_checkpointing_enable()
-    for param in llama.model.parameters():
-        if param.ndim == 1:
-            # cast the small parameters (e.g. layernorm) to fp32 for stability
-            param.data = param.data.to(torch.float32)
-    # logger.info("Trainable Parameters: ")
-    # llama_model.print_trainable_parameters()
+        peft_configs = pefts_from_yaml[provider][peft_name]
 
-    # trainer = SFTTrainer(
-    #     model=llama_model,
-    #     train_dataset=data.train_set,
-    #     eval_dataset=data.validation_set,
-    #     peft_config=config,
-    #     dataset_text_field="text",
-    #     max_seq_length=MAX_SEQ_LENGTH,
-    #     tokenizer=llama_tokenizer,
-    #     args=training_args,
-    # )
-    data_collator = DataCollatorForLanguageModeling(llama.tokenizer, mlm=mlm, return_tensors="pt")
-    trainer = AdapterTrainer(
-        model=llama.model,
-        tokenizer=llama.tokenizer,
-        data_collator=data_collator,
-        train_dataset=data.train_set,
-        eval_dataset=data.validation_set,
-        args=training_arguments
-    )
+        peft_layer_name = "{}_{}".format(domain, peft_name)
+        config = pefts_configuration[PEFTEnum(peft_name).name](**peft_configs)
+
+        llama.model.add_adapter(peft_layer_name, config=config)
+        summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+        logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
+
+        llama.model.train_adapter([peft_layer_name])
+        llama.model.adapter_to(peft_layer_name, device=device)
+        logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
+        logger.info("\n\nLLaMA Model's Summary:\n{}".format(llama.model.adapter_summary()))
+
+        llama.model.enable_input_require_grads()
+        llama.model.gradient_checkpointing_enable()
+        for param in llama.model.parameters():
+            if param.ndim == 1:
+                # cast the small parameters (e.g. layernorm) to fp32 for stability
+                param.data = param.data.to(torch.float32)
+        data_collator = DataCollatorForLanguageModeling(llama.tokenizer, mlm=mlm, return_tensors="pt")
+        trainer = AdapterTrainer(
+            model=llama.model,
+            tokenizer=llama.tokenizer,
+            data_collator=data_collator,
+            train_dataset=data.train_set,
+            eval_dataset=data.validation_set,
+            args=training_arguments
+        )
 
     from accelerate import Accelerator
     accelerator = Accelerator()
@@ -250,11 +259,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
-    parser.add_argument("--peft", type=str, default=None, help="peft name for config_file", required=True)
-    parser.add_argument("--domain", type=str, default=None, help="Domain name for dataset", required=True)
-    parser.add_argument("--tokenization_with_attention", type=bool, default=False, help="True if tokenization with attention")
+    parser.add_argument("--peft", type=str, help="peft name for config_file", required=True)
+    parser.add_argument("--domain", type=str, help="Domain name for dataset", required=True)
+    parser.add_argument("--provider", type=str, choices=["ah", "hf"], required=True,
+                        help="Load PEFT from m1->HF and m2->AH")
+    parser.add_argument("--tokenization_with_attention", type=bool, default=False,
+                        help="True if tokenization with attention")
     parser.add_argument("--train_epochs", type=int, default=1, help="Training Epochs")
-    parser.add_argument("--chat_template", type=bool, default=False, help="Using chat template for tokenizing")
+    parser.add_argument("--chat_template", type=bool, default=False,
+                        help="Using chat template for tokenizing")
     parser.add_argument("--training_samples", type=int, default=1000, help="Number of training Samples")
     parser.add_argument("--eval_samples", type=int, default=1000, help="Number of Evaluation Samples")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
@@ -287,6 +300,7 @@ if __name__ == "__main__":
     eval_samples = args.eval_samples
     test_samples = args.test_samples
     sort_data = args.sorted_dataset
+    provider = args.provider
     MAX_SEQ_LENGTH = args.max_seq_len
     CHAT_TEMPLATE = args.chat_template
     INSTRUCT_MODEL = args.use_instruct_model
@@ -299,13 +313,14 @@ if __name__ == "__main__":
     save_peft_name = "{}_{}_{}_{}_{}_bs_{}_summarization".format(domain, peft_name, training_samples,
                                                                  training_epochs, batch_size, now)
     if use_mlm:
-        run_name = "llama_{}_mlm_hf_{}_{}_{}_{}_{}_bs_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
-                                                                    peft_name, training_samples,
-                                                                    training_epochs, MAX_SEQ_LENGTH, batch_size, now)
+        run_name = "llama_{}_mlm_hf_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+                                                                       peft_name, training_samples,
+                                                                       training_epochs, MAX_SEQ_LENGTH, batch_size,
+                                                                       provider, now)
     else:
-        run_name = "llama_{}_hf_{}_{}_{}_{}_{}_bs_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+        run_name = "llama_{}_hf_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
                                                                 peft_name, training_samples, training_epochs,
-                                                                MAX_SEQ_LENGTH, batch_size, now)
+                                                                MAX_SEQ_LENGTH, batch_size, provider, now)
 
     run_name = run_name+"_chat_template" if CHAT_TEMPLATE else run_name
     load_dotenv(".env")
@@ -362,7 +377,7 @@ if __name__ == "__main__":
     )
 
     trained_llama_model = llama_model_training(main_directory=main_directory, training_arguments=training_args,
-                                               logger=logger, training_samples=training_samples,
+                                               logger=logger, training_samples=training_samples, provider=provider,
                                                eval_samples=eval_samples, test_samples=test_samples, sort_data=sort_data,
                                                peft_name=peft_name, domain=domain, save_peft_name=save_peft_name,
                                                mlm=use_mlm, return_overflowing_tokens=return_overflowing_tokens)
