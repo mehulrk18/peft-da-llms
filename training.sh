@@ -3,12 +3,12 @@ echo "Starting training" && \
 python training_one_v_one.py \
   --peft "lora" \
   --domain "medical" \
-  --provider "ah" \
-  --train_epochs 5 \
+  --provider "hf" \
+  --train_epochs 1 \
   --tokenization_with_attention "True" \
   --max_seq_len 2048 \
-  --training_samples 1000 \
-  --eval_samples 500 \
+  --training_samples 4 \
+  --eval_samples 4 \
   --test_samples 1 \
   --sorted_dataset "True" \
   --batch_size 4 \

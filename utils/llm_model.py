@@ -62,6 +62,7 @@ class LLaMAModelClass():
             "bos_token": self.tokenizer.convert_ids_to_tokens(self.model.config.bos_token_id),
         })
         self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
         if self.mlm:
             print("*** Adding the Mask to the LM Tokenizer ***")

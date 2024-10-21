@@ -12,8 +12,7 @@ from utils import generate_summary, get_pretrained_model, MODEL_ID, rouge_metric
 global CHAT_TEMPLATE
 
 
-def testing_model(llama_model, llama_tokenizer, domain, training_samples, eval_samples, test_samples,
-                  sort_data, peft_full_name, device):
+def testing_model(llama_model, llama_tokenizer, test_samples, peft_full_name, device):
     # testing the model with Test data.
     def inference_prompt_processing(sample):
         if "sources" in sample.keys():
@@ -43,19 +42,12 @@ def testing_model(llama_model, llama_tokenizer, domain, training_samples, eval_s
     # summ = summarize(inputs=random_text, return_text=False)
     logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
     try:
-        with open("random_ip_summaries/random_text_{}_pipeline.txt".format(peft_full_name), "w") as f:
+        with open("random_ip_summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
             f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
             logger.info("Written Random article summary")
     except Exception as e:
         logger.error("Exception: ".format(e))
         pass
-
-    data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
-                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
-    data.loading_dataset_splits()
-
-    data.train_set = None
-    data.validation_set = None
 
     data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
     df_test_data = pd.DataFrame(data=data.test_set)
@@ -69,8 +61,9 @@ def testing_model(llama_model, llama_tokenizer, domain, training_samples, eval_s
     # for arxiv and pubmed
     min_samples = min(test_samples, len(df_test_data))
     for i in range(min_samples):
+        logger.info("Summary for {} sample".format(i))
         summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["article"][i],
-                                   device=device)
+                                   device=device, chat_template=CHAT_TEMPLATE)
         test_summaries["truth"].append(df_test_data["abstract"][i])
         test_summaries["prediction"].append(summary)
         del summary
@@ -100,8 +93,6 @@ if __name__ == "__main__":
     parser.add_argument("--test_samples", type=int, default=500, help="Number of Samples to be tested")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
     parser.add_argument("--chat_template", type=bool, default=False, help="Using chat template for tokenizing")
-    # parser.add_argument("--ah", type=bool, help="Load Model and Adapter from Adapter HUB")
-    # parser.add_argument("--domain", type=str, help="Domain name for dataset")
 
     try:
         from google.colab import drive
@@ -150,7 +141,7 @@ if __name__ == "__main__":
     logger.info("Check point MODEL: \n{}".format(llama.model))
 
     if provider == "hf":
-        # Method 1
+        # Method 1 - HuggingFace
         from peft import PeftModel
         llama.model = PeftModel.from_pretrained(llama.model, trained_peft_path, adapter_name=peft_name) #, use_safetensors=True)
         llama.model = llama.model.merge_and_unload()
@@ -158,15 +149,15 @@ if __name__ == "__main__":
         llama.model.set_adapter(peft_name)
         for name, param in llama.model.named_parameters():
             if peft_type in name:
-                logger.info("{} -> {}".format(name, param.dtype))
+                # logger.info("{} -> {}".format(name, param.dtype))
                 param.data = param.data.to(torch.bfloat16)
             if param.ndim == 1:
                 # cast the small parameters (e.g. layernorm) to fp32 for stability
-                logger.info("To Dim1: {} -> {}".format(name, param.dtype))
+                # logger.info("To Dim1: {} -> {}".format(name, param.dtype))
                 param.data = param.data.to(torch.float32)
         llama.model = llama.model.to(torch.bfloat16)
     else:
-        # Method 2
+        # Method 2 - AdapterHub
         adapters.init(model=llama.model)
         loaded_peft = llama.model.load_adapter(trained_peft_path, with_head=False)
         llama.model.set_active_adapters([loaded_peft])
@@ -183,17 +174,12 @@ if __name__ == "__main__":
     if CHAT_TEMPLATE:
         logger.info("****** RESULTS ARE GENERATED USING CHAT TEMPLATE ******")
 
-    # for name, param in llama.model.named_parameters():
-    #     logger.info(f"Parameter: {name} | Device: {param.device}")
-    #
-    # llama_tokenizer = AutoTokenizer.from_pretrained(
-    #     MODEL_ID,
-    #     padding_side="right",
-    #     tokenizer_type="llama",
-    #     trust_remote_code=True,
-    #     use_fast=True
-    # )
+    data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
+                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
+    data.loading_dataset_splits()
 
-    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, domain=domain,
-                  training_samples=training_samples, eval_samples=eval_samples, test_samples=test_samples,
-                  sort_data=sort_data, peft_full_name=peft_dir, device=device)
+    data.train_set = None
+    data.validation_set = None
+
+    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, test_samples=test_samples,
+                  peft_full_name=peft_dir, device=device)

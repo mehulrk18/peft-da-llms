@@ -18,7 +18,7 @@ from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
 from utils import read_yaml, get_pretrained_model, MODEL_ID, LLaMAModelClass, generate_summary
 
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
-global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL
+global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE
 
 
 class WandBLogger(logging.StreamHandler):
@@ -31,7 +31,8 @@ class WandBLogger(logging.StreamHandler):
 
 
 def llama_model_training(main_directory, training_arguments, logger, training_samples, eval_samples, test_samples,
-                         peft_name, domain, provider, sort_data=False, mlm=False, save_peft_name=None, return_overflowing_tokens=False):
+                         peft_name, domain, provider, sort_data=False, mlm=False, save_peft_name=None,
+                         return_overflowing_tokens=False):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # from transformers import BitsAndBytesConfig
     # qc = BitsAndBytesConfig(
@@ -68,16 +69,6 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
                 "labels": labels}
 
     def tokenization_process_with_chat_template(input_data):
-        # inputs, labels = [], []
-        # DEFAULT_SYSTEM_PROMPT = """
-        #     You are an AI assistant that excels at summarizing long-form articles. Please provide a concise and informative summary of the following article provided by the user.
-        # """.strip()
-        # for article, abstract in zip(input_data["article"], input_data["abstract"]):
-        #     messages = [
-        #         {"role": "system", "content": DEFAULT_SYSTEM_PROMPT.strip()},
-        #         {"role": "user", "content": "Article:\n{}".format(article)},
-        #         {"role": "assistant", "content": "Summary:\n{}".format(abstract)}
-        #     ]
         input_ids = llama.tokenizer.apply_chat_template(
             input_data["chat"],
             add_generation_prompt=False,
@@ -180,12 +171,10 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     # METHOD 2
     else:
         adapters.init(model=llama.model)
-
         peft_configs = pefts_from_yaml[provider][peft_name]
 
         peft_layer_name = "{}_{}".format(domain, peft_name)
         config = pefts_configuration[PEFTEnum(peft_name).name](**peft_configs)
-
         llama.model.add_adapter(peft_layer_name, config=config)
         summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
         logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
@@ -215,8 +204,6 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     accelerator = Accelerator()
     accelerator.prepare(trainer)
     logger.info("Active Adapters: {}".format(llama.model.active_adapters))
-    # summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device)
-    # logger.info("Summary of Random Text Before Training: \n".format(summ))
     # log the results to file
     import math
     # initial_results = trainer.evaluate()
@@ -258,6 +245,12 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         logger.info(f"PEFT CONF: {trainer.model.peft_config}")
         torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/{peft_layer_name}/pytorch_adapter.bin")
 
+    if DO_INFERENCE:
+        logger.info("\n\n\n**** Performing inference on the trained model ****")
+        from testing_one_v_one_model import testing_model
+        testing_model(llama_model=trainer.model, llama_tokenizer=llama.tokenizer, test_samples=test_samples,
+                      peft_full_name=LOG_FILE, device=device)
+
     return trainer.model
 
 
@@ -287,6 +280,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1, help="Batch Size")
     parser.add_argument("--use_instruct_model", type=bool, default=False, help="Use Instruct based Model for training")
     parser.add_argument("--return_overflowing_tokens", type=bool, default=False, help="Use overflowing tokens")
+    parser.add_argument("--do_inference", type=bool, default=False, help="Do inference along with training")
 
     # TODO: Add args parser
     try:
@@ -314,6 +308,7 @@ if __name__ == "__main__":
     MAX_SEQ_LENGTH = args.max_seq_len
     CHAT_TEMPLATE = args.chat_template
     INSTRUCT_MODEL = args.use_instruct_model
+    DO_INFERENCE = args.do_inference
     return_overflowing_tokens = args.return_overflowing_tokens
     batch_size = args.batch_size
 
@@ -340,8 +335,9 @@ if __name__ == "__main__":
     wandb.login()
     wnb_run = wandb.init(name=run_name)
     # Set up logger
+    LOG_FILE = "training_{}".format(run_name)
     logging.basicConfig(
-        filename=main_directory+'logs/training_{}.log'.format(run_name),  # The log file to write to
+        filename=main_directory+'logs/{}.log'.format(LOG_FILE),  # The log file to write to
         filemode='w',  # Overwrite the log file each time the script runs
         level=logging.INFO,  # Log level
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
