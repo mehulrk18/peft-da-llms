@@ -76,6 +76,10 @@ class LLaMAModelClass():
     def return_model(self):
         return self.model
 
+    def reassign_model(self, model):
+        self.model = None
+        self.model = model
+
     def return_tokenizer(self):
         return self.tokenizer
 

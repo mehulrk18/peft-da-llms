@@ -4,6 +4,7 @@ import os
 
 import adapters
 import torch
+from peft import IA3Config
 from trl import SFTTrainer
 
 import wandb
@@ -143,33 +144,37 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         from peft import TaskType
         peft_configs.update({
             "task_type": TaskType.CAUSAL_LM,
+            # "peft_name": peft_layer_name,
             # "modules_to_save": peft_layer_name
         })
         from peft import LoraConfig
-        config = LoraConfig(**peft_configs)
+        if "lora" in peft_layer_name:
+            config = LoraConfig(**peft_configs)
+        elif "ia3" in peft_layer_name:
+            config = IA3Config(**peft_configs)
 
         from peft import get_peft_model
 
-        llama_model = get_peft_model(llama.model, config)
+        llama.reassign_model(get_peft_model(llama.model, config, adapter_name=peft_layer_name))
         llama.model.enable_input_require_grads()
         llama.model.gradient_checkpointing_enable()
-        for param in llama.model.parameters():
-            if param.ndim == 1:
-                # cast the small parameters (e.g. layernorm) to fp32 for stability
-                param.data = param.data.to(torch.float32)
-
-        logger.info("Trainable Parameters: ")
-        llama_model.print_trainable_parameters()
+        # for param in llama.model.parameters():
+        #     if param.ndim == 1:
+        #         # cast the small parameters (e.g. layernorm) to fp32 for stability
+        #         param.data = param.data.to(torch.float32)
+        logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
+        logger.info("\n\nTrainable Parameters: ")
+        llama.model.print_trainable_parameters()
         data_collator = DataCollatorForLanguageModeling(llama.tokenizer, mlm=mlm, return_tensors="pt")
         trainer = SFTTrainer(
-            model=llama_model,
+            model=llama.model,
+            tokenizer=llama.tokenizer,
+            peft_config=config,
             train_dataset=data.train_set,
             eval_dataset=data.validation_set,
             data_collator=data_collator,
-            peft_config=config,
             dataset_text_field="chat" if CHAT_TEMPLATE else "text",
             max_seq_length=MAX_SEQ_LENGTH,
-            tokenizer=llama.tokenizer,
             args=training_arguments,
         )
     # METHOD 2
@@ -211,11 +216,11 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     accelerator.prepare(trainer)
     logger.info("Active Adapters: {}".format(llama.model.active_adapters))
     # summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device)
-    # logger.info("Summary of Random Text Before Training: \n", summ)
-    # initial_results = trainer.evaluate()
-    # logger.info("Init Results: {}".format(initial_results))
+    # logger.info("Summary of Random Text Before Training: \n".format(summ))
     # log the results to file
     import math
+    # initial_results = trainer.evaluate()
+    # logger.info("Init Results: {}".format(initial_results))
     # logger.info(f"Baseline LLaMA {llama.model_id} Results: Perplexity: {math.exp(initial_results['eval_loss']):.2f}")
     logger.info(f"\n\n***** Fine Tuning the model *****")
     trainer_stats = trainer.train()
@@ -229,8 +234,9 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     logger.info(f"\n\nModel Trained with Training loss: {train_loss}")
     logger.info(f"\n\nModel Trained with stats: {trainer_stats}")
     llama.model = trainer.model
-
-    summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+    trainer.model = trainer.model.to(device)
+    del llama.model
+    summ = generate_summary(model=trainer.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
     logger.info("\n\nSummary of Random Text After Training Adapters: \n{}".format(summ))
 
     # if ah:
@@ -246,9 +252,13 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
 
     # llama.model.save_adapter(main_directory + "saved_models/hf_" + save_peft_name + "_method2", peft_layer_name)
     # uncomment in method 1
-    # llama_model.save_pretrained(main_directory+"saved_models_old_prompt/hf_{}".format(save_peft_name))
+    if provider == "hf":
+        save_path = main_directory+"saved_models/{}_{}".format(provider, save_peft_name)
+        trainer.model.save_pretrained(save_path)
+        logger.info(f"PEFT CONF: {trainer.model.peft_config}")
+        torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/{peft_layer_name}/pytorch_adapter.bin")
 
-    return llama.model
+    return trainer.model
 
 
 if __name__ == "__main__":
@@ -313,14 +323,13 @@ if __name__ == "__main__":
     save_peft_name = "{}_{}_{}_{}_{}_bs_{}_summarization".format(domain, peft_name, training_samples,
                                                                  training_epochs, batch_size, now)
     if use_mlm:
-        run_name = "llama_{}_mlm_hf_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
-                                                                       peft_name, training_samples,
-                                                                       training_epochs, MAX_SEQ_LENGTH, batch_size,
-                                                                       provider, now)
+        run_name = "llama_{}_mlm_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+                                                                       peft_name, provider, training_samples,
+                                                                       training_epochs, MAX_SEQ_LENGTH, batch_size, now)
     else:
-        run_name = "llama_{}_hf_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
-                                                                peft_name, training_samples, training_epochs,
-                                                                MAX_SEQ_LENGTH, batch_size, provider, now)
+        run_name = "llama_{}_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+                                                                peft_name, provider, training_samples, training_epochs,
+                                                                MAX_SEQ_LENGTH, batch_size, now)
 
     run_name = run_name+"_chat_template" if CHAT_TEMPLATE else run_name
     load_dotenv(".env")
@@ -349,7 +358,7 @@ if __name__ == "__main__":
         remove_unused_columns=False,
         output_dir=main_directory+"results/"+run_name,
         per_device_train_batch_size=batch_size,
-        per_device_eval_batch_size=1,
+        per_device_eval_batch_size=int(batch_size/2),
         gradient_accumulation_steps=1,
         optim="paged_adamw_32bit",
         logging_steps=100,
@@ -362,7 +371,7 @@ if __name__ == "__main__":
         eval_steps=0.4,
         warmup_ratio=0.02,
         do_train=True,
-        do_eval=False,
+        do_eval=True,
         save_strategy="epoch",
         save_total_limit=1,
         group_by_length=True,

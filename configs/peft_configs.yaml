@@ -44,11 +44,25 @@ ah:
 hf:
   lora:
     inference_mode: False
-    r: 64
+    r: 32
+    target_modules:
+      - "q_proj"
+      - "v_proj"
+    lora_alpha: 8
+    bias: "lora_only"
+    lora_dropout: 0.1
+#      - "down_proj"
+#    feedforward_modules:
+#      - "down_proj"
+
+  ia3:
+    peft_type: "IA3"
+    init_ia3_weights: True
+    inference_mode: False
     target_modules:
       - "q_proj"
       - "k_proj"
       - "v_proj"
-    lora_alpha: 16
-    bias: "none"
-    lora_dropout: 0.1
+      - "down_proj"
+    feedforward_modules:
+      - "down_proj"

@@ -120,6 +120,7 @@ if __name__ == "__main__":
     sort_data = args.sorted_dataset
     CHAT_TEMPLATE = True if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True if "instruct" in trained_peft_path else False
+    provider = "hf" if "hf" in trained_peft_path else "ah"
 
     peft_path_splits = trained_peft_path.split("/")
     if peft_path_splits[0] == "results":
@@ -129,12 +130,12 @@ if __name__ == "__main__":
 
     elif trained_peft_path.split("/")[0] == "saved_models":
         peft_dir = peft_path_splits[1]
-        provider, domain, peft_type = tuple(peft_dir.split("_")[:3])
+        _, domain, peft_type = tuple(peft_dir.split("_")[:3])
         peft_name = "{}_{}".format(domain, peft_type)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logging.basicConfig(
-        filename=main_directory + 'logs/testing_{}.log'.format("_".join(peft_path_splits)),  # The log file to write to
+        filename=main_directory + 'logs/testing_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples),  # The log file to write to
         filemode='w',  # Overwrite the log file each time the script runs
         level=logging.INFO,  # Log level
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
@@ -147,47 +148,35 @@ if __name__ == "__main__":
     # llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantization_config=None)
 
     logger.info("Check point MODEL: \n{}".format(llama.model))
-    # domain = args.domain
 
-    # if ah:
-    #     loaded_peft = llama_model.load_adapter(trained_peft_path, with_head=True)
-    #     llama_model.set_active_adapters(loaded_peft)
-    #     llama_model.adapter_to(loaded_peft, device=device)
-    #
-    #     llama_model = llama_model.to(torch.bfloat16)
-    #
-    #     llama_model.enable_input_require_grads()
-    #     llama_model.gradient_checkpointing_enable()
-    #
-    #     logger.info("\nLLaMA Model's Summary:\n", llama_model.adapter_summary())
-    #
-    # else:
+    if provider == "hf":
         # Method 1
-        # from peft import PeftModel
-        # llama_model = PeftModel.from_pretrained(llama_model, trained_peft_path, adapter_name=peft_name)
-        # llama_model = llama_model.merge_and_unload()
-        # llama_model.load_adapter(trained_peft_path, adapter_name=peft_name)
-        # llama_model.set_adapter(peft_name)
-    # for name, param in llama_model.named_parameters():
-    #     if "lora" in name:
-    #         logger.info(name, param.dtype)
-    #         param.data = param.data.to(torch.bfloat16)
-        # if param.ndim == 1:
-        #     # cast the small parameters (e.g. layernorm) to fp32 for stability
-        #     logger.info(name, param.dtype)
-            # param.data = param.data.to(torch.float32)
-
+        from peft import PeftModel
+        llama.model = PeftModel.from_pretrained(llama.model, trained_peft_path, adapter_name=peft_name) #, use_safetensors=True)
+        llama.model = llama.model.merge_and_unload()
+        llama.model.load_adapter(trained_peft_path, adapter_name=peft_name)
+        llama.model.set_adapter(peft_name)
+        for name, param in llama.model.named_parameters():
+            if peft_type in name:
+                logger.info("{} -> {}".format(name, param.dtype))
+                param.data = param.data.to(torch.bfloat16)
+            if param.ndim == 1:
+                # cast the small parameters (e.g. layernorm) to fp32 for stability
+                logger.info("To Dim1: {} -> {}".format(name, param.dtype))
+                param.data = param.data.to(torch.float32)
+        llama.model = llama.model.to(torch.bfloat16)
+    else:
         # Method 2
-    adapters.init(model=llama.model)
-    loaded_peft = llama.model.load_adapter(trained_peft_path, with_head=False)
-    llama.model.set_active_adapters([loaded_peft])
-    llama.model.adapter_to(loaded_peft, device=device)
+        adapters.init(model=llama.model)
+        loaded_peft = llama.model.load_adapter(trained_peft_path, with_head=False)
+        llama.model.set_active_adapters([loaded_peft])
+        llama.model.adapter_to(loaded_peft, device=device)
 
-    llama.model = llama.model.to(torch.bfloat16)
+        llama.model = llama.model.to(torch.bfloat16)
 
-    llama.model.enable_input_require_grads()
-    llama.model.gradient_checkpointing_enable()
-    logger.info("\nMethod 2 LLaMA Model's Summary:\n{}\n\n\n".format(llama.model.adapter_summary()))
+        llama.model.enable_input_require_grads()
+        llama.model.gradient_checkpointing_enable()
+        logger.info("\nMethod 2 LLaMA Model's Summary:\n{}\n\n\n".format(llama.model.adapter_summary()))
 
     logger.info("Loaded MODEL: \n{}".format(llama.model))
 

@@ -1,9 +1,10 @@
 #!/bin/bash
 echo "Starting training" && \
 python training_one_v_one.py \
-  --peft ia3 \
-  --domain medical \
-  --train_epochs 10 \
+  --peft "lora" \
+  --domain "medical" \
+  --provider "ah" \
+  --train_epochs 5 \
   --tokenization_with_attention "True" \
   --max_seq_len 2048 \
   --training_samples 1000 \
