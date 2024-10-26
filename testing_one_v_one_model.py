@@ -7,7 +7,8 @@ import torch
 from transformers import AutoTokenizer
 
 from dataset_lib import inference_prompt, SumDataLoader
-from utils import generate_summary, get_pretrained_model, MODEL_ID, rouge_metric, LLaMAModelClass
+from utils import generate_summary, get_pretrained_model, MODEL_ID, rouge_metric, LLaMAModelClass, \
+    convert_params_to_bfloat16
 
 global CHAT_TEMPLATE
 
@@ -117,12 +118,12 @@ if __name__ == "__main__":
     if peft_path_splits[0] == "results":
         peft_dir = "_".join(peft_path_splits)
         domain = peft_path_splits[3].split("_")[0]
-        peft_name = peft_path_splits[3]
+        adapter_name = peft_path_splits[3]
 
     elif trained_peft_path.split("/")[0] == "saved_models":
         peft_dir = peft_path_splits[1]
         _, domain, peft_type = tuple(peft_dir.split("_")[:3])
-        peft_name = "{}_{}".format(domain, peft_type)
+        adapter_name = "{}_{}".format(domain, peft_type)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logging.basicConfig(
@@ -143,18 +144,11 @@ if __name__ == "__main__":
     if provider == "hf":
         # Method 1 - HuggingFace
         from peft import PeftModel
-        llama.model = PeftModel.from_pretrained(llama.model, trained_peft_path, adapter_name=peft_name) #, use_safetensors=True)
-        llama.model = llama.model.merge_and_unload()
-        llama.model.load_adapter(trained_peft_path, adapter_name=peft_name)
-        llama.model.set_adapter(peft_name)
-        for name, param in llama.model.named_parameters():
-            if peft_type in name:
-                # logger.info("{} -> {}".format(name, param.dtype))
-                param.data = param.data.to(torch.bfloat16)
-            if param.ndim == 1:
-                # cast the small parameters (e.g. layernorm) to fp32 for stability
-                # logger.info("To Dim1: {} -> {}".format(name, param.dtype))
-                param.data = param.data.to(torch.float32)
+        llama.model = PeftModel.from_pretrained(llama.model, trained_peft_path, adapter_name=adapter_name) #, use_safetensors=True)
+        # llama.model = llama.model.merge_and_unload()
+        llama.model.load_adapter(trained_peft_path, adapter_name=adapter_name)
+        llama.model.set_adapter(adapter_name)
+        llama.model = convert_params_to_bfloat16(model=llama.model, peft_name=adapter_name)
         llama.model = llama.model.to(torch.bfloat16)
     else:
         # Method 2 - AdapterHub

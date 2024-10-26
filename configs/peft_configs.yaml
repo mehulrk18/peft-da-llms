@@ -46,8 +46,9 @@ hf:
     inference_mode: False
     r: 32
     target_modules:
-      - "q_proj"
-      - "v_proj"
+      - "self_attn"
+#      - "q_proj"
+#      - "v_proj"
     lora_alpha: 8
     bias: "lora_only"
     lora_dropout: 0.1
@@ -60,9 +61,46 @@ hf:
     init_ia3_weights: True
     inference_mode: False
     target_modules:
-      - "q_proj"
-      - "k_proj"
-      - "v_proj"
-      - "down_proj"
+      - "self_attn"
+#      - "q_proj"
+#      - "v_proj"
+#      - "down_proj"
     feedforward_modules:
-      - "down_proj"
+      - "o_proj"
+#      - "down_proj"
+
+  lokr:
+    peft_type: "LOKR"
+    r: 32
+    alpha: 8
+    rank_dropout: 0.1
+    module_dropout: 0.0
+    target_modules:
+      - "self_attn"
+#      - "q_proj"
+#      - "v_proj"
+#      - "down_proj"
+    init_weights: True
+
+  adalora:
+    peft_type: "ADALORA"
+    task_type: "CAUSAL_LM"
+    init_r: 32
+    lora_alpha: 8
+    target_modules:
+      - "self_attn"
+#      - "q_proj"
+#      - "v_proj"
+#      - "down_proj"
+    lora_dropout: 0.01
+
+  llama_adapter:
+      peft_type: "ADAPTION_PROMPT"
+      adapter_len: 10
+      adapter_layers: 16
+      target_modules: "self_attn" # from the library
+
+    # Read the paper for more details: https://arxiv.org/pdf/2303.16199
+
+  reft:
+    # Not implemented yet

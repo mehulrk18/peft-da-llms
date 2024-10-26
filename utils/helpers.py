@@ -41,3 +41,15 @@ def read_yaml(file_name: str):
         config = yaml.safe_load(yml)
 
     return config
+
+
+def convert_params_to_bfloat16(model, peft_name):
+    for name, param in model.named_parameters():
+        if peft_name in name:
+            # logger.info("{} -> {}".format(name, param.dtype))
+            param.data = param.data.to(torch.bfloat16)
+        if param.ndim == 1:
+            # cast the small parameters (e.g. layernorm) to fp32 for stability
+            # logger.info("To Dim1: {} -> {}".format(name, param.dtype))
+            param.data = param.data.to(torch.float32)
+    return model

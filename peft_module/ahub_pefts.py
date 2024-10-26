@@ -1,7 +1,8 @@
 from enum import Enum
 
-from adapters import LoRAConfig, IA3Config, SeqBnConfig, DoubleSeqBnConfig, ParBnConfig, CompacterConfig, \
-    CompacterPlusPlusConfig
+from adapters import LoRAConfig, SeqBnConfig, DoubleSeqBnConfig, ParBnConfig, CompacterConfig, \
+    CompacterPlusPlusConfig #IA3Config
+from peft import LoraConfig, IA3Config, LoKrConfig, AdaLoraConfig, AdaptionPromptConfig
 
 
 class PEFTEnum(Enum):
@@ -16,18 +17,32 @@ class PEFTEnum(Enum):
     PARALLEL_BN = "par_bn"
     COMPACTER = "compacter"
     COMPACTER_PP = "compacter++"
+    LoKr = "lokr"
+    AdaLoRA = "adalora"
+    LlamaAdapter = "llama_adapter"
+    ReFT = "reft"
 
 
 pefts_configuration = {
-    PEFTEnum.BITFIT.name: NotImplemented, # see how to implement
-    PEFTEnum.LORA.name: LoRAConfig,
-    PEFTEnum.IA3.name: IA3Config,
-    PEFTEnum.LO_REFT.name: NotImplemented, # ReftConfig, # use pyreft
-    PEFTEnum.NO_REFT.name: NotImplemented,
-    PEFTEnum.DI_REFT.name: NotImplemented,
-    PEFTEnum.SEQUENCE_BN.name: SeqBnConfig,
-    PEFTEnum.DOUBLE_SEQUENCE_BN.name: DoubleSeqBnConfig,
-    PEFTEnum.PARALLEL_BN.name: ParBnConfig,
-    PEFTEnum.COMPACTER.name: CompacterConfig,
-    PEFTEnum.COMPACTER_PP.name: CompacterPlusPlusConfig
+    "ah": {
+        PEFTEnum.BITFIT.name: NotImplemented, # see how to implement
+        PEFTEnum.LORA.name: LoRAConfig,
+        # PEFTEnum.IA3.name: IA3Config,
+        PEFTEnum.LO_REFT.name: NotImplemented, # ReftConfig, # use pyreft
+        PEFTEnum.NO_REFT.name: NotImplemented,
+        PEFTEnum.DI_REFT.name: NotImplemented,
+        PEFTEnum.SEQUENCE_BN.name: SeqBnConfig,
+        PEFTEnum.DOUBLE_SEQUENCE_BN.name: DoubleSeqBnConfig,
+        PEFTEnum.PARALLEL_BN.name: ParBnConfig,
+        PEFTEnum.COMPACTER.name: CompacterConfig,
+        PEFTEnum.COMPACTER_PP.name: CompacterPlusPlusConfig,
+    },
+    "hf": {
+        PEFTEnum.LORA.name: LoraConfig,
+        PEFTEnum.IA3.name: IA3Config,
+        PEFTEnum.LoKr.name: LoKrConfig,
+        PEFTEnum.AdaLoRA.name: AdaLoraConfig,
+        PEFTEnum.LlamaAdapter.name: AdaptionPromptConfig,
+        PEFTEnum.ReFT.name: NotImplemented
+    }
 }

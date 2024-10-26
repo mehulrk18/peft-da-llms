@@ -15,7 +15,8 @@ from transformers import AutoTokenizer, TrainingArguments, DataCollatorForLangua
 
 from dataset_lib import SumDataLoader
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
-from utils import read_yaml, get_pretrained_model, MODEL_ID, LLaMAModelClass, generate_summary
+from utils import read_yaml, get_pretrained_model, MODEL_ID, LLaMAModelClass, generate_summary, \
+    convert_params_to_bfloat16
 
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
 global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE
@@ -138,11 +139,13 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
             # "peft_name": peft_layer_name,
             # "modules_to_save": peft_layer_name
         })
-        from peft import LoraConfig
-        if "lora" in peft_layer_name:
-            config = LoraConfig(**peft_configs)
-        elif "ia3" in peft_layer_name:
-            config = IA3Config(**peft_configs)
+        # from peft import LoraConfig
+        # if "lora" in peft_layer_name:
+        #     config = LoraConfig(**peft_configs)
+        # elif "ia3" in peft_layer_name:
+        #     config = IA3Config(**peft_configs)
+
+        config = pefts_configuration[provider][PEFTEnum(peft_name).name](**peft_configs)
 
         from peft import get_peft_model
 
@@ -174,7 +177,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         peft_configs = pefts_from_yaml[provider][peft_name]
 
         peft_layer_name = "{}_{}".format(domain, peft_name)
-        config = pefts_configuration[PEFTEnum(peft_name).name](**peft_configs)
+        config = pefts_configuration[provider][PEFTEnum(peft_name).name](**peft_configs)
         llama.model.add_adapter(peft_layer_name, config=config)
         summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
         logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
@@ -223,6 +226,9 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     llama.model = trainer.model
     trainer.model = trainer.model.to(device)
     del llama.model
+
+    trainer.model = convert_params_to_bfloat16(model=trainer.model, peft_name=peft_name)
+    trainer.model = trainer.model.to(torch.bfloat16)
     summ = generate_summary(model=trainer.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
     logger.info("\n\nSummary of Random Text After Training Adapters: \n{}".format(summ))
 
@@ -295,7 +301,6 @@ if __name__ == "__main__":
 
     peft_name = args.peft
     domain = args.domain
-    # ah = False if args.ah is None else True
     ATTENTION_MASK = False if not args.tokenization_with_attention else True
     use_mlm = False if not args.mlm else True
     training_epochs = args.train_epochs
