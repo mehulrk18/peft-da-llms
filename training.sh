@@ -2,7 +2,7 @@
 echo "Starting training" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lokr" \
+  --peft "loha" \
   --domain "medical" \
   --train_epochs 5 \
   --tokenization_with_attention "True" \

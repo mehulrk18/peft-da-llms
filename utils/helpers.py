@@ -3,7 +3,7 @@ import yaml
 from adapters import AutoAdapterModel
 from transformers import AutoModelForCausalLM
 
-MODEL_ID = "meta-llama/Meta-Llama-3-8B" # Meta-Llama-3-8B-Instruct
+MODEL_ID = "meta-llama/Meta-Llama-3-8B"  # Meta-Llama-3-8B-Instruct
 
 
 def get_pretrained_model(ah=True, quantization_config=None):
@@ -48,8 +48,10 @@ def convert_params_to_bfloat16(model, peft_name):
         if peft_name in name:
             # logger.info("{} -> {}".format(name, param.dtype))
             param.data = param.data.to(torch.bfloat16)
+            param.data = param.data.to(param.device)
         if param.ndim == 1:
             # cast the small parameters (e.g. layernorm) to fp32 for stability
             # logger.info("To Dim1: {} -> {}".format(name, param.dtype))
             param.data = param.data.to(torch.float32)
+            param.data = param.data.to(param.device)
     return model

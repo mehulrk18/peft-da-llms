@@ -45,10 +45,11 @@ hf:
   lora:
     inference_mode: False
     r: 32
-    target_modules:
-      - "self_attn"
-#      - "q_proj"
-#      - "v_proj"
+    target_modules: # because trained LLaMA_adapter with Self_Attn so need to do this for every one for consistency
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
     lora_alpha: 8
     bias: "lora_only"
     lora_dropout: 0.1
@@ -61,13 +62,10 @@ hf:
     init_ia3_weights: True
     inference_mode: False
     target_modules:
-      - "self_attn"
-#      - "q_proj"
-#      - "v_proj"
-#      - "down_proj"
-    feedforward_modules:
-      - "o_proj"
-#      - "down_proj"
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
 
   lokr:
     peft_type: "LOKR"
@@ -76,10 +74,23 @@ hf:
     rank_dropout: 0.1
     module_dropout: 0.0
     target_modules:
-      - "self_attn"
-#      - "q_proj"
-#      - "v_proj"
-#      - "down_proj"
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+    init_weights: True
+
+  loha:
+    peft_type: "LOHA"
+    r: 32
+    alpha: 8
+    rank_dropout: 0.1
+    module_dropout: 0.0
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
     init_weights: True
 
   adalora:
@@ -88,10 +99,10 @@ hf:
     init_r: 32
     lora_alpha: 8
     target_modules:
-      - "self_attn"
-#      - "q_proj"
-#      - "v_proj"
-#      - "down_proj"
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
     lora_dropout: 0.01
 
   llama_adapter:
@@ -101,6 +112,17 @@ hf:
       target_modules: "self_attn" # from the library
 
     # Read the paper for more details: https://arxiv.org/pdf/2303.16199
+
+  oft:
+    peft_type: "OFT"
+    r: 32
+    init_weights: True
+    module_dropout: 0.0
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
 
   reft:
     # Not implemented yet

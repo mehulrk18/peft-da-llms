@@ -32,7 +32,7 @@ class WandBLogger(logging.StreamHandler):
 
 
 def llama_model_training(main_directory, training_arguments, logger, training_samples, eval_samples, test_samples,
-                         peft_name, domain, provider, sort_data=False, mlm=False, save_peft_name=None,
+                         peft_name, domain, provider, date_time, sort_data=False, mlm=False, save_peft_name=None,
                          return_overflowing_tokens=False):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # from transformers import BitsAndBytesConfig
@@ -125,9 +125,8 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
                 Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
             """.strip()
 
-    # summ = summarize(inputs=random_text, return_text=False)
-    summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
-    logger.info("Summary of Random Text Before init AdapterHub: \n{}".format(summ))
+    # summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+    # logger.info("Summary of Random Text Before init AdapterHub: \n{}".format(summ))
     # METHOD - 1
     if provider == "hf":
         peft_configs = pefts_from_yaml[provider][peft_name]
@@ -139,11 +138,6 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
             # "peft_name": peft_layer_name,
             # "modules_to_save": peft_layer_name
         })
-        # from peft import LoraConfig
-        # if "lora" in peft_layer_name:
-        #     config = LoraConfig(**peft_configs)
-        # elif "ia3" in peft_layer_name:
-        #     config = IA3Config(**peft_configs)
 
         config = pefts_configuration[provider][PEFTEnum(peft_name).name](**peft_configs)
 
@@ -156,6 +150,8 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         #     if param.ndim == 1:
         #         # cast the small parameters (e.g. layernorm) to fp32 for stability
         #         param.data = param.data.to(torch.float32)
+        llama.model = llama.model.to(torch.bfloat16)
+        llama.model = convert_params_to_bfloat16(model=llama.model, peft_name=peft_name)
         logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
         logger.info("\n\nTrainable Parameters: ")
         llama.model.print_trainable_parameters()
@@ -246,7 +242,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     # llama.model.save_adapter(main_directory + "saved_models/hf_" + save_peft_name + "_method2", peft_layer_name)
     # uncomment in method 1
     if provider == "hf":
-        save_path = main_directory+"saved_models/{}_{}".format(provider, save_peft_name)
+        save_path = main_directory+"saved_models/{}_{}_{}".format(peft_layer_name, provider, date_time)
         trainer.model.save_pretrained(save_path)
         logger.info(f"PEFT CONF: {trainer.model.peft_config}")
         torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/{peft_layer_name}/pytorch_adapter.bin")
@@ -390,7 +386,8 @@ if __name__ == "__main__":
                                                logger=logger, training_samples=training_samples, provider=provider,
                                                eval_samples=eval_samples, test_samples=test_samples, sort_data=sort_data,
                                                peft_name=peft_name, domain=domain, save_peft_name=save_peft_name,
-                                               mlm=use_mlm, return_overflowing_tokens=return_overflowing_tokens)
+                                               mlm=use_mlm, return_overflowing_tokens=return_overflowing_tokens,
+                                               date_time=now)
 
     # logger.info("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
     logger.info("\n\nTrained LLaMA Model: \n{}".format(trained_llama_model))

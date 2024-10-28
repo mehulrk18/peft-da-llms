@@ -2,7 +2,7 @@ from enum import Enum
 
 from adapters import LoRAConfig, SeqBnConfig, DoubleSeqBnConfig, ParBnConfig, CompacterConfig, \
     CompacterPlusPlusConfig #IA3Config
-from peft import LoraConfig, IA3Config, LoKrConfig, AdaLoraConfig, AdaptionPromptConfig
+from peft import LoraConfig, IA3Config, LoKrConfig, AdaLoraConfig, AdaptionPromptConfig, LoHaConfig, OFTConfig
 
 
 class PEFTEnum(Enum):
@@ -18,8 +18,10 @@ class PEFTEnum(Enum):
     COMPACTER = "compacter"
     COMPACTER_PP = "compacter++"
     LoKr = "lokr"
+    LoHa = "loha"
     AdaLoRA = "adalora"
     LlamaAdapter = "llama_adapter"
+    OFT = "oft"
     ReFT = "reft"
 
 
@@ -41,8 +43,11 @@ pefts_configuration = {
         PEFTEnum.LORA.name: LoraConfig,
         PEFTEnum.IA3.name: IA3Config,
         PEFTEnum.LoKr.name: LoKrConfig,
+        PEFTEnum.LoHa.name: LoHaConfig,
         PEFTEnum.AdaLoRA.name: AdaLoraConfig,
         PEFTEnum.LlamaAdapter.name: AdaptionPromptConfig,
+        PEFTEnum.OFT.name: OFTConfig, # Add Implementation
         PEFTEnum.ReFT.name: NotImplemented
+
     }
 }
