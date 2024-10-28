@@ -374,8 +374,9 @@ if __name__ == "__main__":
         logging_dir=main_directory+"logs/",
         report_to="wandb",
         save_safetensors=True,
-        lr_scheduler_type="cosine",  # "cosine_with_restarts", "constant_with_warmup", "linear", "polynomial"
+        lr_scheduler_type="cosine", # "reduce_lr_on_plateau", "cosine_with_restarts", "constant_with_warmup", "linear", "polynomial"
         seed=42,
+        data_seed=42,
         load_best_model_at_end=True,
         run_name=run_name
         # push_to_hub=True,
