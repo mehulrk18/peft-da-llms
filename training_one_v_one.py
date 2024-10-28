@@ -153,8 +153,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         llama.model = llama.model.to(torch.bfloat16)
         llama.model = convert_params_to_bfloat16(model=llama.model, peft_name=peft_name)
         logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
-        logger.info("\n\nTrainable Parameters: ")
-        llama.model.print_trainable_parameters()
+        logger.info("\n\n{} ".format(llama.model.print_trainable_parameters()))
         data_collator = DataCollatorForLanguageModeling(llama.tokenizer, mlm=mlm, return_tensors="pt")
         trainer = SFTTrainer(
             model=llama.model,
