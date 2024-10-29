@@ -4,22 +4,20 @@ import os
 
 import adapters
 import torch
-from peft import IA3Config
 from trl import SFTTrainer
 
 import wandb
 from adapters import AdapterTrainer
 from dotenv import load_dotenv
 from huggingface_hub import login
-from transformers import AutoTokenizer, TrainingArguments, DataCollatorForLanguageModeling, Trainer
+from transformers import TrainingArguments, DataCollatorForLanguageModeling, Trainer
 
 from dataset_lib import SumDataLoader
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
-from utils import read_yaml, get_pretrained_model, MODEL_ID, LLaMAModelClass, generate_summary, \
-    convert_params_to_bfloat16
+from utils import read_yaml, LLaMAModelClass, generate_summary, convert_params_to_bfloat16
 
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
-global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE
+global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE, QUANTIZE
 
 
 class WandBLogger(logging.StreamHandler):
@@ -35,14 +33,17 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
                          peft_name, domain, provider, date_time, sort_data=False, mlm=False, save_peft_name=None,
                          return_overflowing_tokens=False):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # from transformers import BitsAndBytesConfig
-    # qc = BitsAndBytesConfig(
-    #     load_in_4bit=True,
-    #     bnb_4bit_quant_type="nf4",
-    #     bnb_4bit_use_double_quant=True,
-    #     bnb_4bit_compute_dtype=torch.bfloat16,
-    # )
+
     qc = None
+
+    if QUANTIZE:
+        from transformers import BitsAndBytesConfig
+        qc = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+        )
 
     llama = LLaMAModelClass(version=3.0, instruct_mode=INSTRUCT_MODEL, quantization_config=qc, mlm=mlm)
 
@@ -107,11 +108,11 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         data.train_set, data.validation_set, data.test_set = data.tokenization_of_data_splits(
             tokenization_process=tokenization_process_with_chat_template)
     else:
-        from dataset_lib import preprocessing_scientific_or_medical
+        from dataset_lib import preprocessing_data_with_prompt
         data.train_set = data.processing_data_with_training_prompt(dataset_split=data.train_set,
-                                                                   preprocess_function=preprocessing_scientific_or_medical)
+                                                                   preprocess_function=preprocessing_data_with_prompt)
         data.validation_set = data.processing_data_with_training_prompt(dataset_split=data.validation_set,
-                                                                        preprocess_function=preprocessing_scientific_or_medical)
+                                                                        preprocess_function=preprocessing_data_with_prompt)
         # import pdb; pdb.set_trace()
         data.print_dataset_stats()
         data.train_set, data.validation_set, data.test_set = data.tokenization_of_data_splits(
@@ -224,7 +225,8 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
 
     trainer.model = convert_params_to_bfloat16(model=trainer.model, peft_name=peft_name)
     trainer.model = trainer.model.to(torch.bfloat16)
-    summ = generate_summary(model=trainer.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+    summ = generate_summary(model=trainer.model, tokenizer=llama.tokenizer, content=random_text, device=device,
+                            chat_template=CHAT_TEMPLATE)
     logger.info("\n\nSummary of Random Text After Training Adapters: \n{}".format(summ))
 
     # if ah:
@@ -259,7 +261,7 @@ if __name__ == "__main__":
     from warnings import simplefilter
     simplefilter(action='ignore', category=FutureWarning)
 
-    global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL
+    global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, QUANTIZE
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
@@ -279,6 +281,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_seq_len", type=int, default=1024, help="Context window length")
     parser.add_argument("--mlm", type=bool, default=False, help="Training using masking")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch Size")
+    parser.add_argument("--quantize", type=bool, default=False, help="Quantize the model")
     parser.add_argument("--use_instruct_model", type=bool, default=False, help="Use Instruct based Model for training")
     parser.add_argument("--return_overflowing_tokens", type=bool, default=False, help="Use overflowing tokens")
     parser.add_argument("--do_inference", type=bool, default=False, help="Do inference along with training")
@@ -311,6 +314,7 @@ if __name__ == "__main__":
     DO_INFERENCE = args.do_inference
     return_overflowing_tokens = args.return_overflowing_tokens
     batch_size = args.batch_size
+    QUANTIZE = args.quantize
 
     from datetime import datetime
 
