@@ -1,43 +1,128 @@
-lora:
-  selfattn_lora: True
-  intermediate_lora: True
-  output_lora: True
-  alpha: 16
-  r: 32
-  dropout: 0.1
-  attention_matrices:
-    - "q"
-    - "k"
-    - "v"
+ah:
+  lora:
+    selfattn_lora: True
+    intermediate_lora: True
+#    output_lora: True
+    alpha: 8
+    r: 32
+    dropout: 0.1
+    attn_matrices:
+      - "q_proj"
+      - "v_proj"
 
-ia3:
-  selfattn_lora: True
-  intermediate_lora: True
-  output_lora: True
-  attn_matrices:
-    - "q_proj"
-    - "k_proj"
-    - "v_proj"
-  alpha: 1
-  r: 1
+  ia3:
+    selfattn_lora: True
+#    intermediate_lora: True
+#    output_lora: True
+    attn_matrices:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+    alpha: 1
+    r: 1
 
-double_seq_bottleneck:
-  mh_adapter: True
-  output_adapter: True
-  reduction_factor: 16
-  non_linearity: "relu"
+  double_seq_bottleneck:
+    mh_adapter: True
+    output_adapter: True
+    reduction_factor: 16
+    non_linearity: "relu"
 
-seq_bottleneck:
-  mh_adapter: True
-  output_adapter: True
-  reduction_factor: 16
-  non_linearity: "relu"
+  seq_bottleneck:
+    mh_adapter: True
+    output_adapter: True
+    reduction_factor: 16
+    non_linearity: "relu"
 
-parallel_bottleneck:
-  mh_adapter: True
-  output_adapter: True
-  reduction_factor: 16
-  non_linearity: "relu"
-  scaling: 2
+  parallel_bottleneck:
+    mh_adapter: True
+    output_adapter: True
+    reduction_factor: 16
+    non_linearity: "relu"
+    scaling: 2
 
 
+hf:
+  lora:
+    inference_mode: False
+    r: 32
+    target_modules: # because trained LLaMA_adapter with Self_Attn so need to do this for every one for consistency
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+    lora_alpha: 8
+    bias: "lora_only"
+    lora_dropout: 0.1
+#      - "down_proj"
+#    feedforward_modules:
+#      - "down_proj"
+
+  ia3:
+    peft_type: "IA3"
+    init_ia3_weights: True
+    inference_mode: False
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+
+  lokr:
+    peft_type: "LOKR"
+    r: 32
+    alpha: 8
+    rank_dropout: 0.1
+    module_dropout: 0.0
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+    init_weights: True
+
+  loha:
+    peft_type: "LOHA"
+    r: 32
+    alpha: 8
+    rank_dropout: 0.1
+    module_dropout: 0.0
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+    init_weights: True
+
+  adalora:
+    peft_type: "ADALORA"
+    task_type: "CAUSAL_LM"
+    init_r: 32
+    lora_alpha: 8
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+    lora_dropout: 0.01
+
+  llama_adapter:
+      peft_type: "ADAPTION_PROMPT"
+      adapter_len: 10
+      adapter_layers: 16
+      target_modules: "self_attn" # from the library
+
+    # Read the paper for more details: https://arxiv.org/pdf/2303.16199
+
+  oft:
+    peft_type: "OFT"
+    r: 32
+    init_weights: True
+    module_dropout: 0.0
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+
+  reft:
+    # Not implemented yet

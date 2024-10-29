@@ -1,6 +1,6 @@
 .ipynb_checkpoints/
 domains
-saved_models
+saved_models*
 results/
 .DS_Store
 .env
