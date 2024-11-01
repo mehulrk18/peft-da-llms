@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 from transformers import AutoTokenizer
 
-from dataset_lib import inference_prompt, SumDataLoader
+from dataset_lib import SumDataLoader
 from utils import generate_summary, get_pretrained_model, MODEL_ID, rouge_metric, LLaMAModelClass, \
     convert_params_to_bfloat16
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         _, domain, peft_type = tuple(peft_dir.split("_")[:3])
         adapter_name = "{}_{}".format(domain, peft_type)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "mps" if torch.backends.mps.is_available else ("cuda" if torch.cuda.is_available() else "cpu")
     logging.basicConfig(
         filename=main_directory + 'logs/testing_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples),  # The log file to write to
         filemode='w',  # Overwrite the log file each time the script runs
@@ -133,7 +133,7 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
     )
     logger = logging.getLogger()
-
+    logger.info("Device in use: {}".format(device))
     # llama_model = get_pretrained_model(ah=ah)
     llama = LLaMAModelClass(version=3.0, instruct_mode=use_instruct_model, quantization_config=None,
                             model_checkpoint=model_checkpoint, mlm=mlm)

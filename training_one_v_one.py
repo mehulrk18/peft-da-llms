@@ -17,7 +17,7 @@ from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
 from utils import read_yaml, LLaMAModelClass, generate_summary, convert_params_to_bfloat16
 
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
-global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE, QUANTIZE
+global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE, QUANTIZE, device
 
 
 class WandBLogger(logging.StreamHandler):
@@ -32,8 +32,6 @@ class WandBLogger(logging.StreamHandler):
 def llama_model_training(main_directory, training_arguments, logger, training_samples, eval_samples, test_samples,
                          peft_name, domain, provider, date_time, sort_data=False, mlm=False, save_peft_name=None,
                          return_overflowing_tokens=False):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
     qc = None
 
     if QUANTIZE:
@@ -147,6 +145,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         llama.reassign_model(get_peft_model(llama.model, config, adapter_name=peft_layer_name))
         llama.model.enable_input_require_grads()
         llama.model.gradient_checkpointing_enable()
+        llama.model.add_adapter(peft_layer_name, peft_config=config)
         # for param in llama.model.parameters():
         #     if param.ndim == 1:
         #         # cast the small parameters (e.g. layernorm) to fp32 for stability
@@ -175,8 +174,8 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         peft_layer_name = "{}_{}".format(domain, peft_name)
         config = pefts_configuration[provider][PEFTEnum(peft_name).name](**peft_configs)
         llama.model.add_adapter(peft_layer_name, config=config)
-        summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
-        logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
+        # summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+        # logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
 
         llama.model.train_adapter([peft_layer_name])
         llama.model.adapter_to(peft_layer_name, device=device)
@@ -261,7 +260,7 @@ if __name__ == "__main__":
     from warnings import simplefilter
     simplefilter(action='ignore', category=FutureWarning)
 
-    global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, QUANTIZE
+    global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, QUANTIZE, device
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
@@ -315,7 +314,7 @@ if __name__ == "__main__":
     return_overflowing_tokens = args.return_overflowing_tokens
     batch_size = args.batch_size
     QUANTIZE = args.quantize
-
+    device = "mps" if torch.backends.mps.is_available else ("cuda" if torch.cuda.is_available() else "cpu")
     from datetime import datetime
 
     now = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
@@ -350,9 +349,7 @@ if __name__ == "__main__":
     logger.addHandler(WandBLogger())
     logger.info("Args: \n{}".format(args))
 
-    bf16 = True
-    bf32 = False
-    fp16 = False
+    logger.info("Device in use: {}".format(device))
 
     training_args = TrainingArguments(  # Seq2Seq
         remove_unused_columns=False,
@@ -360,11 +357,12 @@ if __name__ == "__main__":
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=int(batch_size/2),
         gradient_accumulation_steps=1,
-        optim="paged_adamw_32bit",
+        optim="adamw_torch", #"paged_adamw_32bit",
         logging_steps=100,
         learning_rate=5e-4,
-        fp16=fp16,
-        bf16=bf16,
+        fp16=False,
+        bf16=True,
+        # bf32 doesn't exist, so if you want to use that, make above 2 false.
         max_grad_norm=0.1,
         num_train_epochs=training_epochs,  # 7
         evaluation_strategy="epoch",
@@ -382,6 +380,9 @@ if __name__ == "__main__":
         seed=42,
         data_seed=42,
         load_best_model_at_end=True,
+        use_mps_device=True if device == "mps" else False,
+        no_cuda=False if device == "cuda" else True,
+        use_cpu=True if device == "cpu" else False,
         run_name=run_name
         # push_to_hub=True,
     )

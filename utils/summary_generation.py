@@ -1,5 +1,5 @@
 import torch
-from dataset_lib import inference_prompt, llama3_testing_prompt, chat_template_prompt_inference
+from dataset_lib import llama3_testing_prompt, chat_template_prompt_inference
 
 
 # TODO: Improve Generation and Evaluation.
@@ -17,7 +17,8 @@ def generate_summary(model, tokenizer, content, device, chat_template=False):
         in_len = len(inputs["input_ids"][0])
         with torch.inference_mode():
             summary_ids = model.generate(**inputs,
-                                         # max_length=512, # do_sample=True,  # Enable sampling
+                                         # max_length=512,
+                                         do_sample=True,  # Enable sampling
                                          top_k=50,  # Top-k sampling
                                          num_return_sequences=1,  # Generate a single sequence
                                          eos_token_id=terminators,
