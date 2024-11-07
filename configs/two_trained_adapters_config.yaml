@@ -1,0 +1,14 @@
+trained_adapters_path:
+  - "saved_models/medical_lora_hf_27-10-2024-15-24-45/medical_lora"
+  - "saved_models/medical_ia3_hf_27-10-2024-15-24-45/medical_ia3"
+
+domain: "medical"
+mlm: False
+training_samples: 1
+eval_samples: 1
+test_samples: 500
+sorted_dataset: True
+chat_template: False
+provider: "hf"
+instruct_mode: False
+torch_dtype: "bf16"

@@ -7,8 +7,10 @@ ah:
     r: 32
     dropout: 0.1
     attn_matrices:
-      - "q_proj"
-      - "v_proj"
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
 
   ia3:
     selfattn_lora: True
@@ -63,9 +65,9 @@ hf:
       - "self_attn.k_proj"
       - "self_attn.v_proj"
       - "self_attn.o_proj"
-      - "down_proj"
+      - "mlp.down_proj"
     feedforward_modules:
-      - "down_proj"
+      - "mlp.down_proj"
 
   lokr:
     peft_type: "LOKR"

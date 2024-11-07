@@ -13,6 +13,7 @@ time python training_one_v_one.py \
   --sorted_dataset "True" \
   --batch_size 4 \
   --return_overflowing_tokens "True"
+#  --torch_dtype "bf16" \
 #  --do_inference "True" \
 #  --chat_template "True" \
 #  --use_instruct_model "True" \

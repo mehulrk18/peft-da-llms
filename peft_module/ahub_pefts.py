@@ -1,7 +1,7 @@
 from enum import Enum
 
-from adapters import LoRAConfig, SeqBnConfig, DoubleSeqBnConfig, ParBnConfig, CompacterConfig, \
-    CompacterPlusPlusConfig #IA3Config
+# from adapters import LoRAConfig, SeqBnConfig, DoubleSeqBnConfig, ParBnConfig, CompacterConfig, \
+#     CompacterPlusPlusConfig #IA3Config
 from peft import LoraConfig, IA3Config, LoKrConfig, AdaLoraConfig, AdaptionPromptConfig, LoHaConfig, OFTConfig
 
 
@@ -27,17 +27,17 @@ class PEFTEnum(Enum):
 
 pefts_configuration = {
     "ah": {
-        PEFTEnum.BITFIT.name: NotImplemented, # see how to implement
-        PEFTEnum.LORA.name: LoRAConfig,
-        # PEFTEnum.IA3.name: IA3Config,
-        PEFTEnum.LO_REFT.name: NotImplemented, # ReftConfig, # use pyreft
-        PEFTEnum.NO_REFT.name: NotImplemented,
-        PEFTEnum.DI_REFT.name: NotImplemented,
-        PEFTEnum.SEQUENCE_BN.name: SeqBnConfig,
-        PEFTEnum.DOUBLE_SEQUENCE_BN.name: DoubleSeqBnConfig,
-        PEFTEnum.PARALLEL_BN.name: ParBnConfig,
-        PEFTEnum.COMPACTER.name: CompacterConfig,
-        PEFTEnum.COMPACTER_PP.name: CompacterPlusPlusConfig,
+        # PEFTEnum.BITFIT.name: NotImplemented, # see how to implement
+        # PEFTEnum.LORA.name: LoRAConfig,
+        # # PEFTEnum.IA3.name: IA3Config,
+        # PEFTEnum.LO_REFT.name: NotImplemented, # ReftConfig, # use pyreft
+        # PEFTEnum.NO_REFT.name: NotImplemented,
+        # PEFTEnum.DI_REFT.name: NotImplemented,
+        # PEFTEnum.SEQUENCE_BN.name: SeqBnConfig,
+        # PEFTEnum.DOUBLE_SEQUENCE_BN.name: DoubleSeqBnConfig,
+        # PEFTEnum.PARALLEL_BN.name: ParBnConfig,
+        # PEFTEnum.COMPACTER.name: CompacterConfig,
+        # PEFTEnum.COMPACTER_PP.name: CompacterPlusPlusConfig,
     },
     "hf": {
         PEFTEnum.LORA.name: LoraConfig,
