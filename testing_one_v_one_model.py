@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--training_samples", type=int, default=1, help="Number of training Samples")
     parser.add_argument("--eval_samples", type=int, default=1, help="Number of Evaluation Samples")
     parser.add_argument("--test_samples", type=int, default=500, help="Number of Samples to be tested")
-    parser.add_argument("--torch_dtype", type=str, default="fp32", choices=["bf16", "fp32", "fp16"],
+    parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
                         help="Torch Data Type to be used")
     parser.add_argument("--quantize", type=bool, default=False, help="Quantize the model")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
