@@ -84,7 +84,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     # Loading dataset
     data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
                          test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
-    data.print_dataset_stats()
+    data.return_stats()
     data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
 
     # Get Tokenized Train and Validation Set # tokenize dataset
@@ -94,7 +94,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
                                                                    preprocess_function=preprocessing_data_with_chat_format)
         data.validation_set = data.processing_data_with_training_prompt(dataset_split=data.validation_set,
                                                                         preprocess_function=preprocessing_data_with_chat_format)
-        data.print_dataset_stats()
+        data.return_stats()
         data.train_set, data.validation_set, data.test_set = data.tokenization_of_data_splits(
             tokenization_process=tokenization_process_with_chat_template)
     else:
@@ -104,11 +104,11 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         data.validation_set = data.processing_data_with_training_prompt(dataset_split=data.validation_set,
                                                                         preprocess_function=preprocessing_data_with_prompt)
         # import pdb; pdb.set_trace()
-        data.print_dataset_stats()
+        data.return_stats()
         data.train_set, data.validation_set, data.test_set = data.tokenization_of_data_splits(
             tokenization_process=tokenization_process_with_attn)
 
-    data.print_dataset_stats()
+    data.return_stats()
 
     # TODO: Add code block for generating Summary with Zero Shot Learning.
     pefts_from_yaml = read_yaml(file_name=PEFT_CONFIGS_FILE)
