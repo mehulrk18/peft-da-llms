@@ -31,7 +31,7 @@ class WandBLogger(logging.StreamHandler):
 
 
 def llama_model_training(main_directory, training_arguments, logger, training_samples, eval_samples, test_samples,
-                         peft_name, domain, provider, date_time, torch_dtype, sort_data=False, mlm=False,
+                         peft_name, domain, dataset_name, provider, date_time, torch_dtype, sort_data=False, mlm=False,
                          return_overflowing_tokens=False):
 
     llama = LLaMAModelClass(version=3.0, instruct_mode=INSTRUCT_MODEL, quantize=QUANTIZE, mlm=mlm,
@@ -82,8 +82,9 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     # peft_name = None
 
     # Loading dataset
-    data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
-                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
+    data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=training_samples,
+                         eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
+                         chat_template=CHAT_TEMPLATE)
     data.return_stats()
     data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
 
@@ -254,7 +255,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
     parser.add_argument("--peft", type=str, help="peft name for config_file", required=True)
-    parser.add_argument("--domain", type=str, help="Domain name for dataset", required=True)
+    parser.add_argument("--domain", type=str, help="Domain name for dataset", choices=["scientific", "medical", "legal",
+                                                                                       "news"], required=True)
+    parser.add_argument("--dataset", type=str, help="Dataset to be used for training", required=True)
     parser.add_argument("--provider", type=str, choices=["ah", "hf"], required=True,
                         help="Load PEFT from m1->HF and m2->AH")
     parser.add_argument("--tokenization_with_attention", type=bool, default=False,
@@ -289,6 +292,7 @@ if __name__ == "__main__":
 
     peft_name = args.peft
     domain = args.domain
+    dataset_name = args.dataset
     ATTENTION_MASK = False if not args.tokenization_with_attention else True
     use_mlm = False if not args.mlm else True
     training_epochs = args.train_epochs
@@ -382,7 +386,8 @@ if __name__ == "__main__":
     trained_llama_model = llama_model_training(main_directory=main_directory, training_arguments=training_args,
                                                logger=logger, training_samples=training_samples, provider=provider,
                                                eval_samples=eval_samples, test_samples=test_samples, sort_data=sort_data,
-                                               peft_name=peft_name, domain=domain, mlm=use_mlm, torch_dtype=torch_dtype,
+                                               peft_name=peft_name, domain=domain, dataset_name=dataset_name,
+                                               mlm=use_mlm, torch_dtype=torch_dtype,
                                                return_overflowing_tokens=return_overflowing_tokens, date_time=now)
 
     # logger.info("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
