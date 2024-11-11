@@ -1,4 +1,4 @@
-from dataset_lib import SumDataLoader, SumDatasets, preprocessing_data_with_prompt
+from dataset_lib import SumDataLoader, SumDomains, preprocessing_data_with_prompt
 
 
 def generate_datasets(name, force_download=False, training_samples=5000):
@@ -18,7 +18,7 @@ def generate_datasets(name, force_download=False, training_samples=5000):
 
 
 if __name__ == "__main__":
-    data_dict = dict(SumDatasets.__members__)
+    data_dict = dict(SumDomains.__members__)
     print("Script to forcefully generate random samples of all dataset's available.")
     # for value in data_dict.values():
     generate_datasets(name="legal", force_download=True, training_samples=10000)
