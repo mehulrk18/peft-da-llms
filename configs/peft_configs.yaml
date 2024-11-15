@@ -1,47 +1,47 @@
-ah:
-  lora:
-    selfattn_lora: True
-    intermediate_lora: True
-#    output_lora: True
-    alpha: 8
-    r: 32
-    dropout: 0.1
-    attn_matrices:
-      - "self_attn.q_proj"
-      - "self_attn.k_proj"
-      - "self_attn.v_proj"
-      - "self_attn.o_proj"
-
-  ia3:
-    selfattn_lora: True
+#ah:
+#  lora:
+#    selfattn_lora: True
 #    intermediate_lora: True
-#    output_lora: True
-    attn_matrices:
-      - "q_proj"
-#      - "k_proj"
-      - "v_proj"
-    alpha: 1
-    r: 1
-
-  double_seq_bottleneck:
-    mh_adapter: True
-    output_adapter: True
-    reduction_factor: 16
-    non_linearity: "relu"
-
-  seq_bottleneck:
-    mh_adapter: True
-    output_adapter: True
-    reduction_factor: 16
-    non_linearity: "relu"
-
-  parallel_bottleneck:
-    mh_adapter: True
-    output_adapter: True
-    reduction_factor: 16
-    non_linearity: "relu"
-    scaling: 2
-
+##    output_lora: True
+#    alpha: 8
+#    r: 32
+#    dropout: 0.1
+#    attn_matrices:
+#      - "self_attn.q_proj"
+#      - "self_attn.k_proj"
+#      - "self_attn.v_proj"
+#      - "self_attn.o_proj"
+#
+#  ia3:
+#    selfattn_lora: True
+##    intermediate_lora: True
+##    output_lora: True
+#    attn_matrices:
+#      - "q_proj"
+##      - "k_proj"
+#      - "v_proj"
+#    alpha: 1
+#    r: 1
+#
+#  double_seq_bottleneck:
+#    mh_adapter: True
+#    output_adapter: True
+#    reduction_factor: 16
+#    non_linearity: "relu"
+#
+#  seq_bottleneck:
+#    mh_adapter: True
+#    output_adapter: True
+#    reduction_factor: 16
+#    non_linearity: "relu"
+#
+#  parallel_bottleneck:
+#    mh_adapter: True
+#    output_adapter: True
+#    reduction_factor: 16
+#    non_linearity: "relu"
+#    scaling: 2
+#
 
 hf:
   lora:

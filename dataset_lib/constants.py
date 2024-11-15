@@ -46,7 +46,7 @@ datasets_info_dict = {
     SumDomains.SCIENTIFIC: {
         "arxiv": {
             "dataset_id": "ccdv/arxiv-summarization",
-            "local_path": "domains/scientific/arxiv_summarization",
+            "local_path": "domains/scientific/arxiv",
             "version": None,
             "columns_to_remove": ["article", "abstract"],
             "source": "hugging_face"
@@ -64,7 +64,7 @@ datasets_info_dict = {
     SumDomains.MEDICAL: {
         "pubmed": {
             "dataset_id": "ccdv/pubmed-summarization",
-            "local_path": "domains/medical/pubmed_summarization",
+            "local_path": "domains/medical/pubmed",
             "version": None,
             "columns_to_remove": ["article", "abstract"],
             "source": "hugging_face"
@@ -82,7 +82,7 @@ datasets_info_dict = {
     SumDomains.LEGAL: {
         "multi_lex": {
             "dataset_id": "allenai/multi_lexsum",
-            "local_path": "domains/legal/multi_lex_summarization",
+            "local_path": "domains/legal/multi_lex",
             "version": "v20230518",
             "columns_to_remove": ["id", "sources", "summary/long", "summary/short", "summary/tiny", "case_metadata",
                                   "sources_metadata"],

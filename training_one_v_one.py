@@ -218,11 +218,15 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     trainer.model = convert_model_adapter_params_to_torch_dtype(model=trainer.model, peft_name=peft_name,
                                                                 torch_dtype=torch_dtype)
     trainer.model = trainer.model.to(torch_dtype)
-    save_path = main_directory+"saved_models/{}_{}_{}".format(peft_layer_name, provider, date_time)
+    save_path = main_directory+"saved_models/{}/{}_{}".format(date_time, provider, peft_layer_name)
+
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+
     if provider == "hf":
         trainer.model.save_pretrained(save_path)
         logger.info(f"PEFT CONF: {trainer.model.peft_config}")
-        torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/{peft_layer_name}/pytorch_adapter.bin")
+        torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/pytorch_adapter.bin")
 
     elif provider == "ah":
         # if save_peft_name is None:
@@ -388,10 +392,10 @@ if __name__ == "__main__":
                                                eval_samples=eval_samples, test_samples=test_samples, sort_data=sort_data,
                                                peft_name=peft_name, domain=domain, dataset_name=dataset_name,
                                                mlm=use_mlm, torch_dtype=torch_dtype,
-                                               return_overflowing_tokens=return_overflowing_tokens, date_time=now)
+                                               return_overflowing_tokens=return_overflowing_tokens, date_time=now.split("_")[0])
 
     # logger.info("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     logger.info("\n\nTrained LLaMA Model: \n{}".format(trained_llama_model))
     wnb_run.finish()
 
