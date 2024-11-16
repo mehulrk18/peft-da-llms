@@ -4,24 +4,23 @@ import logging
 import adapters
 import pandas as pd
 import torch
-from transformers import AutoTokenizer
 
 from dataset_lib import SumDataLoader
-from utils import generate_summary, MODEL_ID, rouge_metric, LLaMAModelClass, \
+from utils import generate_summary, rouge_metric, LLaMAModelClass, \
     convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict
 
 global CHAT_TEMPLATE
 
 
-def testing_model(llama_model, llama_tokenizer, test_samples, peft_full_name, device):
+def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device):
     # testing the model with Test data.
     def inference_prompt_processing(sample):
-        if "sources" in sample.keys():
-            sample["article"] = sample.pop("sources")
+        # if "sources" in sample.keys():
+        #     sample["article"] = sample.pop("sources")
 
         if CHAT_TEMPLATE:
             from dataset_lib import chat_template_prompt_inference
-            text = [chat_template_prompt_inference(article=article) for article in sample["article"]]
+            text = [chat_template_prompt_inference(content=article) for article in sample["content"]]
 
             return {
                 "text": text
@@ -29,7 +28,7 @@ def testing_model(llama_model, llama_tokenizer, test_samples, peft_full_name, de
         else:
             # text = [inference_prompt(article=article) for article in sample["article"]]
             from dataset_lib import llama3_testing_prompt
-            text = [llama3_testing_prompt(article=article) for article in sample["article"]]
+            text = [llama3_testing_prompt(content=article) for article in sample["content"]]
 
             return {
                 "text": text
@@ -43,7 +42,7 @@ def testing_model(llama_model, llama_tokenizer, test_samples, peft_full_name, de
     # summ = summarize(inputs=random_text, return_text=False)
     logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
     try:
-        with open("random_ip_summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
+        with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
             f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
             logger.info("Written Random article summary")
     except Exception as e:
@@ -55,17 +54,19 @@ def testing_model(llama_model, llama_tokenizer, test_samples, peft_full_name, de
 
     # TODO: write the testing funciton with a metric.
     test_summaries = {
+        "content": [],
         "truth": [],
         "prediction": []
     }
 
     # for arxiv and pubmed
-    min_samples = min(test_samples, len(df_test_data))
+    min_samples = min(data.test_set.num_rows, len(df_test_data))
     for i in range(min_samples):
         logger.info("Summary for {} sample".format(i))
-        summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["article"][i],
+        summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["content"][i],
                                    device=device, chat_template=CHAT_TEMPLATE)
-        test_summaries["truth"].append(df_test_data["abstract"][i])
+        test_summaries["content"].append(df_test_data["content"][i])
+        test_summaries["truth"].append(df_test_data["summary"][i])
         test_summaries["prediction"].append(summary)
         del summary
 
@@ -73,8 +74,14 @@ def testing_model(llama_model, llama_tokenizer, test_samples, peft_full_name, de
     scores = metric.compute(predictions=test_summaries["prediction"], references=test_summaries["truth"])
     df_sum = pd.DataFrame(test_summaries)
     # logger.info("Rouge Scores: ", scores)
-    file_name = "Test_summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
+    file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
     df_sum.to_csv(file_name, index=False)
+
+    with open("summaries/rouge_scores.txt", "a") as fp:
+        from datetime import datetime
+        fp.write("[{}] Summaries of {} for {} samples has Rouge Scores \n {} \n\n".format(datetime.today().date(),
+                                                                                          peft_full_name, min_samples,
+                                                                                          scores))
 
     logger.info("\n\n\nSummaries with Rouge Score {} saved to file {}!!!!".format(scores, file_name))
 
@@ -181,5 +188,4 @@ if __name__ == "__main__":
     data.train_set = None
     data.validation_set = None
 
-    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, test_samples=test_samples,
-                  peft_full_name=peft_dir, device=device)
+    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, peft_full_name=peft_dir, device=device)
