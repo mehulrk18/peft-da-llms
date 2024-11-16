@@ -55,10 +55,18 @@ datasets_info_dict = {
 
         },
         "elsevier": {
-
+            "dataset_id": "orieg/elsevier-oa-cc-by",
+            "local_path": "domains/scientific/elsevier",
+            "version": None,
+            "columns_to_remove": ["title", "abstract", "subjareas", "keywords", "asjc", "body_text", "author_highlights"],
+            "source": "hugging_face"
         },
         "scitldr": {
-
+            "dataset_id": "allenai/scitldr",
+            "local_path": "domains/scientific/scitldr",
+            "version": None,
+            "columns_to_remove": ["source", "source_labels", "rouge_scores", "paper_id", "target"],
+            "source": "hugging_face"
         }
     },
     SumDomains.MEDICAL: {
@@ -70,10 +78,19 @@ datasets_info_dict = {
             "source": "hugging_face"
         },
         "cord19": {
-
+            "dataset_id": "allenai/cord19",
+            "local_path": "domains/medical/cord19",
+            "version": "fulltext",
+            "columns_to_remove": ['cord_uid', 'sha', 'source_x', 'title', 'doi', 'abstract', 'publish_time', 'authors',
+                                  'journal', 'url', 'fulltext'],
+            "source": "hugging_face"
         },
         "sci_lay": {
-
+            "dataset_id": "paniniDot/sci_lay",
+            "local_path": "domains/medical/sci_lay",
+            "version": None,
+            "columns_to_remove": ["article", "abstract"],
+            "source": "hugging_face"
         },
         "mslr": {
 

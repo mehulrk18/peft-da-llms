@@ -235,8 +235,52 @@ class SumDataLoader:
                 loaded_dataset = load_dataset(path=extract_location, name=self.dataset_info["version"], streaming=True,
                                               trust_remote_code=True)
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_newsroom_data_after_downloading, batched=True)
-                # import shutil
-                # shutil.rmtree(extract_location)
+
+            elif self.dataset_name == "elsevier":
+                def preprocess_elsevier_data_after_downloading(sample):
+                    content = [" ".join(text) for text in sample["body_text"]]
+                    summary = [summ for summ in sample["abstract"]]
+                    return {
+                        "content": content,
+                        "summary": summary
+                    }
+
+                loaded_dataset = load_dataset(path=self.dataset_info["dataset_id"], name=self.dataset_info["version"],
+                                              trust_remote_code=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_elsevier_data_after_downloading,
+                                                                     batched=True)
+
+            elif self.dataset_name == "scitldr":
+                def preprocess_scitldr_data_after_downloading(sample):
+                    content = [" ".join(text) for text in sample["source"]]
+                    summary = [" ".join(summ) for summ in sample["target"]]
+                    return {
+                        "content": content,
+                        "summary": summary
+                    }
+
+                loaded_dataset = load_dataset(path=self.dataset_info["dataset_id"], name=self.dataset_info["version"],
+                                              streaming=True, trust_remote_code=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_scitldr_data_after_downloading,
+                                                                     batched=True)
+
+            elif self.dataset_name == "cord19":
+                def preprocess_cord19_data_after_downloading(sample):
+                    content = [text for text in sample["fulltext"]]
+                    summary = [summ for summ in sample["abstract"]]
+                    return {
+                        "content": content,
+                        "summary": summary
+                    }
+
+                loaded_dataset = load_dataset(path=self.dataset_info["dataset_id"], name=self.dataset_info["version"],
+                                              trust_remote_code=True)
+                train_test_val_split = loaded_dataset.train_test_split(test_size=0.05)
+                train_val_split = train_test_val_split["train"].train_test_split(test_size=0.1667)
+                loaded_dataset = DatasetDict({"train": train_val_split["train"],
+                                              "validation": train_val_split["test"],
+                                              "test": train_test_val_split["test"]})
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_cord19_data_after_downloading, batched=True)
 
             loaded_dataset = loaded_dataset.remove_columns(self.dataset_info["columns_to_remove"])
             self.train_set = Dataset.from_list(self.sample_dataset(loaded_dataset["train"], sample_size=self.training_samples))
