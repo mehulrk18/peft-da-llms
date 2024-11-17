@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 
 class SumDomains(Enum):
@@ -42,121 +43,294 @@ SAMPLE_PROMPT = """
     """
 
 
+class DatasetInfo:
+    domain: SumDomains
+    name: str
+    dataset_id: str
+    local_path: str
+    streaming: bool = True
+    trust_remote_code: bool = True
+    version: Optional[str] = None
+    columns_to_remove: list = []
+    source: str
+    download_url: Optional[str] = None
+
+    def __str__(self):
+        return f"{self.domain.name}/{self.name}"
+
+    @property
+    def local_storage_path(self):
+        return self.local_path
+
+
+class ArxivDataset(DatasetInfo):
+    domain = SumDomains.SCIENTIFIC
+    name = "arxiv"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "ccdv/arxiv-summarization"
+        self.local_path = "domains/scientific/arxiv"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["article", "abstract"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class SSNDataset(DatasetInfo):
+    domain = SumDomains.SCIENTIFIC
+    name = "ssn"
+
+    def __init__(self):
+        raise NotImplementedError
+        # super().__init__()
+        # self.dataset_id = ""
+        # self.local_path = "domains/scientific/ssn"
+        # self.streaming = True
+        # self.trust_remote_code = True
+        # self.version = None
+        # self.columns_to_remove = []
+        # self.source = "hugging_face"
+        # self.download_url = ""
+
+
+class ElsevierDataset(DatasetInfo):
+    domain = SumDomains.SCIENTIFIC
+    name = "elsevier"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "orieg/elsevier-oa-cc-by"
+        self.local_path = "domains/scientific/elsevier"
+        self.streaming = False
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["title", "abstract", "subjareas", "keywords", "asjc", "body_text", "author_highlights"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class ScitldrDataset(DatasetInfo):
+    domain = SumDomains.SCIENTIFIC
+    name = "scitldr"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "allenai/scitldr"
+        self.local_path = "domains/scientific/scitldr"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["source", "source_labels", "rouge_scores", "paper_id", "target"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+class PubmedDataset(DatasetInfo):
+    domain = SumDomains.MEDICAL
+    name = "pubmed"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "ccdv/pubmed-summarization"
+        self.local_path = "domains/medical/pubmed"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["article", "abstract"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class Cord19Dataset(DatasetInfo):
+    domain = SumDomains.MEDICAL
+    name = "cord19"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "allenai/cord19"
+        self.local_path = "domains/medical/cord19"
+        self.streaming = False
+        self.trust_remote_code = True
+        self.version = "fulltext"
+        self.columns_to_remove = ["cord_uid", "sha", "source_x", "title", "doi", "abstract", "publish_time", "authors",
+                                  "journal", "url", "fulltext"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class SciLayDataset(DatasetInfo):
+    domain = SumDomains.MEDICAL
+    name = "sci_lay"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "paniniDot/sci_lay"
+        self.local_path = "domains/medical/sci_lay"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = "all"
+        self.columns_to_remove = ["doi", "pmcid", "plain_text", "technical_text", "full_text", "journal",
+                                  "topics", "keywords"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class MSLRDataset(DatasetInfo):
+    domain = SumDomains.MEDICAL
+    name = "mslr"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "allenai/mslr2022"
+        self.local_path = "domains/medical/mslr"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = "ms2"
+        self.columns_to_remove = ["doi", "pmcid", "plain_text", "technical_text", "full_text", "journal",
+                                  "topics", "keywords"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class MultiLexDataset(DatasetInfo):
+    domain = SumDomains.LEGAL
+    name = "multi_lex"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "allenai/multi_lexsum"
+        self.local_path = "domains/legal/multi_lex"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = "v20230518"
+        self.columns_to_remove = ["id", "sources", "summary/long", "summary/short", "summary/tiny", "case_metadata",
+                                  "sources_metadata"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class EurLexDataset(DatasetInfo):
+    domain = SumDomains.LEGAL
+    name = "eur_lex"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "dennlinger/eur-lex-sum"
+        self.local_path = "domains/legal/eur_lex"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = "english"
+        self.columns_to_remove = ["celex_id", "reference"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class BillSumDataset(DatasetInfo):
+    domain = SumDomains.LEGAL
+    name = "bill_sum"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "FiscalNote/billsum"
+        self.local_path = "domains/legal/bill_sum"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["text", "title"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class CNNDMDataset(DatasetInfo):
+    domain = SumDomains.NEWS
+    name = "cnn_dm"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "ccdv/cnn_dailymail"
+        self.local_path = "domains/news/cnn_daily_mail"
+        self.streaming = False
+        self.trust_remote_code = True
+        self.version = "3.0.0"
+        self.columns_to_remove = ["id", "article", "highlights"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class MultiNewsDataset(DatasetInfo):
+    domain = SumDomains.NEWS
+    name = "multi_news"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "alexfabbri/multi_news"
+        self.local_path = "domains/news/multi_news"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["document"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class XSumDataset(DatasetInfo):
+    domain = SumDomains.NEWS
+    name = "x_sum"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "EdinburghNLP/xsum"
+        self.local_path = "domains/news/x_sum"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["id", "document"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class NewsroomDataset(DatasetInfo):
+    domain = SumDomains.NEWS
+    name = "newsroom"
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "newsroom_extracted_data"
+        self.local_path = "domains/news/newsroom"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["compression", "compression_bin", "coverage", "coverage_bin", "date", "density",
+                                  "density_bin", "text", "title", "url", "archive"]
+        self.source = ".tar"
+        self.download_url = "https://lil.nlp.cornell.edu/newsroom/download/index.html"
+
+
 datasets_info_dict = {
     SumDomains.SCIENTIFIC: {
-        "arxiv": {
-            "dataset_id": "ccdv/arxiv-summarization",
-            "local_path": "domains/scientific/arxiv",
-            "version": None,
-            "columns_to_remove": ["article", "abstract"],
-            "source": "hugging_face"
-        },
-        "ssn": {
-
-        },
-        "elsevier": {
-            "dataset_id": "orieg/elsevier-oa-cc-by",
-            "local_path": "domains/scientific/elsevier",
-            "version": None,
-            "columns_to_remove": ["title", "abstract", "subjareas", "keywords", "asjc", "body_text", "author_highlights"],
-            "source": "hugging_face"
-        },
-        "scitldr": {
-            "dataset_id": "allenai/scitldr",
-            "local_path": "domains/scientific/scitldr",
-            "version": None,
-            "columns_to_remove": ["source", "source_labels", "rouge_scores", "paper_id", "target"],
-            "source": "hugging_face"
-        }
+        "arxiv": ArxivDataset(),
+        "ssn": SSNDataset(),
+        "elsevier": ElsevierDataset(),
+        "scitldr": ScitldrDataset()
     },
     SumDomains.MEDICAL: {
-        "pubmed": {
-            "dataset_id": "ccdv/pubmed-summarization",
-            "local_path": "domains/medical/pubmed",
-            "version": None,
-            "columns_to_remove": ["article", "abstract"],
-            "source": "hugging_face"
-        },
-        "cord19": {
-            "dataset_id": "allenai/cord19",
-            "local_path": "domains/medical/cord19",
-            "version": "fulltext",
-            "columns_to_remove": ["cord_uid", "sha", "source_x", "title", "doi", "abstract", "publish_time", "authors",
-                                  "journal", "url", "fulltext"],
-            "source": "hugging_face"
-        },
-        "sci_lay": {
-            "dataset_id": "paniniDot/sci_lay",
-            "local_path": "domains/medical/sci_lay",
-            "version": "all",  # it has 14 different journals found here: https://huggingface.co/datasets/paniniDot/sci_lay
-            "columns_to_remove": ["doi", "pmcid", "plain_text", "technical_text", "full_text", "journal",
-                                  "topics", "keywords"],
-            "source": "hugging_face"
-        },
-        "mslr": {
-            "dataset_id": "allenai/mslr2022",
-            "local_path": "domains/medical/mslr",
-            "version": "ms2",  # ["ms2", "cochrane"]
-            "columns_to_remove": ["doi", "pmcid", "plain_text", "technical_text", "full_text", "journal",
-                                  "topics", "keywords"],
-            "source": "hugging_face"
-        }
+        "pubmed": PubmedDataset(),
+        "cord19": Cord19Dataset(),
+        "sci_lay": SciLayDataset(),
+        "mslr": MSLRDataset()
     },
     SumDomains.LEGAL: {
-        "multi_lex": {
-            "dataset_id": "allenai/multi_lexsum",
-            "local_path": "domains/legal/multi_lex",
-            "version": "v20230518",
-            "columns_to_remove": ["id", "sources", "summary/long", "summary/short", "summary/tiny", "case_metadata",
-                                  "sources_metadata"],
-            "source": "hugging_face"
-        },
-        "eur_lex": {
-            "dataset_id": "dennlinger/eur-lex-sum",
-            "local_path": "domains/legal/eur_lex",
-            "version": "english",
-            "columns_to_remove": ["celex_id", "reference"],
-            "source": "hugging_face"
-        },
-        "bill_sum": {
-            "dataset_id": "FiscalNote/billsum",
-            "local_path": "domains/legal/bill_sum",
-            "version": None,
-            "columns_to_remove": ["text", "title"],
-            "source": "hugging_face"
-        }
+        "multi_lex": MultiLexDataset(),
+        "eur_lex": EurLexDataset(),
+        "bill_sum": BillSumDataset()
     },
     SumDomains.NEWS: {
-        "cnn_dm": {
-            "dataset_id": "ccdv/cnn_dailymail",
-            "local_path": "domains/news/cnn_daily_mail",
-            "version": "3.0.0",
-            "columns_to_remove": ["id", "article", "highlights"],
-            "source": "hugging_face"
-        },
-        "multi_news": {
-            "dataset_id": "alexfabbri/multi_news",
-            "local_path": "domains/news/multi_news",
-            "version": None,
-            "columns_to_remove": ["document"],
-            "source": "hugging_face"
-        },
-        "x_sum": {
-            "dataset_id": "EdinburghNLP/xsum",
-            "local_path": "domains/news/x_sum",
-            "version": None,
-            "columns_to_remove": ["id", "document"],
-            "source": "hugging_face"
-        },
-        "newsroom": {
-            "dataset_id": "newsroom_extracted_data",  # "lil-lab/newsroom",
-            "local_path": "domains/news/newsroom",
-            "version": None,
-            "columns_to_remove": ["compression", "compression_bin", "coverage", "coverage_bin", "date", "density",
-                                  "density_bin", "text", "title", "url", "archive"],
-            "source": ".tar",
-            "download_url": "https://lil.nlp.cornell.edu/newsroom/download/index.html"
-        }
+        "cnn_dm": CNNDMDataset(),
+        "multi_news": MultiNewsDataset(),
+        "x_sum": XSumDataset(),
+        "newsroom": NewsroomDataset()
     }
 }
 
