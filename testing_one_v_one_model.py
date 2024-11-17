@@ -1,13 +1,16 @@
 import argparse
 import logging
+import os
 
 import adapters
 import pandas as pd
 import torch
+import wandb
+from dotenv import load_dotenv
 
 from dataset_lib import SumDataLoader
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
-    convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict
+    convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger
 
 
 def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template):
@@ -134,19 +137,28 @@ if __name__ == "__main__":
         domain, peft_type, _ = tuple(peft_dir.split("_")[:3])
         adapter_name = "{}_{}".format(domain, peft_type)
 
+    load_dotenv(".env")
+    hf_token = os.getenv("HF_TOKEN")
+    wandb_api_key = os.getenv("WANDB_API_KEY")
+    run_name = 'testing_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples)
+    wnb_run = wandb.init(name=run_name)
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
     logging.basicConfig(
-        filename=main_directory + 'logs/testing_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples),  # The log file to write to
+        filename=main_directory + 'logs/{}'.format(run_name),  # The log file to write to
         filemode='w',  # Overwrite the log file each time the script runs
         level=logging.INFO,  # Log level
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
     )
     logger = logging.getLogger()
+    wnb = WandBLogger()
+    wnb.wandb = wandb
+
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)  # Set the log level for the console handler
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+    logger.addHandler(wnb)
 
     logger.info("Device in use: {}".format(device))
     # llama_model = get_pretrained_model(ah=ah)
@@ -193,3 +205,4 @@ if __name__ == "__main__":
 
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, peft_full_name=peft_dir,
                   logger=logger, device=device, chat_template=chat_template)
+    wnb_run.finish()

@@ -15,19 +15,10 @@ from transformers import TrainingArguments, DataCollatorForLanguageModeling, Tra
 from dataset_lib import SumDataLoader
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
 from utils import read_yaml, LLaMAModelClass, generate_summary, convert_model_adapter_params_to_torch_dtype, \
-    torch_dtypes_dict
+    torch_dtypes_dict, WandBLogger
 
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
 global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE, QUANTIZE, device
-
-
-class WandBLogger(logging.StreamHandler):
-    def emit(self, record):
-        log_entry = self.format(record)
-        # Log to console
-        print(log_entry)
-        # Log to WandB
-        wandb.log({"log": log_entry})
 
 
 def llama_model_training(main_directory, training_arguments, logger, training_samples, eval_samples, test_samples,
@@ -145,8 +136,8 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         #         param.data = param.data.to(torch.float32)
         llama.model = llama.model.to(torch_dtype)
         llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=peft_name, torch_dtype=torch_dtype)
-        logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
-        logger.info("\n\n{} ".format(llama.model.print_trainable_parameters()))
+        # logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
+        logger.info("\n\nModel's {} ".format(llama.model.print_trainable_parameters()))
         data_collator = DataCollatorForLanguageModeling(llama.tokenizer, mlm=mlm, return_tensors="pt")
         trainer = SFTTrainer(
             model=llama.model,
@@ -218,14 +209,19 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     trainer.model = convert_model_adapter_params_to_torch_dtype(model=trainer.model, peft_name=peft_name,
                                                                 torch_dtype=torch_dtype)
     trainer.model = trainer.model.to(torch_dtype)
-    save_path = main_directory+"saved_models/{}/{}_{}".format(date_time, provider, peft_layer_name)
+
+    best_checkpoint_path = trainer.state.best_model_checkpoint
+    # logger.info("Best checkpoint path: {}".format(best_checkpoint_path))
+    best_checkpoint_path = best_checkpoint_path.split("/")[-1]
+    save_path = main_directory+"saved_models/{}/{}_{}_{}".format(date_time, provider, peft_layer_name,
+                                                                 best_checkpoint_path)
 
     if not os.path.exists(save_path):
-        os.mkdir(save_path)
+        os.makedirs(save_path)
 
     if provider == "hf":
         trainer.model.save_pretrained(save_path)
-        logger.info(f"PEFT CONF: {trainer.model.peft_config}")
+        logger.info(f"PEFT CONF for {peft_layer_name}:\n{trainer.model.peft_config[peft_layer_name].__dict__}")
         torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/pytorch_adapter.bin")
 
     elif provider == "ah":
@@ -346,13 +342,15 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
     )
     logger = logging.getLogger()
-    logger.addHandler(WandBLogger())
+    wnb = WandBLogger()
+    wnb.wandb = wandb
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)  # Set the log level for the console handler
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+    logger.addHandler(wnb)
 
     logger.info("Args: \n{}".format(args))
 
@@ -386,6 +384,8 @@ if __name__ == "__main__":
         lr_scheduler_type="cosine", # "reduce_lr_on_plateau", "cosine_with_restarts", "constant_with_warmup", "linear", "polynomial"
         seed=42,
         data_seed=42,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         load_best_model_at_end=True,
         use_mps_device=True if device == "mps" else False,
         no_cuda=False if device == "cuda" else True,

@@ -1,8 +1,19 @@
+import logging
 import torch
 import yaml
 
-
 MODEL_ID = "meta-llama/Meta-Llama-3-8B"  # Meta-Llama-3-8B-Instruct
+
+
+class WandBLogger(logging.StreamHandler):
+    wandb: any
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        # Log to WandB
+        self.wandb.log({"log": log_entry})
+
 
 torch_dtypes_dict = {
     "bf16": torch.bfloat16,
@@ -27,7 +38,7 @@ def convert_model_adapter_params_to_torch_dtype(model, peft_name, torch_dtype):
         if param.ndim == 1:
             # cast the small parameters (e.g. layernorm) to fp32 for stability
             # logger.info("To Dim1: {} -> {}".format(name, param.dtype))
-            param.data = param.data.to(torch_dtype)#torch.float32)
+            param.data = param.data.to(torch_dtype)  # torch.float32)
             param.data = param.data.to(param.device)
     return model
 
