@@ -9,16 +9,14 @@ from dataset_lib import SumDataLoader
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
     convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict
 
-global CHAT_TEMPLATE
 
-
-def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device):
+def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template):
     # testing the model with Test data.
     def inference_prompt_processing(sample):
         # if "sources" in sample.keys():
         #     sample["article"] = sample.pop("sources")
 
-        if CHAT_TEMPLATE:
+        if chat_template:
             from dataset_lib import chat_template_prompt_inference
             text = [chat_template_prompt_inference(content=article) for article in sample["content"]]
 
@@ -38,9 +36,9 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device):
             Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
         """.strip()
 
-    summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+    summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device, chat_template=chat_template)
     # summ = summarize(inputs=random_text, return_text=False)
-    logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
+    # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
     try:
         with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
             f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
@@ -52,7 +50,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device):
     data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
     df_test_data = pd.DataFrame(data=data.test_set)
 
-    # TODO: write the testing funciton with a metric.
+    # TODO: write the testing function with a metric.
     test_summaries = {
         "content": [],
         "truth": [],
@@ -64,7 +62,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device):
     for i in range(min_samples):
         logger.info("Summary for {} sample".format(i))
         summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["content"][i],
-                                   device=device, chat_template=CHAT_TEMPLATE)
+                                   device=device, chat_template=chat_template)
         test_summaries["content"].append(df_test_data["content"][i])
         test_summaries["truth"].append(df_test_data["summary"][i])
         test_summaries["prediction"].append(summary)
@@ -90,7 +88,6 @@ if __name__ == "__main__":
 
     from warnings import simplefilter
     simplefilter(action='ignore', category=FutureWarning)
-    global CHAT_TEMPLATE
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
@@ -122,7 +119,7 @@ if __name__ == "__main__":
     sort_data = args.sorted_dataset
     quantize = args.quantize
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
-    CHAT_TEMPLATE = True if "chat_template" in trained_peft_path or args.chat_template else False
+    chat_template = True if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True if "instruct" in trained_peft_path else False
     provider = "hf" if "hf" in trained_peft_path else "ah"
 
@@ -145,6 +142,12 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
     )
     logger = logging.getLogger()
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)  # Set the log level for the console handler
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
     logger.info("Device in use: {}".format(device))
     # llama_model = get_pretrained_model(ah=ah)
     llama = LLaMAModelClass(version=3.0, instruct_mode=use_instruct_model, quantize=quantize,
@@ -178,14 +181,15 @@ if __name__ == "__main__":
 
     logger.info("Loaded MODEL: \n{}".format(llama.model))
 
-    if CHAT_TEMPLATE:
+    if chat_template:
         logger.info("****** RESULTS ARE GENERATED USING CHAT TEMPLATE ******")
 
     data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
-                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
+                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=chat_template)
     data.loading_dataset_splits()
 
     data.train_set = None
     data.validation_set = None
 
-    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, peft_full_name=peft_dir, device=device)
+    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, peft_full_name=peft_dir,
+                  logger=logger, device=device, chat_template=chat_template)

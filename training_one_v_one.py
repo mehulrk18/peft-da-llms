@@ -347,6 +347,13 @@ if __name__ == "__main__":
     )
     logger = logging.getLogger()
     logger.addHandler(WandBLogger())
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)  # Set the log level for the console handler
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
     logger.info("Args: \n{}".format(args))
 
     logger.info("Device in use: {}".format(device))

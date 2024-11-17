@@ -15,9 +15,8 @@ def generate_summary(model, tokenizer, content, device, chat_template=False):
         content = llama3_testing_prompt(content)
         inputs = tokenizer(content, return_tensors="pt").to(device)
         in_len = len(inputs["input_ids"][0])
-        print("Data Type: ", inputs)
         # with torch.inference_mode() and torch.cuda.amp.autocast():
-        with torch.cuda.amp.autocast():
+        with torch.amp.autocast('cuda'):  #torch.cuda.amp.autocast():
             summary_ids = model.generate(**inputs,
                                          # max_length=512,
                                          do_sample=True,  # Enable sampling
