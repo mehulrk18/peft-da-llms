@@ -366,10 +366,15 @@ class SumDataLoader:
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_bill_sum_data_after_downloading, batched=True)
 
             loaded_dataset = loaded_dataset.remove_columns(self.dataset_info["columns_to_remove"])
-            self.train_set = Dataset.from_list(self.sample_dataset(loaded_dataset["train"], sample_size=self.training_samples))
-            self.validation_set = Dataset.from_list(
-                self.sample_dataset(loaded_dataset["validation"], sample_size=self.eval_samples))
-            self.test_set = Dataset.from_list(self.sample_dataset(loaded_dataset["test"], sample_size=self.test_samples))
+            self.train_set = Dataset.from_list(self.sample_dataset(loaded_dataset["train"],
+                                                                   sample_size=min(self.training_samples,
+                                                                                   loaded_dataset["train"].num_rows)))
+            self.validation_set = Dataset.from_list(self.sample_dataset(loaded_dataset["validation"],
+                                                                        sample_size=min(self.eval_samples,
+                                                                                        loaded_dataset["validation"].num_rows)))
+            self.test_set = Dataset.from_list(self.sample_dataset(loaded_dataset["test"],
+                                                                  sample_size=min(self.test_samples,
+                                                                                  loaded_dataset["test"].num_rows)))
 
             loaded_dataset = DatasetDict({
                 "train": self.train_set,
