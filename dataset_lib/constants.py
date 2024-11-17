@@ -81,19 +81,25 @@ datasets_info_dict = {
             "dataset_id": "allenai/cord19",
             "local_path": "domains/medical/cord19",
             "version": "fulltext",
-            "columns_to_remove": ['cord_uid', 'sha', 'source_x', 'title', 'doi', 'abstract', 'publish_time', 'authors',
-                                  'journal', 'url', 'fulltext'],
+            "columns_to_remove": ["cord_uid", "sha", "source_x", "title", "doi", "abstract", "publish_time", "authors",
+                                  "journal", "url", "fulltext"],
             "source": "hugging_face"
         },
         "sci_lay": {
             "dataset_id": "paniniDot/sci_lay",
             "local_path": "domains/medical/sci_lay",
-            "version": None,
-            "columns_to_remove": ["article", "abstract"],
+            "version": "all",  # it has 14 different journals found here: https://huggingface.co/datasets/paniniDot/sci_lay
+            "columns_to_remove": ["doi", "pmcid", "plain_text", "technical_text", "full_text", "journal",
+                                  "topics", "keywords"],
             "source": "hugging_face"
         },
         "mslr": {
-
+            "dataset_id": "allenai/mslr2022",
+            "local_path": "domains/medical/mslr",
+            "version": "ms2",  # ["ms2", "cochrane"]
+            "columns_to_remove": ["doi", "pmcid", "plain_text", "technical_text", "full_text", "journal",
+                                  "topics", "keywords"],
+            "source": "hugging_face"
         }
     },
     SumDomains.LEGAL: {
@@ -105,11 +111,19 @@ datasets_info_dict = {
                                   "sources_metadata"],
             "source": "hugging_face"
         },
-        "eur_lex_sum": {
-
+        "eur_lex": {
+            "dataset_id": "dennlinger/eur-lex-sum",
+            "local_path": "domains/legal/eur_lex",
+            "version": "english",
+            "columns_to_remove": ["celex_id", "reference"],
+            "source": "hugging_face"
         },
         "bill_sum": {
-
+            "dataset_id": "FiscalNote/billsum",
+            "local_path": "domains/legal/bill_sum",
+            "version": None,
+            "columns_to_remove": ["text", "title"],
+            "source": "hugging_face"
         }
     },
     SumDomains.NEWS: {

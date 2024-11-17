@@ -282,6 +282,89 @@ class SumDataLoader:
                                               "test": train_test_val_split["test"]})
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_cord19_data_after_downloading, batched=True)
 
+            elif self.dataset_name == "sci_lay":
+                def preprocess_sci_lay_data_after_downloading(sample):
+                    content = [text for text in sample["full_text"]]
+                    summary = [summ for summ in sample["plain_text"]]
+                    return {
+                        "content": content,
+                        "summary": summary
+                    }
+
+                loaded_dataset = load_dataset(path=self.dataset_info["dataset_id"], name=self.dataset_info["version"],
+                                              streaming=True, trust_remote_code=True)
+                process_data = {}
+                for split in ["train", "validation", "test"]:
+                    process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
+                loaded_dataset = DatasetDict(process_data)
+                del process_data
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_sci_lay_data_after_downloading, batched=True)
+
+            elif self.dataset_name == "mslr":
+                def preprocess_mslr_data_after_downloading(sample):
+                    content = [" ".join(text) for text in sample["full_text"]]
+                    summary = [summ for summ in sample["plain_text"]]
+                    return {
+                        "content": content,
+                        "summary": summary
+                    }
+
+                loaded_dataset = load_dataset(path=self.dataset_info["dataset_id"], name=self.dataset_info["version"],
+                                              streaming=True, trust_remote_code=True)
+                process_data = {}
+                for split in ["train", "validation", "test"]:
+                    process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
+                loaded_dataset = DatasetDict(process_data)
+                del process_data
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_mslr_data_after_downloading, batched=True)
+
+            elif self.dataset_name == "eur_lex":
+                def preprocess_eur_lex_data_after_downloading(sample):
+                    content = [text for text in sample["reference"]]
+                    summary = [summ for summ in sample["summary"]]
+                    return {
+                        "content": content,
+                        "summary": summary
+                    }
+
+                loaded_dataset = load_dataset(path=self.dataset_info["dataset_id"], name=self.dataset_info["version"],
+                                              streaming=True, trust_remote_code=True)
+                process_data = {}
+                for split in ["train", "validation", "test"]:
+                    process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
+                loaded_dataset = DatasetDict(process_data)
+                del process_data
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_eur_lex_data_after_downloading, batched=True)
+
+            elif self.dataset_name == "bill_sum":
+                def preprocess_bill_sum_data_after_downloading(sample):
+                    content = [text for text in sample["text"]]
+                    summary = [summ for summ in sample["summary"]]
+                    return {
+                        "content": content,
+                        "summary": summary
+                    }
+
+                loaded_dataset = load_dataset(path=self.dataset_info["dataset_id"], name=self.dataset_info["version"],
+                                              streaming=True, trust_remote_code=True)
+                process_data, test_data = {}, []
+                for split in ["train", "ca_test", "test"]:
+                    if split == "train":
+                        process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
+                    else:
+                        if split == "ca_test":
+                            test_data.extend(list(loaded_dataset[split]))
+                        else:
+                            test_data.extend(list(loaded_dataset[split]))
+                            process_data["test"] = Dataset.from_list(test_data)
+
+                train_val_split = process_data["train"].train_test_split(test_size=0.2)
+                loaded_dataset = DatasetDict({"train": train_val_split["train"],
+                                              "validation": train_val_split["test"],
+                                              "test": process_data["test"]})
+                del process_data, train_val_split
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(preprocess_bill_sum_data_after_downloading, batched=True)
+
             loaded_dataset = loaded_dataset.remove_columns(self.dataset_info["columns_to_remove"])
             self.train_set = Dataset.from_list(self.sample_dataset(loaded_dataset["train"], sample_size=self.training_samples))
             self.validation_set = Dataset.from_list(
