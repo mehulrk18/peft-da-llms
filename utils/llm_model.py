@@ -84,6 +84,9 @@ class LLaMAModelClass:
 
         print("*** Tokenizer Loaded ***")
 
+    def __str__(self):
+        return "LLaMA Model: {}".format(self.model_id)
+
     def return_model(self):
         return self.model
 

@@ -1,21 +1,10 @@
 import os
 import random
-from enum import Enum
 
 import pandas as pd
 from datasets import load_dataset, Dataset, DatasetDict, load_from_disk
 
 from .constants import *
-
-# from .domains_utils import datasets_info_dict, SumDatasets, preprocessing_scientific_or_medical, \
-#     preprocessing_legal, preprocessing_news, preprocessing_low_resource_domain
-
-DATASET_STORAGE_DIR = ""  # fetch from configs
-
-
-# DEFAULT_SYSTEM_PROMPT = """
-#     You are an AI assistant that excels at summarizing long-form articles. Please provide a concise and informative summary of the following article provided by the user.
-# """.strip()
 
 
 def llama3_training_prompt(content: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT):
@@ -459,14 +448,6 @@ class SumDataLoader:
         # cols_to_remove = [col for col in self.train_set.column_names if col != "input_ids"]
         cols_to_remove = [col for col in self.train_set.column_names if
                           col not in ["input_ids", "attention_mask", "labels"]]
-        print("cols to remove: ", cols_to_remove)
-        # print("texxxxttt: ", self.train_set[0].keys())
         self.train_set = self.train_set.map(tokenization_process, batched=True, remove_columns=cols_to_remove)
-        # self.train_set = self.train_set.remove_columns(
-        #     [col for col in self.train_set.column_names if col != "input_ids"])
-
         self.validation_set = self.validation_set.map(tokenization_process, batched=True, remove_columns=cols_to_remove)
-        # self.validation_set = self.validation_set.remove_columns(
-        #     [col for col in self.validation_set.column_names if col != "input_ids"])
-
         return self.train_set, self.validation_set, self.test_set
