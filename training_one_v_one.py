@@ -114,7 +114,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     if provider == "hf":
         peft_configs = pefts_from_yaml[provider][peft_name]
 
-        peft_layer_name = "{}_{}".format(domain, peft_name)
+        peft_layer_name = "{}_{}_{}".format(domain, dataset_name, peft_name)
         from peft import TaskType
         peft_configs.update({
             "task_type": TaskType.CAUSAL_LM,

@@ -2,7 +2,7 @@
 echo "Starting training" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "news" \
   --dataset "cnn_dm" \
   --train_epochs 1 \

@@ -84,7 +84,11 @@ class SSNDataset(DatasetInfo):
     name = "ssn"
 
     def __init__(self):
-        raise NotImplementedError
+        # TODO:
+        print("SSN dataset needs to be implemented")
+        pass
+
+        # raise NotImplementedError
         # super().__init__()
         # self.dataset_id = ""
         # self.local_path = "domains/scientific/ssn"
