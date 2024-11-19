@@ -64,7 +64,7 @@ if __name__ == "__main__":
     hf_token = os.getenv("HF_TOKEN")
     wandb_api_key = os.getenv("WANDB_API_KEY")
     domains = ["news", "legal", "medical", "scientific"]
-    datasets = ["cnn_dm", "multi_lex", "pubmed", "arxiv"]
+    datasets = ["cnndm", "multilex", "pubmed", "arxiv"]
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
     llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantize=False,
                             model_checkpoint=None, mlm=False, torch_dtype=torch_dtypes_dict["bf16"])

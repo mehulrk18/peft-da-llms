@@ -200,10 +200,10 @@ class Pubmed(LoadDatasetFromLocal):
 
 
 class MultiLex(LoadDatasetFromLocal):
-    ds_name = "multi_lex"
+    ds_name = "multilex"
     domain_name = "legal"
     dataset_kwargs = {
-        # "ds_name": "allenai/multi_lexsum",
+        # "ds_name": "allenai/multilexsum",
         # "ds_subset": "v20230518",
         "col_map": {"content": "text", "summary": "summary"},
         "remove_columns": [
@@ -234,7 +234,7 @@ class MultiLex(LoadDatasetFromLocal):
 
 
 class CNNDailyMail(LoadDatasetFromLocal):
-    ds_name = "cnn_dm"
+    ds_name = "cnndm"
     domain_name = "news"
     dataset_kwargs = {
         # "ds_name": "abisee/cnn_dailymail",
@@ -261,7 +261,7 @@ class CNNDailyMail(LoadDatasetFromLocal):
 
 
 class MultiNews(LoadDatasetFromLocal):
-    ds_name = "multi_news"
+    ds_name = "multinews"
     domain_name = "news"
     dataset_kwargs = {
         # "ds_name": "abisee/cnn_dailymail",
@@ -288,7 +288,7 @@ class MultiNews(LoadDatasetFromLocal):
 
 
 class XSumNews(LoadDatasetFromLocal):
-    ds_name = "x_sum"
+    ds_name = "xsum"
     domain_name = "news"
     dataset_kwargs = {
         # "ds_name": "abisee/cnn_dailymail",

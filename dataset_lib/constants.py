@@ -166,12 +166,12 @@ class Cord19Dataset(DatasetInfo):
 
 class SciLayDataset(DatasetInfo):
     domain = SumDomains.MEDICAL
-    name = "sci_lay"
+    name = "scilay"
 
     def __init__(self):
         super().__init__()
-        self.dataset_id = "paniniDot/sci_lay"
-        self.local_path = "domains/medical/sci_lay"
+        self.dataset_id = "paniniDot/scilay"
+        self.local_path = "domains/medical/scilay"
         self.streaming = True
         self.trust_remote_code = True
         self.version = "all"
@@ -199,12 +199,12 @@ class MSLRDataset(DatasetInfo):
 
 class MultiLexDataset(DatasetInfo):
     domain = SumDomains.LEGAL
-    name = "multi_lex"
+    name = "multilex"
 
     def __init__(self):
         super().__init__()
-        self.dataset_id = "allenai/multi_lexsum"
-        self.local_path = "domains/legal/multi_lex"
+        self.dataset_id = "allenai/multilexsum"
+        self.local_path = "domains/legal/multilex"
         self.streaming = True
         self.trust_remote_code = True
         self.version = "v20230518"
@@ -216,12 +216,12 @@ class MultiLexDataset(DatasetInfo):
 
 class EurLexDataset(DatasetInfo):
     domain = SumDomains.LEGAL
-    name = "eur_lex"
+    name = "eurlex"
 
     def __init__(self):
         super().__init__()
         self.dataset_id = "dennlinger/eur-lex-sum"
-        self.local_path = "domains/legal/eur_lex"
+        self.local_path = "domains/legal/eurlex"
         self.streaming = True
         self.trust_remote_code = True
         self.version = "english"
@@ -232,12 +232,12 @@ class EurLexDataset(DatasetInfo):
 
 class BillSumDataset(DatasetInfo):
     domain = SumDomains.LEGAL
-    name = "bill_sum"
+    name = "billsum"
 
     def __init__(self):
         super().__init__()
         self.dataset_id = "FiscalNote/billsum"
-        self.local_path = "domains/legal/bill_sum"
+        self.local_path = "domains/legal/billsum"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None
@@ -248,12 +248,12 @@ class BillSumDataset(DatasetInfo):
 
 class CNNDMDataset(DatasetInfo):
     domain = SumDomains.NEWS
-    name = "cnn_dm"
+    name = "cnndm"
 
     def __init__(self):
         super().__init__()
         self.dataset_id = "ccdv/cnn_dailymail"
-        self.local_path = "domains/news/cnn_daily_mail"
+        self.local_path = "domains/news/cnndailymail"
         self.streaming = False
         self.trust_remote_code = True
         self.version = "3.0.0"
@@ -264,12 +264,12 @@ class CNNDMDataset(DatasetInfo):
 
 class MultiNewsDataset(DatasetInfo):
     domain = SumDomains.NEWS
-    name = "multi_news"
+    name = "multinews"
 
     def __init__(self):
         super().__init__()
-        self.dataset_id = "alexfabbri/multi_news"
-        self.local_path = "domains/news/multi_news"
+        self.dataset_id = "alexfabbri/multinews"
+        self.local_path = "domains/news/multinews"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None
@@ -280,12 +280,12 @@ class MultiNewsDataset(DatasetInfo):
 
 class XSumDataset(DatasetInfo):
     domain = SumDomains.NEWS
-    name = "x_sum"
+    name = "xsum"
 
     def __init__(self):
         super().__init__()
         self.dataset_id = "EdinburghNLP/xsum"
-        self.local_path = "domains/news/x_sum"
+        self.local_path = "domains/news/xsum"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None
@@ -321,18 +321,18 @@ datasets_info_dict = {
     SumDomains.MEDICAL: {
         "pubmed": PubmedDataset(),
         "cord19": Cord19Dataset(),
-        "sci_lay": SciLayDataset(),
+        "scilay": SciLayDataset(),
         "mslr": MSLRDataset()
     },
     SumDomains.LEGAL: {
-        "multi_lex": MultiLexDataset(),
-        "eur_lex": EurLexDataset(),
-        "bill_sum": BillSumDataset()
+        "multilex": MultiLexDataset(),
+        "eurlex": EurLexDataset(),
+        "billsum": BillSumDataset()
     },
     SumDomains.NEWS: {
-        "cnn_dm": CNNDMDataset(),
-        "multi_news": MultiNewsDataset(),
-        "x_sum": XSumDataset(),
+        "cnndm": CNNDMDataset(),
+        "multinews": MultiNewsDataset(),
+        "xsum": XSumDataset(),
         "newsroom": NewsroomDataset()
     }
 }

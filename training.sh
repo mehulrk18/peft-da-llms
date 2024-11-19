@@ -4,7 +4,7 @@ time python training_one_v_one.py \
   --provider "hf" \
   --peft "loha" \
   --domain "news" \
-  --dataset "cnn_dm" \
+  --dataset "cnndm" \
   --train_epochs 1 \
   --tokenization_with_attention "True" \
   --max_seq_len 4096 \

@@ -153,8 +153,8 @@ class SumDataLoader:
                                               trust_remote_code=self.dataset_info.trust_remote_code)
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_data_after_downloading, batched=True)
 
-            elif self.dataset_name == "multi_lex":
-                def process_multi_lex_data_after_downloading(sample):
+            elif self.dataset_name == "multilex":
+                def process_multilex_data_after_downloading(sample):
                     content = ["\n".join(text) for text in sample["sources"]]
                     summary = [summ for summ in sample["summary/long"]]
                     return {
@@ -165,10 +165,10 @@ class SumDataLoader:
                 loaded_dataset = load_dataset(path=self.dataset_info.dataset_id, name=self.dataset_info.version,
                                               streaming=self.dataset_info.streaming,
                                               trust_remote_code=self.dataset_info.trust_remote_code)
-                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_multi_lex_data_after_downloading, batched=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_multilex_data_after_downloading, batched=True)
 
-            elif self.dataset_name == "cnn_dm":
-                def process_cnn_dm_data_after_downloading(sample):
+            elif self.dataset_name == "cnndm":
+                def process_cnndm_data_after_downloading(sample):
                     content = [text for text in sample["article"]]
                     summary = [summ for summ in sample["highlights"]]
                     return {
@@ -179,10 +179,10 @@ class SumDataLoader:
                 loaded_dataset = load_dataset(path=self.dataset_info.dataset_id, name=self.dataset_info.version,
                                               streaming=self.dataset_info.streaming,
                                               trust_remote_code=self.dataset_info.trust_remote_code)
-                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_cnn_dm_data_after_downloading, batched=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_cnndm_data_after_downloading, batched=True)
 
-            elif self.dataset_name == "multi_news":
-                def process_multi_news_data_after_downloading(sample):
+            elif self.dataset_name == "multinews":
+                def process_multinews_data_after_downloading(sample):
                     content = [text for text in sample["document"]]
                     summary = [summ for summ in sample["summary"]]
                     return {
@@ -193,10 +193,10 @@ class SumDataLoader:
                 loaded_dataset = load_dataset(path=self.dataset_info.dataset_id, name=self.dataset_info.version,
                                               streaming=self.dataset_info.streaming,
                                               trust_remote_code=self.dataset_info.trust_remote_code)
-                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_multi_news_data_after_downloading, batched=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_multinews_data_after_downloading, batched=True)
 
-            elif self.dataset_name == "x_sum":
-                def process_x_sum_data_after_downloading(sample):
+            elif self.dataset_name == "xsum":
+                def process_xsum_data_after_downloading(sample):
                     content = [text for text in sample["document"]]
                     summary = [summ for summ in sample["summary"]]
                     return {
@@ -207,7 +207,7 @@ class SumDataLoader:
                 loaded_dataset = load_dataset(path=self.dataset_info.dataset_id, name=self.dataset_info.version,
                                               streaming=self.dataset_info.streaming,
                                               trust_remote_code=self.dataset_info.trust_remote_code)
-                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_x_sum_data_after_downloading, batched=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_xsum_data_after_downloading, batched=True)
 
             elif self.dataset_name == "newsroom":
                 def process_newsroom_data_after_downloading(sample):
@@ -286,8 +286,8 @@ class SumDataLoader:
                                               "test": train_test_val_split["test"]})
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_cord19_data_after_downloading, batched=True)
 
-            elif self.dataset_name == "sci_lay":
-                def process_sci_lay_data_after_downloading(sample):
+            elif self.dataset_name == "scilay":
+                def process_scilay_data_after_downloading(sample):
                     content = [text for text in sample["full_text"]]
                     summary = [summ for summ in sample["plain_text"]]
                     return {
@@ -303,7 +303,7 @@ class SumDataLoader:
                     process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
                 loaded_dataset = DatasetDict(process_data)
                 del process_data
-                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_sci_lay_data_after_downloading, batched=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_scilay_data_after_downloading, batched=True)
 
             elif self.dataset_name == "mslr":
                 def process_mslr_data_after_downloading(sample):
@@ -324,8 +324,8 @@ class SumDataLoader:
                 del process_data
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_mslr_data_after_downloading, batched=True)
 
-            elif self.dataset_name == "eur_lex":
-                def process_eur_lex_data_after_downloading(sample):
+            elif self.dataset_name == "eurlex":
+                def process_eurlex_data_after_downloading(sample):
                     content = [text for text in sample["reference"]]
                     summary = [summ for summ in sample["summary"]]
                     return {
@@ -341,10 +341,10 @@ class SumDataLoader:
                     process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
                 loaded_dataset = DatasetDict(process_data)
                 del process_data
-                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_eur_lex_data_after_downloading, batched=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_eurlex_data_after_downloading, batched=True)
 
-            elif self.dataset_name == "bill_sum":
-                def process_bill_sum_data_after_downloading(sample):
+            elif self.dataset_name == "billsum":
+                def process_billsum_data_after_downloading(sample):
                     content = [text for text in sample["text"]]
                     summary = [summ for summ in sample["summary"]]
                     return {
@@ -371,7 +371,7 @@ class SumDataLoader:
                                               "validation": train_val_split["test"],
                                               "test": process_data["test"]})
                 del process_data, train_val_split
-                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_bill_sum_data_after_downloading, batched=True)
+                loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_billsum_data_after_downloading, batched=True)
 
             import pdb; pdb.set_trace()
             loaded_dataset = loaded_dataset.remove_columns(self.dataset_info.columns_to_remove)
