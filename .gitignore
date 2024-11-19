@@ -9,5 +9,6 @@ results/
 .idea/
 logs/
 wandb
+trained_pefts
 *venv
 __pycache__*

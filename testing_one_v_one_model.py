@@ -40,7 +40,6 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         """.strip()
 
     summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device, chat_template=chat_template)
-    # summ = summarize(inputs=random_text, return_text=False)
     # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
     try:
         with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
@@ -124,18 +123,18 @@ if __name__ == "__main__":
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
     chat_template = True if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True if "instruct" in trained_peft_path else False
-    provider = "hf" if "hf" in trained_peft_path else "ah"
+    # provider = "hf" if "hf" in trained_peft_path else "ah"
 
     peft_path_splits = trained_peft_path.split("/")
-    if peft_path_splits[0] == "results":
-        peft_dir = "_".join(peft_path_splits)
-        domain = peft_path_splits[3].split("_")[0]
-        adapter_name = peft_path_splits[3]
+    # if peft_path_splits[0] == "results":
+    #     peft_dir = "_".join(peft_path_splits)
+    #     domain = peft_path_splits[3].split("_")[0]
+    #     adapter_name = peft_path_splits[3]
 
-    elif trained_peft_path.split("/")[0] == "saved_models":
-        peft_dir = peft_path_splits[1]
-        domain, peft_type, _ = tuple(peft_dir.split("_")[:3])
-        adapter_name = "{}_{}".format(domain, peft_type)
+    # elif trained_peft_path.split("/")[0] ==  :# "saved_models":
+    peft_dir = peft_path_splits[1]
+    provider, domain, dataset_name, peft_type = tuple(peft_dir.split("_")[:4])
+    adapter_name = "{}_{}_{}".format(domain, dataset_name, peft_type)
 
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
@@ -196,8 +195,9 @@ if __name__ == "__main__":
     if chat_template:
         logger.info("****** RESULTS ARE GENERATED USING CHAT TEMPLATE ******")
 
-    data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
-                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=chat_template)
+    data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=training_samples,
+                         eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
+                         chat_template=chat_template)
     data.loading_dataset_splits()
 
     data.train_set = None
