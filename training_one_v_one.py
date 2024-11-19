@@ -314,15 +314,15 @@ if __name__ == "__main__":
     from datetime import datetime
 
     now = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-    save_peft_name = "{}_{}_{}_{}_{}_bs_{}_summarization".format(domain, peft_name, training_samples,
-                                                                 training_epochs, batch_size, now)
+    # save_peft_name = "{}_{}_{}_{}_{}_bs_{}_summarization".format(domain, peft_name, training_samples,
+    #                                                              training_epochs, batch_size, now)
     if use_mlm:
-        run_name = "llama_{}_mlm_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
-                                                                       peft_name, provider, training_samples,
+        run_name = "llama_{}_mlm_{}_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+                                                                       dataset_name, peft_name, provider, training_samples,
                                                                        training_epochs, MAX_SEQ_LENGTH, batch_size, now)
     else:
-        run_name = "llama_{}_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
-                                                                peft_name, provider, training_samples, training_epochs,
+        run_name = "llama_{}_{}_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+                                                                dataset_name, peft_name, provider, training_samples, training_epochs,
                                                                 MAX_SEQ_LENGTH, batch_size, now)
 
     run_name = run_name+"_chat_template" if CHAT_TEMPLATE else run_name
