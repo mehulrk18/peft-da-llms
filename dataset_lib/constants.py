@@ -192,8 +192,7 @@ class MSLRDataset(DatasetInfo):
         self.streaming = True
         self.trust_remote_code = True
         self.version = "ms2"
-        self.columns_to_remove = ["doi", "pmcid", "plain_text", "technical_text", "full_text", "journal",
-                                  "topics", "keywords"]
+        self.columns_to_remove = ["review_id", "pmid", "title", "abstract", "target", "background"]
         self.source = "hugging_face"
         self.download_url = ""
 

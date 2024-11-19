@@ -18,7 +18,7 @@ def download_dataset_and_store(domain_name: str, dataset_name: str, training_sam
 
     print("**Dataset after it is processed with Prompt**\n\n{}".format(data))
     print("!! Dataset {} from domain {} is processed with Prompt and now saving it to disk at : {}".format(
-        data.dataset_name, data.domain, data.dataset_info["local_path"]))
+        data.dataset_name, data.domain, data.dataset_info.local_path))
 
     # except Exception as e:
     #     print("!!!!!! CANNOT GENERATE DATASET BECAUSE BELOW EXCEPTION CAUGHT WHILE PROCESSING DATASET - '{}' "

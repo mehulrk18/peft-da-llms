@@ -259,6 +259,11 @@ class SumDataLoader:
                 loaded_dataset = load_dataset(path=self.dataset_info.dataset_id, name=self.dataset_info.version,
                                               streaming=self.dataset_info.streaming,
                                               trust_remote_code=self.dataset_info.trust_remote_code)
+                process_data = {}
+                for split in ["train", "validation", "test"]:
+                    process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
+                loaded_dataset = DatasetDict(process_data)
+                del process_data
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_scitldr_data_after_downloading,
                                                                      batched=True)
 
@@ -302,8 +307,8 @@ class SumDataLoader:
 
             elif self.dataset_name == "mslr":
                 def process_mslr_data_after_downloading(sample):
-                    content = [" ".join(text) for text in sample["full_text"]]
-                    summary = [summ for summ in sample["plain_text"]]
+                    content = [" ".join(text) for text in sample["abstract"]]
+                    summary = [summ for summ in sample["target"]]
                     return {
                         "content": content,
                         "summary": summary
@@ -368,7 +373,9 @@ class SumDataLoader:
                 del process_data, train_val_split
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_bill_sum_data_after_downloading, batched=True)
 
+            import pdb; pdb.set_trace()
             loaded_dataset = loaded_dataset.remove_columns(self.dataset_info.columns_to_remove)
+            self.return_stats()
             self.train_set = Dataset.from_list(self.sample_dataset(loaded_dataset["train"],
                                                                    sample_size=min(self.training_samples,
                                                                                    loaded_dataset["train"].num_rows)))
@@ -389,6 +396,7 @@ class SumDataLoader:
             print("******* '{}' Dataset for {} Domain -  is stored at {} !!!*******".format(self.dataset_name,
                                                                                             self.domain.name,
                                                                                             local_path))
+            self.return_stats()
 
         else:
             loaded_dataset = load_from_disk(local_path)
