@@ -63,11 +63,18 @@ if __name__ == "__main__":
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
     wandb_api_key = os.getenv("WANDB_API_KEY")
-    domains = ["news", "legal", "medical", "scientific"]
-    datasets = ["cnndm", "multilex", "pubmed", "arxiv"]
+    # domains = ["news", "legal", "medical", "scientific"]
+    # datasets = ["cnndm", "multilex", "pubmed", "arxiv"]
+    domains_datasets = {
+        "scientific": ["elsevier", "scitldr"], # arxiv
+        "news": ["multinews", "xsum", "newsroom"], # cnndm
+        "legal": ["eurlex", "billsum"], # multilex
+        "medical": ["scilay", "cord19", "mslr"] # pubmed
+    }
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
     llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantize=False,
                             model_checkpoint=None, mlm=False, torch_dtype=torch_dtypes_dict["bf16"])
 
-    for domain, dataset_name in zip(domains, datasets):
-        zero_shot_baseline(llama, domain, dataset_name, test_samples)
+    for domain, datasets in domains_datasets.items(): #zip(domains, datasets):
+        for dataset_name in datasets:
+            zero_shot_baseline(llama, domain, dataset_name, test_samples)

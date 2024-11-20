@@ -73,6 +73,9 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     metric = rouge_metric()
     scores = metric.compute(predictions=test_summaries["prediction"], references=test_summaries["truth"])
     df_sum = pd.DataFrame(test_summaries)
+
+    # if "zero_shot" not in peft_full_name:
+    #     df_sum = df_sum.remove_columns(["content", "truth"])
     # logger.info("Rouge Scores: ", scores)
     file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
     df_sum.to_csv(file_name, index=False)
