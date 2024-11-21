@@ -1,8 +1,8 @@
 #!/bin/bash
-echo "Starting training Legal EurLex Lora" && \
+echo "Starting training Legal EurLex loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "legal" \
   --dataset "eurlex" \
   --train_epochs 5 \
@@ -15,12 +15,12 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training Legal EurLex Lora"
+echo "Finished training Legal EurLex loha"
 
-echo "Starting training Legal BillSum Lora" && \
+echo "Starting training Legal BillSum loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "legal" \
   --dataset "billsum" \
   --train_epochs 5 \
@@ -33,12 +33,12 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training Legal BillSum Lora"
+echo "Finished training Legal BillSum loha"
 
-#echo "Starting training Legal MultiLex Lora" && \
+#echo "Starting training Legal MultiLex loha" && \
 #time python training_one_v_one.py \
 #  --provider "hf" \
-#  --peft "lora" \
+#  --peft "loha" \
 #  --domain "legal" \
 #  --dataset "multilex" \
 #  --train_epochs 5 \
@@ -51,4 +51,4 @@ echo "Finished training Legal BillSum Lora"
 #  --batch_size 4 \
 #  --torch_dtype "bf16" \
 #  --return_overflowing_tokens "True"
-#echo "Finished training Legal MultiLex Lora"
+#echo "Finished training Legal MultiLex loha"

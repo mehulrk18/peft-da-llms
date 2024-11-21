@@ -1,8 +1,8 @@
 #!/bin/bash
-echo "Starting training News MultiNews Lora" && \
+echo "Starting training News MultiNews Loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "news" \
   --dataset "multinews" \
   --train_epochs 5 \
@@ -15,13 +15,13 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training News MultiNews Lora"
+echo "Finished training News MultiNews Loha"
 
 
-echo "Starting training News XSum Lora" && \
+echo "Starting training News XSum Loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "news" \
   --dataset "xsum" \
   --train_epochs 5 \
@@ -34,12 +34,12 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training News XSum Lora"
+echo "Finished training News XSum Loha"
 
-echo "Starting training News Newsroom Lora" && \
+echo "Starting training News Newsroom Loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "news" \
   --dataset "newsroom" \
   --train_epochs 5 \
@@ -52,12 +52,12 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training News Newsroom Lora"
+echo "Finished training News Newsroom Loha"
 
-#echo "Starting training News CNNDM Lora" && \
+#echo "Starting training News CNNDM Loha" && \
 #time python training_one_v_one.py \
 #  --provider "hf" \
-#  --peft "lora" \
+#  --peft "loha" \
 #  --domain "legal" \
 #  --dataset "cnndm" \
 #  --train_epochs 5 \
@@ -70,4 +70,4 @@ echo "Finished training News Newsroom Lora"
 #  --batch_size 4 \
 #  --torch_dtype "bf16" \
 #  --return_overflowing_tokens "True"
-#echo "Finished training Legal CNNDM Lora"
+#echo "Finished training Legal CNNDM Loha"

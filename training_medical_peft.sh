@@ -1,8 +1,8 @@
 #!/bin/bash
-#echo "Starting training Medical Pubmed Lora" && \
+#echo "Starting training Medical Pubmed loha" && \
 #time python training_one_v_one.py \
 #  --provider "hf" \
-#  --peft "lora" \
+#  --peft "loha" \
 #  --domain "medical" \
 #  --dataset "pubmed" \
 #  --train_epochs 5 \
@@ -15,13 +15,13 @@
 #  --batch_size 4 \
 #  --torch_dtype "bf16" \
 #  --return_overflowing_tokens "True"
-#echo "Finished training Medical Pubmed Lora"
+#echo "Finished training Medical Pubmed loha"
 
 
-echo "Starting training Medical Scilay Lora" && \
+echo "Starting training Medical Scilay loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "medical" \
   --dataset "scilay" \
   --train_epochs 5 \
@@ -34,12 +34,12 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training Medical Scilay Lora"
+echo "Finished training Medical Scilay loha"
 
-echo "Starting training Medical MSLR Lora" && \
+echo "Starting training Medical MSLR loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "medical" \
   --dataset "mslr" \
   --train_epochs 5 \
@@ -52,12 +52,12 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training Medical MSLR Lora"
+echo "Finished training Medical MSLR loha"
 
-echo "Starting training Medical Cord19 Lora" && \
+echo "Starting training Medical Cord19 loha" && \
 time python training_one_v_one.py \
   --provider "hf" \
-  --peft "lora" \
+  --peft "loha" \
   --domain "medical" \
   --dataset "cord19" \
   --train_epochs 5 \
@@ -70,4 +70,4 @@ time python training_one_v_one.py \
   --batch_size 4 \
   --torch_dtype "bf16" \
   --return_overflowing_tokens "True"
-echo "Finished training Medical Cord19 Lora"
+echo "Finished training Medical Cord19 loha"
