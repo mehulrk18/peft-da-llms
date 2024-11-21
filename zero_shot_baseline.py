@@ -69,7 +69,7 @@ if __name__ == "__main__":
         "scientific": ["elsevier", "scitldr"], # arxiv
         "news": ["multinews", "xsum", "newsroom"], # cnndm
         "legal": ["eurlex", "billsum"], # multilex
-        "medical": ["scilay", "cord19", "mslr"] # pubmed
+        "medical": ["cord19", "mslr", "scilay"] # pubmed
     }
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
     llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantize=False,
