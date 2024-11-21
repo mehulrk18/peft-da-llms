@@ -404,7 +404,14 @@ class SumDataLoader:
         loaded_dataset = loaded_dataset.map(lambda x: {"content_tokens": len(x["content"].split()),
                                                        "summary_tokens": len(x["summary"].split())})
 
-        loaded_dataset = loaded_dataset.filter(lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
+        if self.dataset_name != "mslr":
+            loaded_dataset = loaded_dataset.filter(lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
+
+        elif self.dataset_name != "mslr":
+            loaded_dataset["train"] = loaded_dataset["train"].filter(
+                lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
+            loaded_dataset["validation"] = loaded_dataset["validation"].filter(
+                lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
 
         print("Min and Max number of tokens in articles in train dataset of {} are {} and {} "
               "respectively!".format(self.dataset_name, min(loaded_dataset["train"]["content_tokens"]),
