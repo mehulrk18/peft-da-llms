@@ -47,7 +47,7 @@ hf:
   lora:
     inference_mode: False
     r: 32
-    target_modules: # because trained LLaMA_adapter with Self_Attn so need to do this for every one for consistency
+    target_modules: # because trained llamaadapter with Self_Attn so need to do this for every one for consistency
       - "self_attn.q_proj"
       - "self_attn.k_proj"
       - "self_attn.v_proj"
@@ -107,7 +107,7 @@ hf:
       - "self_attn.o_proj"
     lora_dropout: 0.01
 
-  llama_adapter:
+  llamaadapter:
       peft_type: "ADAPTION_PROMPT"
       adapter_len: 10
       adapter_layers: 16

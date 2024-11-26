@@ -129,7 +129,10 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         llama.reassign_model(get_peft_model(llama.model, config, adapter_name=peft_layer_name))
         llama.model.enable_input_require_grads()
         llama.model.gradient_checkpointing_enable()
-        llama.model.add_adapter(peft_layer_name, peft_config=config)
+        try:
+            llama.model.add_adapter(peft_layer_name, peft_config=config)
+        except Exception as e:
+            logger.error("Error while adding adapter: {}".format(e))
         # for param in llama.model.parameters():
         #     if param.ndim == 1:
         #         # cast the small parameters (e.g. layernorm) to fp32 for stability

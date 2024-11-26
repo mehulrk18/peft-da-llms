@@ -20,7 +20,7 @@ class PEFTEnum(Enum):
     LoKr = "lokr"
     LoHa = "loha"
     AdaLoRA = "adalora"
-    LlamaAdapter = "llama_adapter"
+    LlamaAdapter = "llamaadapter"
     OFT = "oft"
     ReFT = "reft"
 
