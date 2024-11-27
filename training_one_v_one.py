@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from huggingface_hub import login
 from transformers import TrainingArguments, DataCollatorForLanguageModeling, Trainer
 
-from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT
+from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
 from utils import read_yaml, LLaMAModelClass, generate_summary, convert_model_adapter_params_to_torch_dtype, \
     torch_dtypes_dict, WandBLogger
@@ -146,10 +146,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         llama.reassign_model(get_peft_model(llama.model, config, adapter_name=peft_layer_name))
         llama.model.enable_input_require_grads()
         llama.model.gradient_checkpointing_enable()
-        try:
-            llama.model.add_adapter(peft_layer_name, peft_config=config)
-        except Exception as e:
-            logger.error("Error while adding adapter: {}".format(e))
+        llama.model.add_adapter(peft_layer_name, peft_config=config)
         # for param in llama.model.parameters():
         #     if param.ndim == 1:
         #         # cast the small parameters (e.g. layernorm) to fp32 for stability
@@ -254,7 +251,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         # llama.model.save_adapter(main_directory + "saved_models/hf_" + save_peft_name + "_method2", peft_layer_name)
 
     summ = generate_summary(model=trainer.model, tokenizer=llama.tokenizer, content=random_text, device=device,
-                            chat_template=CHAT_TEMPLATE)
+                            prompt=DEFAULT_SYSTEM_PROMPT, chat_template=CHAT_TEMPLATE)
     logger.info("\n\nSummary of Random Text After Training Adapters: \n{}".format(summ))
 
     if DO_INFERENCE:
