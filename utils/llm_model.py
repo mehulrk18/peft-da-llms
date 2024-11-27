@@ -2,14 +2,24 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-class LLaMAModelClass():
+class LLaMAModelClass:
 
     def __init__(self, version: float = 3.0, instruct_mode: bool = False, model_checkpoint: str = None,
-                 quantization_config=None, mlm: bool = False):
+                 quantize: bool = False, mlm: bool = False, torch_dtype: torch.dtype = torch.bfloat16):
         self.version = float(version)
         self.instruct_mode = instruct_mode
-        self.quantization_config = quantization_config
+        self.quantization_config = None
         self.mlm = mlm
+        self.torch_dtype = torch_dtype
+
+        if quantize:
+            from transformers import BitsAndBytesConfig
+            self.quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_compute_dtype=self.torch_dtype,
+            )
         # MODEL_ID = "meta-llama/Meta-Llama-3-8B"  # Meta-Llama-3-8B-Instruct
 
         if self.version not in [2.0, 3.0, 3.1, 3.2]:
@@ -19,7 +29,7 @@ class LLaMAModelClass():
             "2.0": "Llama-2-7b-hf",
             "3.0": "Meta-Llama-3-8B",
             "3.1": "Llama-3.1-8B",
-            "3.2": "Llama-3.2-8B"
+            "3.2": "Llama-3.2-3B"
         }
 
         if model_checkpoint is None or not model_dict:
@@ -39,13 +49,13 @@ class LLaMAModelClass():
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_id,
             device_map="auto",
-            quantization_config=quantization_config,
-            torch_dtype=torch.bfloat16
+            quantization_config=self.quantization_config,
+            torch_dtype=torch_dtype
         )
         self.model.config.use_cache = False
         setattr(self.model, 'model_parallel', True)
         setattr(self.model, 'is_parallelizable', True)
-        self.model.config.torch_dtype = torch.bfloat16
+        self.model.config.torch_dtype = torch_dtype
 
         print("*** Model Loaded ***")
 
@@ -73,6 +83,9 @@ class LLaMAModelClass():
             self.model.resize_token_embeddings(len(self.tokenizer))
 
         print("*** Tokenizer Loaded ***")
+
+    def __str__(self):
+        return "LLaMA Model: {}".format(self.model_id)
 
     def return_model(self):
         return self.model

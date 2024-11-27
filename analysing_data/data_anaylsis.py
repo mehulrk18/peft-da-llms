@@ -35,14 +35,14 @@ translate_dataset_name = {
     "medical": {"pubmed": Pubmed, },
     # "wispermed": LaySum,
     # "samsum": SAMSum,
-    "legal": {"multi_lex": MultiLex, },
+    "legal": {"multilex": MultiLex, },
     # "billsum": BillSum,
     # "gigaword": GigaWord,
     "news": {
-        "cnn_dm": CNNDailyMail,
+        "cnndm": CNNDailyMail,
         "newsroom": NewsRoom,
-        "x_sum": XSumNews,
-        "multi_news": MultiNews
+        "xsum": XSumNews,
+        "multinews": MultiNews
     }
     # "aclsum": AclSum,
     # "dialogsum": DialogSum,
@@ -51,11 +51,11 @@ translate_dataset_name = {
 dataset_domain_mapping = {
     "arxiv": "scientific",
     "pubmed": "medical",
-    "multi_lex": "legal",
-    "cnn_dm": "news",
+    "multilex": "legal",
+    "cnndm": "news",
     "newsroom": "news",
-    "x_sum": "news",
-    "multi_news": "news"
+    "xsum": "news",
+    "multinews": "news"
 }
 
 def load_doamin_dataset(

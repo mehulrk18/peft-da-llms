@@ -1,0 +1,14 @@
+trained_adapters_path:
+  - "trained_pefts/medical_pubmed_lora/medical_pubmed_lora"
+  - "trained_pefts/medical_pubmed_ia3/medical_pubmed_ia3"
+
+domain: "medical"
+mlm: False
+training_samples: 1
+eval_samples: 1
+test_samples: 500
+sorted_dataset: True
+chat_template: False
+provider: "hf"
+instruct_mode: False
+torch_dtype: "bf16"

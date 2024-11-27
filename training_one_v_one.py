@@ -14,38 +14,19 @@ from transformers import TrainingArguments, DataCollatorForLanguageModeling, Tra
 
 from dataset_lib import SumDataLoader
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
-from utils import read_yaml, LLaMAModelClass, generate_summary, convert_params_to_bfloat16
+from utils import read_yaml, LLaMAModelClass, generate_summary, convert_model_adapter_params_to_torch_dtype, \
+    torch_dtypes_dict, WandBLogger
 
 PEFT_CONFIGS_FILE = "configs/peft_configs.yaml"
-global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE, QUANTIZE
-
-
-class WandBLogger(logging.StreamHandler):
-    def emit(self, record):
-        log_entry = self.format(record)
-        # Log to console
-        print(log_entry)
-        # Log to WandB
-        wandb.log({"log": log_entry})
+global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, DO_INFERENCE, LOG_FILE, QUANTIZE, device
 
 
 def llama_model_training(main_directory, training_arguments, logger, training_samples, eval_samples, test_samples,
-                         peft_name, domain, provider, date_time, sort_data=False, mlm=False, save_peft_name=None,
+                         peft_name, domain, dataset_name, provider, date_time, torch_dtype, sort_data=False, mlm=False,
                          return_overflowing_tokens=False):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    qc = None
-
-    if QUANTIZE:
-        from transformers import BitsAndBytesConfig
-        qc = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
-        )
-
-    llama = LLaMAModelClass(version=3.0, instruct_mode=INSTRUCT_MODEL, quantization_config=qc, mlm=mlm)
+    llama = LLaMAModelClass(version=3.0, instruct_mode=INSTRUCT_MODEL, quantize=QUANTIZE, mlm=mlm,
+                            torch_dtype=torch_dtype)
 
     def tokenization_process(input_data):
         inputs = llama.tokenizer(input_data["text"], max_length=MAX_SEQ_LENGTH, padding="max_length", return_tensors="pt")
@@ -92,8 +73,9 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     # peft_name = None
 
     # Loading dataset
-    data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
-                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
+    data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=training_samples,
+                         eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
+                         chat_template=CHAT_TEMPLATE)
     data.return_stats()
     data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
 
@@ -132,7 +114,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     if provider == "hf":
         peft_configs = pefts_from_yaml[provider][peft_name]
 
-        peft_layer_name = "{}_{}".format(domain, peft_name)
+        peft_layer_name = "{}_{}_{}".format(domain, dataset_name, peft_name)
         from peft import TaskType
         peft_configs.update({
             "task_type": TaskType.CAUSAL_LM,
@@ -147,14 +129,18 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         llama.reassign_model(get_peft_model(llama.model, config, adapter_name=peft_layer_name))
         llama.model.enable_input_require_grads()
         llama.model.gradient_checkpointing_enable()
+        try:
+            llama.model.add_adapter(peft_layer_name, peft_config=config)
+        except Exception as e:
+            logger.error("Error while adding adapter: {}".format(e))
         # for param in llama.model.parameters():
         #     if param.ndim == 1:
         #         # cast the small parameters (e.g. layernorm) to fp32 for stability
         #         param.data = param.data.to(torch.float32)
-        llama.model = llama.model.to(torch.bfloat16)
-        llama.model = convert_params_to_bfloat16(model=llama.model, peft_name=peft_name)
-        logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
-        logger.info("\n\n{} ".format(llama.model.print_trainable_parameters()))
+        llama.model = llama.model.to(torch_dtype)
+        llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=peft_name, torch_dtype=torch_dtype)
+        # logger.info("\n\nLLaMA Model to be trained: \n{}".format(llama.model))
+        logger.info("\n\nModel's {} ".format(llama.model.print_trainable_parameters()))
         data_collator = DataCollatorForLanguageModeling(llama.tokenizer, mlm=mlm, return_tensors="pt")
         trainer = SFTTrainer(
             model=llama.model,
@@ -175,8 +161,8 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         peft_layer_name = "{}_{}".format(domain, peft_name)
         config = pefts_configuration[provider][PEFTEnum(peft_name).name](**peft_configs)
         llama.model.add_adapter(peft_layer_name, config=config)
-        summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
-        logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
+        # summ = generate_summary(model=llama.model, tokenizer=llama.tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
+        # logger.info("Summary of Random Text After adding Adapters: \n{}".format(summ))
 
         llama.model.train_adapter([peft_layer_name])
         llama.model.adapter_to(peft_layer_name, device=device)
@@ -223,30 +209,36 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     trainer.model = trainer.model.to(device)
     del llama.model
 
-    trainer.model = convert_params_to_bfloat16(model=trainer.model, peft_name=peft_name)
-    trainer.model = trainer.model.to(torch.bfloat16)
+    trainer.model = convert_model_adapter_params_to_torch_dtype(model=trainer.model, peft_name=peft_name,
+                                                                torch_dtype=torch_dtype)
+    trainer.model = trainer.model.to(torch_dtype)
+
+    best_checkpoint_path = trainer.state.best_model_checkpoint
+    # logger.info("Best checkpoint path: {}".format(best_checkpoint_path))
+    best_checkpoint_path = best_checkpoint_path.split("/")[-1]
+    save_path = main_directory+"saved_models/{}/{}_{}_{}".format(date_time, provider, peft_layer_name,
+                                                                 best_checkpoint_path)
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    if provider == "hf":
+        trainer.model.save_pretrained(save_path)
+        logger.info(f"PEFT CONF for {peft_layer_name}:\n{trainer.model.peft_config[peft_layer_name].__dict__}")
+        torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/pytorch_adapter.bin")
+
+    elif provider == "ah":
+        # if save_peft_name is None:
+        #     save_peft_name = peft_layer_name + "_temp_summarization"
+        trainer.model.merge_adapter(peft_layer_name)
+        trainer.model.save_adapter(main_directory+save_path, peft_layer_name)
+        # llama_model.merge_adapter(peft_layer_name)
+        #
+        # llama.model.save_adapter(main_directory + "saved_models/hf_" + save_peft_name + "_method2", peft_layer_name)
+
     summ = generate_summary(model=trainer.model, tokenizer=llama.tokenizer, content=random_text, device=device,
                             chat_template=CHAT_TEMPLATE)
     logger.info("\n\nSummary of Random Text After Training Adapters: \n{}".format(summ))
-
-    # if ah:
-    #     if save_peft_name is None:
-    #         save_peft_name = peft_layer_name + "_temp_summarization"
-    #     llama_model.merge_adapter(peft_layer_name)
-    #     llama_model.save_adapter(main_directory+"saved_models/ah_"+save_peft_name, peft_layer_name)
-    #
-    # else:
-    # comment_method 1
-    # try:
-    # llama_model.merge_adapter(peft_layer_name)
-
-    # llama.model.save_adapter(main_directory + "saved_models/hf_" + save_peft_name + "_method2", peft_layer_name)
-    # uncomment in method 1
-    if provider == "hf":
-        save_path = main_directory+"saved_models/{}_{}_{}".format(peft_layer_name, provider, date_time)
-        trainer.model.save_pretrained(save_path)
-        logger.info(f"PEFT CONF: {trainer.model.peft_config}")
-        torch.save(trainer.model.peft_config[peft_layer_name], save_path+f"/{peft_layer_name}/pytorch_adapter.bin")
 
     if DO_INFERENCE:
         logger.info("\n\n\n**** Performing inference on the trained model ****")
@@ -261,12 +253,14 @@ if __name__ == "__main__":
     from warnings import simplefilter
     simplefilter(action='ignore', category=FutureWarning)
 
-    global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, QUANTIZE
+    global MAX_SEQ_LENGTH, CHAT_TEMPLATE, ATTENTION_MASK, INSTRUCT_MODEL, QUANTIZE, device
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
     parser.add_argument("--peft", type=str, help="peft name for config_file", required=True)
-    parser.add_argument("--domain", type=str, help="Domain name for dataset", required=True)
+    parser.add_argument("--domain", type=str, help="Domain name for dataset", choices=["scientific", "medical", "legal",
+                                                                                       "news"], required=True)
+    parser.add_argument("--dataset", type=str, help="Dataset to be used for training", required=True)
     parser.add_argument("--provider", type=str, choices=["ah", "hf"], required=True,
                         help="Load PEFT from m1->HF and m2->AH")
     parser.add_argument("--tokenization_with_attention", type=bool, default=False,
@@ -284,6 +278,8 @@ if __name__ == "__main__":
     parser.add_argument("--quantize", type=bool, default=False, help="Quantize the model")
     parser.add_argument("--use_instruct_model", type=bool, default=False, help="Use Instruct based Model for training")
     parser.add_argument("--return_overflowing_tokens", type=bool, default=False, help="Use overflowing tokens")
+    parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
+                        help="Torch Data Type to be used")
     parser.add_argument("--do_inference", type=bool, default=False, help="Do inference along with training")
 
     # TODO: Add args parser
@@ -299,6 +295,7 @@ if __name__ == "__main__":
 
     peft_name = args.peft
     domain = args.domain
+    dataset_name = args.dataset
     ATTENTION_MASK = False if not args.tokenization_with_attention else True
     use_mlm = False if not args.mlm else True
     training_epochs = args.train_epochs
@@ -315,19 +312,20 @@ if __name__ == "__main__":
     return_overflowing_tokens = args.return_overflowing_tokens
     batch_size = args.batch_size
     QUANTIZE = args.quantize
-
+    torch_dtype = torch_dtypes_dict[args.torch_dtype]
+    device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
     from datetime import datetime
 
     now = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-    save_peft_name = "{}_{}_{}_{}_{}_bs_{}_summarization".format(domain, peft_name, training_samples,
-                                                                 training_epochs, batch_size, now)
+    # save_peft_name = "{}_{}_{}_{}_{}_bs_{}_summarization".format(domain, peft_name, training_samples,
+    #                                                              training_epochs, batch_size, now)
     if use_mlm:
-        run_name = "llama_{}_mlm_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
-                                                                       peft_name, provider, training_samples,
+        run_name = "llama_{}_mlm_{}_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+                                                                       dataset_name, peft_name, provider, training_samples,
                                                                        training_epochs, MAX_SEQ_LENGTH, batch_size, now)
     else:
-        run_name = "llama_{}_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
-                                                                peft_name, provider, training_samples, training_epochs,
+        run_name = "llama_{}_{}_{}_{}_{}_{}_{}_bs_{}_{}_{}".format("instruct" if INSTRUCT_MODEL else "simple", domain,
+                                                                dataset_name, peft_name, provider, training_samples, training_epochs,
                                                                 MAX_SEQ_LENGTH, batch_size, now)
 
     run_name = run_name+"_chat_template" if CHAT_TEMPLATE else run_name
@@ -347,12 +345,19 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
     )
     logger = logging.getLogger()
-    logger.addHandler(WandBLogger())
+    wnb = WandBLogger()
+    wnb.wandb = wandb
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)  # Set the log level for the console handler
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    logger.addHandler(wnb)
+
     logger.info("Args: \n{}".format(args))
 
-    bf16 = True
-    bf32 = False
-    fp16 = False
+    logger.info("Device in use: {}".format(device))
 
     training_args = TrainingArguments(  # Seq2Seq
         remove_unused_columns=False,
@@ -360,11 +365,12 @@ if __name__ == "__main__":
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=int(batch_size/2),
         gradient_accumulation_steps=1,
-        optim="paged_adamw_32bit",
+        optim="adamw_torch", #"paged_adamw_32bit",
         logging_steps=100,
         learning_rate=5e-4,
-        fp16=fp16,
-        bf16=bf16,
+        fp16=args.torch_dtype == "fp16",
+        bf16=args.torch_dtype == "bf16",
+        # bf32 doesn't exist, so if you want to use that, make above 2 false.
         max_grad_norm=0.1,
         num_train_epochs=training_epochs,  # 7
         evaluation_strategy="epoch",
@@ -381,7 +387,12 @@ if __name__ == "__main__":
         lr_scheduler_type="cosine", # "reduce_lr_on_plateau", "cosine_with_restarts", "constant_with_warmup", "linear", "polynomial"
         seed=42,
         data_seed=42,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         load_best_model_at_end=True,
+        use_mps_device=True if device == "mps" else False,
+        no_cuda=False if device == "cuda" else True,
+        use_cpu=True if device == "cpu" else False,
         run_name=run_name
         # push_to_hub=True,
     )
@@ -389,11 +400,12 @@ if __name__ == "__main__":
     trained_llama_model = llama_model_training(main_directory=main_directory, training_arguments=training_args,
                                                logger=logger, training_samples=training_samples, provider=provider,
                                                eval_samples=eval_samples, test_samples=test_samples, sort_data=sort_data,
-                                               peft_name=peft_name, domain=domain, save_peft_name=save_peft_name,
-                                               mlm=use_mlm, return_overflowing_tokens=return_overflowing_tokens,
-                                               date_time=now)
+                                               peft_name=peft_name, domain=domain, dataset_name=dataset_name,
+                                               mlm=use_mlm, torch_dtype=torch_dtype,
+                                               return_overflowing_tokens=return_overflowing_tokens, date_time=now.split("_")[0])
 
     # logger.info("\n\nTrained LLaMA Model: \n", trained_llama_model.adapter_summary(as_dict=True))
+    # import pdb; pdb.set_trace()
     logger.info("\n\nTrained LLaMA Model: \n{}".format(trained_llama_model))
     wnb_run.finish()
 
