@@ -1,6 +1,6 @@
 trained_adapters_path:
-  - "saved_models/medical_lora_hf_27-10-2024-15-24-45/medical_lora"
-  - "saved_models/medical_ia3_hf_27-10-2024-15-24-45/medical_ia3"
+  - "trained_pefts/medical_pubmed_lora/medical_pubmed_lora"
+  - "trained_pefts/medical_pubmed_ia3/medical_pubmed_ia3"
 
 domain: "medical"
 mlm: False
