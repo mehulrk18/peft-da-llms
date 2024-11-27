@@ -4,13 +4,14 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class LLaMAModelClass:
 
-    def __init__(self, version: float = 3.0, instruct_mode: bool = False, model_checkpoint: str = None,
+    def __init__(self, hf_model_path: str = "", version: float = 3.0, instruct_mode: bool = False, model_checkpoint: str = None,
                  quantize: bool = False, mlm: bool = False, torch_dtype: torch.dtype = torch.bfloat16):
         self.version = float(version)
         self.instruct_mode = instruct_mode
         self.quantization_config = None
         self.mlm = mlm
         self.torch_dtype = torch_dtype
+        self.model_path = hf_model_path
 
         if quantize:
             from transformers import BitsAndBytesConfig
@@ -22,28 +23,31 @@ class LLaMAModelClass:
             )
         # MODEL_ID = "meta-llama/Meta-Llama-3-8B"  # Meta-Llama-3-8B-Instruct
 
-        if self.version not in [2.0, 3.0, 3.1, 3.2]:
-            raise ValueError("!! INVALID VERSION !!")
-
-        model_dict = {
-            "2.0": "Llama-2-7b-hf",
-            "3.0": "Meta-Llama-3-8B",
-            "3.1": "Llama-3.1-8B",
-            "3.2": "Llama-3.2-3B"
-        }
-
-        if model_checkpoint is None or not model_dict:
-
-            self.model_id = "meta-llama/"+model_dict[str(self.version)]
-
-            if self.instruct_mode:
-                if self.version == 2.0:
-                    print("Llama2 doesn't have an instruct model.")
-                else:
-                    self.model_id = self.model_id + "-Instruct"
+        if self.model_path is not None and self.model_path != "":
+            self.model_id = self.model_path
 
         else:
-            self.model_id = model_checkpoint
+            if self.version not in [2.0, 3.0, 3.1, 3.2]:
+                raise ValueError("!! INVALID VERSION !!")
+
+            model_dict = {
+                "2.0": "Llama-2-7b-hf",
+                "3.0": "Meta-Llama-3-8B",
+                "3.1": "Llama-3.1-8B",
+                "3.2": "Llama-3.2-3B"
+            }
+
+            if model_checkpoint is None or not model_dict:
+
+                self.model_id = "meta-llama/"+model_dict[str(self.version)]
+
+                if self.instruct_mode:
+                    if self.version == 2.0:
+                        print("Llama2 doesn't have an instruct model.")
+                    else:
+                        self.model_id = self.model_id + "-Instruct"
+            else:
+                self.model_id = model_checkpoint
 
         print("Loading LLaMA's: {} Model for the process.".format(self.model_id))
         self.model = AutoModelForCausalLM.from_pretrained(

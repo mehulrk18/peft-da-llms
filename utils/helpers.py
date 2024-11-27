@@ -1,4 +1,6 @@
 import logging
+import os.path
+
 import torch
 import yaml
 
@@ -51,3 +53,12 @@ def print_model_weights(model):
             print(f"Layer: {name}, dtype: {layer.bias.dtype}")
         # else:
         #     print(f"Layer: {name}, dtype: Not applicable (no weights)")
+
+
+def check_and_return_df(file_name: str):
+    import pandas as pd
+    if os.path.exists(file_name):
+        return pd.read_csv(file_name), True
+
+    else:
+        return None, False

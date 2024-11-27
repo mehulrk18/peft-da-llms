@@ -81,6 +81,9 @@ def read_news_summarization():
     df = pd.read_csv(file_path)
 
 
+global DOMAIN
+
+
 class SumDataLoader:
 
     def __init__(self, domain: str, dataset_name: str, force_download: bool = False, training_samples: int = 5000,
@@ -109,6 +112,8 @@ class SumDataLoader:
         #     "columns_to_remove"]
 
         self.train_set, self.validation_set, self.test_set = None, None, None
+        self.return_stats()
+        self.loading_dataset_splits()
 
     def __str__(self):
         return "DataLoader for Domain: {} and Dataset: {}\n{}".format(self.domain, self.dataset_name,
@@ -438,6 +443,7 @@ class SumDataLoader:
         # return None, None, None
 
     def loading_dataset_splits(self):
+        print("Loading Data splits for Dataset: {} in Domain: {}".format(self.dataset_name, self.domain.name))
         if self.dataset_info.source in ["hugging_face", ".tar", ".zip", ".tar.gz"]:
             return self.loading_dataset_from_hf()
 
