@@ -8,38 +8,47 @@ import torch
 import wandb
 from dotenv import load_dotenv
 
-from dataset_lib import SumDataLoader
+from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
-    convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger
+    convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger, check_and_return_df
 
 
-def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template):
+def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template, col_name,
+                  test_summaries_file_name=None):
     # testing the model with Test data.
-    def inference_prompt_processing(sample):
-        # if "sources" in sample.keys():
-        #     sample["article"] = sample.pop("sources")
-
-        if chat_template:
-            from dataset_lib import chat_template_prompt_inference
-            text = [chat_template_prompt_inference(content=article) for article in sample["content"]]
-
-            return {
-                "text": text
-            }
-        else:
-            # text = [inference_prompt(article=article) for article in sample["article"]]
-            from dataset_lib import llama3_testing_prompt
-            text = [llama3_testing_prompt(content=article) for article in sample["content"]]
-
-            return {
-                "text": text
-            }
+    # def inference_prompt_processing(sample):
+    #     # if "sources" in sample.keys():
+    #     #     sample["article"] = sample.pop("sources")
+    #
+    #     if chat_template:
+    #         from dataset_lib import chat_template_prompt_inference
+    #         text = [chat_template_prompt_inference(content=article, system_prompt=DEFAULT_DOMAIN_PROMPT[domain])
+    #                 for article in sample["content"]]
+    #
+    #         return {
+    #             "text": text
+    #         }
+    #     else:
+    #         # text = [inference_prompt(article=article) for article in sample["article"]]
+    #         from dataset_lib import llama3_testing_prompt
+    #         text = [llama3_testing_prompt(content=article, system_prompt=DEFAULT_DOMAIN_PROMPT[domain])
+    #                 for article in sample["content"]]
+    #
+    #         return {
+    #             "text": text
+    #         }
+    min_samples = data.test_set.num_rows
+    if test_summaries_file_name is None:
+        test_summaries_file_name = "summaries/summaries_{}_{}_{}samples.csv".format(data.domain.name.lower(),
+                                                                                    data.dataset_name.lower(),
+                                                                                    min_samples)
 
     random_text = """
             Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
         """.strip()
 
-    summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device, chat_template=chat_template)
+    summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device,
+                            chat_template=chat_template, prompt=DEFAULT_SYSTEM_PROMPT)
     # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
     try:
         with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
@@ -49,38 +58,50 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         logger.error("Exception: ".format(e))
         pass
 
-    data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
-    df_test_data = pd.DataFrame(data=data.test_set)
+    # data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
+    # df_test_data = pd.DataFrame(data=data.test_set)
+    
+    df_sum, file_exists = check_and_return_df(test_summaries_file_name)
 
     # TODO: write the testing function with a metric.
     test_summaries = {
-        "content": [],
+        "article": [],
         "truth": [],
-        "prediction": []
+        col_name: []
     }
 
-    # for arxiv and pubmed
-    min_samples = min(data.test_set.num_rows, len(df_test_data))
-    for i in range(min_samples):
+    # for i in range(min_samples):
+    for i, _obj in enumerate(data.test_set):
         logger.info("Summary for {} sample".format(i))
-        summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["content"][i],
-                                   device=device, chat_template=chat_template)
-        test_summaries["content"].append(df_test_data["content"][i])
-        test_summaries["truth"].append(df_test_data["summary"][i])
-        test_summaries["prediction"].append(summary)
+        summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=_obj["content"], device=device,
+                                   chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
+        if not file_exists:
+            test_summaries["article"].append(_obj["content"][i])
+            test_summaries["truth"].append(_obj["summary"][i])
+        test_summaries[col_name].append(summary)
         del summary
 
     scores = 0
-    if "mslr" not in  peft_full_name:
+
+    if file_exists:
+        test_summaries["truth"] = df_sum["truth"]
+    if "mslr" not in peft_full_name:
         metric = rouge_metric()
-        scores = metric.compute(predictions=test_summaries["prediction"], references=test_summaries["truth"])
-    df_sum = pd.DataFrame(test_summaries)
+        scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        logger.info("Rouge Scores: ", scores)
+
+    if file_exists:
+        test_summaries.pop("article")
+        test_summaries.pop("truth")
+        df_sum[col_name] = test_summaries[col_name]
+
+    else:
+        df_sum = pd.DataFrame(test_summaries)
 
         # if "zero_shot" not in peft_full_name:
         #     df_sum = df_sum.remove_columns(["content", "truth"])
-        # logger.info("Rouge Scores: ", scores)
-    file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
-    df_sum.to_csv(file_name, index=False)
+    # file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
+    df_sum.to_csv(test_summaries_file_name, index=False)
 
     with open("summaries/rouge_scores.txt", "a") as fp:
         from datetime import datetime
@@ -88,7 +109,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                                                                                           peft_full_name, min_samples,
                                                                                           scores))
 
-    logger.info("\n\n\nSummaries with Rouge Score {} saved to file {}!!!!".format(scores, file_name))
+    logger.info("\n\n\nSummaries with Rouge Score {} saved to file {}!!!!".format(scores, test_summaries_file_name))
 
 
 if __name__ == "__main__":
@@ -127,7 +148,7 @@ if __name__ == "__main__":
     quantize = args.quantize
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
     chat_template = True if "chat_template" in trained_peft_path or args.chat_template else False
-    use_instruct_model = True if "instruct" in trained_peft_path else False
+    use_instruct_model = True if "instruct" in trained_peft_path or args.chat_template else False
     # provider = "hf" if "hf" in trained_peft_path else "ah"
 
     peft_path_splits = trained_peft_path.split("/")
@@ -209,5 +230,6 @@ if __name__ == "__main__":
     data.validation_set = None
 
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, peft_full_name=peft_dir,
-                  logger=logger, device=device, chat_template=chat_template)
+                  col_name=peft_type, logger=logger, device=device, chat_template=chat_template,
+                  test_summaries_file_name=None)
     wnb_run.finish()

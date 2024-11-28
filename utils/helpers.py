@@ -61,4 +61,5 @@ def check_and_return_df(file_name: str):
         return pd.read_csv(file_name), True
 
     else:
+        print("File not found: ", file_name)
         return None, False

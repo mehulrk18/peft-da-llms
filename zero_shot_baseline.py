@@ -12,8 +12,8 @@ from testing_one_v_one_model import testing_model
 from utils import LLaMAModelClass, torch_dtypes_dict, WandBLogger
 
 
-def zero_shot_baseline(llama, domain, dataset_name, test_samples):
-    run_name = 'zero_shot_learning_{}_{}_{}samples.log'.format(domain, dataset_name, test_samples)
+def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct):
+    run_name = 'zero_shot_learning_{}{}_{}_{}samples.log'.format("instruct_" if instruct else "", domain, dataset_name, test_samples)
     logging.basicConfig(
         filename='logs/{}'.format(run_name),
         # The log file to write to
@@ -44,7 +44,8 @@ def zero_shot_baseline(llama, domain, dataset_name, test_samples):
 
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, logger=logger,
                   peft_full_name="zero_shot_{}_{}_results".format(domain, dataset_name), device=device,
-                  chat_template=False)
+                  chat_template=instruct, col_name="zero_shot_instruct" if instruct else "zero_shot")
+    wnb_run.finish()
 
 
 if __name__ == "__main__":
@@ -54,27 +55,29 @@ if __name__ == "__main__":
     #                                                                                    "news"], required=True)
     # parser.add_argument("--dataset", type=str, help="Dataset to be used for training", required=True)
     parser.add_argument("--test_samples", type=int, default=1, help="Number of testing Samples")
+    parser.add_argument("--instruct", type=bool, default=False, help="Use Instruct Model")
 
     args = parser.parse_args()
 
     # domain = args.domain
     # dataset_name = args.dataset
     test_samples = args.test_samples
+    instruct = True if args.instruct else False
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
     wandb_api_key = os.getenv("WANDB_API_KEY")
     # domains = ["news", "legal", "medical", "scientific"]
     # datasets = ["cnndm", "multilex", "pubmed", "arxiv"]
     domains_datasets = {
-        # "scientific": ["elsevier", "scitldr"], # arxiv
+        "scientific": ["arxiv"], #["elsevier", "scitldr"], # arxiv
         # "news": ["multinews", "xsum", "newsroom"], # cnndm
         # "legal": ["eurlex", "billsum"], # multilex
-        "medical": ["scilay", "mslr"] # pubmed, "cord19",
+        "medical": ["pubmed"] #["scilay", "mslr"] # pubmed, "cord19",
     }
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
-    llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantize=False,
+    llama = LLaMAModelClass(version=3.0, instruct_mode=instruct, quantize=False,
                             model_checkpoint=None, mlm=False, torch_dtype=torch_dtypes_dict["bf16"])
 
     for domain, datasets in domains_datasets.items(): #zip(domains, datasets):
         for dataset_name in datasets:
-            zero_shot_baseline(llama, domain, dataset_name, test_samples)
+            zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct)

@@ -46,6 +46,7 @@ class LLaMAModelClass:
                         print("Llama2 doesn't have an instruct model.")
                     else:
                         self.model_id = self.model_id + "-Instruct"
+                        print("Loading Instruct Model!!")
             else:
                 self.model_id = model_checkpoint
 
