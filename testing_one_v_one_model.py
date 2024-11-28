@@ -129,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--quantize", type=bool, default=False, help="Quantize the model")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
     parser.add_argument("--chat_template", type=bool, default=False, help="Using chat template for tokenizing")
+    parser.add_argument("--mlm", type=bool, default=False, help="Using attention mask")
 
     try:
         from google.colab import drive
@@ -139,7 +140,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     trained_peft_path = main_directory + args.trained_peft_path
-    mlm = True if "mlm" in trained_peft_path else False
+    mlm = True if "mlm" in trained_peft_path or args.mlm else False
     model_checkpoint = args.checkpoint
     training_samples = args.training_samples
     eval_samples = args.eval_samples
