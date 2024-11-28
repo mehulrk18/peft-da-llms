@@ -76,8 +76,8 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=_obj["content"], device=device,
                                    chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
         if not file_exists:
-            test_summaries["article"].append(_obj["content"][i])
-            test_summaries["truth"].append(_obj["summary"][i])
+            test_summaries["article"].append(_obj["content"])
+            test_summaries["truth"].append(_obj["summary"])
         test_summaries[col_name].append(summary)
         del summary
 
