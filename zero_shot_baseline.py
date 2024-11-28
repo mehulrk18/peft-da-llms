@@ -80,4 +80,6 @@ if __name__ == "__main__":
 
     for domain, datasets in domains_datasets.items(): #zip(domains, datasets):
         for dataset_name in datasets:
+            print("** Generating Zero SHot results from {} in domain {} for {} samples with "
+                  "domain specific prompts".format(dataset_name, domain, test_samples))
             zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct)
