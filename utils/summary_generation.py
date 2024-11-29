@@ -16,7 +16,7 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
         inputs = tokenizer(content, return_tensors="pt").to(device)
         in_len = len(inputs["input_ids"][0])
         # with torch.inference_mode() and torch.cuda.amp.autocast():
-        with torch.amp.autocast('cuda'):  #torch.cuda.amp.autocast():
+        with torch.amp.autocast(device):  #torch.cuda.amp.autocast():
             summary_ids = model.generate(**inputs,
                                          # max_length=512,
                                          do_sample=True,  # Enable sampling
@@ -37,14 +37,15 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
             return_tensors="pt"
         ).to(device)
 
-        summary_ids = model.generate(
-            input_ids,
-            max_new_tokens=128,  # 256
-            eos_token_id=terminators,
-            do_sample=True,
-            temperature=0.6,
-            top_p=0.9
-        )
+        with torch.amp.autocast(device):
+            summary_ids = model.generate(
+                input_ids,
+                max_new_tokens=128,  # 256
+                eos_token_id=terminators,
+                do_sample=True,
+                temperature=0.6,
+                top_p=0.9
+            )
         summary = tokenizer.decode(summary_ids[0][input_ids.shape[-1]:], skip_special_tokens=True)
     return summary
 

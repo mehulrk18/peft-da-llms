@@ -314,7 +314,7 @@ class NewsroomDataset(DatasetInfo):
 datasets_info_dict = {
     SumDomains.SCIENTIFIC: {
         "arxiv": ArxivDataset(),
-        "ssn": SSNDataset(),
+        # "ssn": SSNDataset(),
         "elsevier": ElsevierDataset(),
         "scitldr": ScitldrDataset()
     },
