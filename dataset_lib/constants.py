@@ -338,65 +338,93 @@ datasets_info_dict = {
 }
 
 
+# DEFAULT_DOMAIN_PROMPT = {
+#     SumDomains.SCIENTIFIC.name: """
+#         Provide a summary of the given scientific article that includes the following elements:
+#
+#         1. Objective: What is the main research question or hypothesis?
+#
+#         2. Background: What is the theoretical context or motivation for the research?
+#
+#         3. Methods: Detail the approach, experiments, or simulations conducted.
+#
+#         4. Key Findings: What are the principal results or contributions of the paper?
+#
+#         5. Conclusions: What insights or conclusions do the authors derive from their research?
+#
+#         6. Broader Impact: How does this research contribute to its field or influence future work?""".strip(),
+#
+#     SumDomains.MEDICAL.name: """
+#         Summarize the given medical study by addressing the following key points:
+#
+#         1. Objective: What is the primary research question or aim of the study?
+#
+#         2. Background: What is the clinical context or rationale behind the research?
+#
+#         3. Methods: Describe the study design, population involved, and methodologies employed.
+#
+#         4. Key Findings: Highlight the most important results or discoveries of the study.
+#
+#         5. Conclusions: What conclusions do the authors reach based on their findings?
+#
+#         6. Clinical Implications: How might these findings influence clinical practice or patient outcomes?""".strip(),
+#
+#     SumDomains.LEGAL.name: """
+#         Summarize the given legal case study by focusing on the following aspects:
+#
+#         1. Case Background: What is the context and significance of the case?
+#
+#         2. Legal Question: What are the primary legal issues or questions being addressed?
+#
+#         3. Arguments: What are the main arguments presented by both sides?
+#
+#         4. Rulings: What decisions were made by the court, and on what basis?
+#
+#         5. Key Precedents: Are there important precedents cited that influence the case?
+#
+#         6. Implications: What are the potential implications of the ruling on future cases or legal interpretations?
+#         """.strip(),
+#
+#     SumDomains.NEWS.name: """
+#         Summarize the given news article by capturing the following key points:
+#
+#         1. Main Event: What is the primary event or issue being reported?
+#
+#         2. Context: What background information is necessary to understand the significance of the news?
+#
+#         3. Key Details: What are the most critical facts or figures related to the story?
+#
+#         4. Reactions: How have different stakeholders or the public responded to the event?
+#
+#         5. Implications: What are the potential consequences or future developments related to this news?
+#
+#         6. Closing Statement: What is the overarching message or takeaway from the article?""".strip()
+# }
+
+# DEFAULT_DOMAIN_PROMPT = {
+#     SumDomains.SCIENTIFIC.name: """
+#         Summarize the scientific article by covering its objective, background, methods, key findings, conclusions, and broader impact.""".strip(),
+#
+#     SumDomains.MEDICAL.name: """
+#         Summarize the medical article by addressing its objective, background, methods, key findings, conclusions, and clinical implications.""".strip(),
+#
+#     SumDomains.LEGAL.name: """
+#         Summarize the legal case study by outlining its background, legal question, arguments, rulings, key precedents, and implications.""".strip(),
+#
+#     SumDomains.NEWS.name: """
+#         Summarize the news article by focusing on the main event, context, key details, reactions, implications, and overall takeaway.""".strip()
+# }
+
 DEFAULT_DOMAIN_PROMPT = {
     SumDomains.SCIENTIFIC.name: """
-        Provide a summary of the given scientific article that includes the following elements:
-
-        1. Objective: What is the main research question or hypothesis?
-
-        2. Background: What is the theoretical context or motivation for the research?
-
-        3. Methods: Detail the approach, experiments, or simulations conducted.
-
-        4. Key Findings: What are the principal results or contributions of the paper?
-
-        5. Conclusions: What insights or conclusions do the authors derive from their research?
-
-        6. Broader Impact: How does this research contribute to its field or influence future work?""".strip(),
+        Write a concise paragraph summarizing the scientific article, seamlessly integrating its objective, background, methods, key findings, conclusions, and broader impact.""".strip(),
 
     SumDomains.MEDICAL.name: """
-        Summarize the given medical study by addressing the following key points:
-
-        1. Objective: What is the primary research question or aim of the study?
-
-        2. Background: What is the clinical context or rationale behind the research?
-
-        3. Methods: Describe the study design, population involved, and methodologies employed.
-
-        4. Key Findings: Highlight the most important results or discoveries of the study.
-
-        5. Conclusions: What conclusions do the authors reach based on their findings?
-
-        6. Clinical Implications: How might these findings influence clinical practice or patient outcomes?""".strip(),
+        Write a cohesive paragraph summarizing the medical article, addressing its objective, background, methods, key findings, conclusions, and clinical implications.""".strip(),
 
     SumDomains.LEGAL.name: """
-        Summarize the given legal case study by focusing on the following aspects:
-
-        1. Case Background: What is the context and significance of the case?
-
-        2. Legal Question: What are the primary legal issues or questions being addressed?
-
-        3. Arguments: What are the main arguments presented by both sides?
-
-        4. Rulings: What decisions were made by the court, and on what basis?
-
-        5. Key Precedents: Are there important precedents cited that influence the case?
-
-        6. Implications: What are the potential implications of the ruling on future cases or legal interpretations?
-        """.strip(),
+        Provide a paragraph summarizing the legal case study, including its background, legal question, arguments, rulings, key precedents, and implications as a unified narrative.""".strip(),
 
     SumDomains.NEWS.name: """
-        Summarize the given news article by capturing the following key points:
-
-        1. Main Event: What is the primary event or issue being reported?
-
-        2. Context: What background information is necessary to understand the significance of the news?
-
-        3. Key Details: What are the most critical facts or figures related to the story?
-
-        4. Reactions: How have different stakeholders or the public responded to the event?
-
-        5. Implications: What are the potential consequences or future developments related to this news?
-
-        6. Closing Statement: What is the overarching message or takeaway from the article?""".strip()
+        Generate a paragraph summarizing the news article, incorporating the main event, context, key details, reactions, implications, and overall takeaway into a fluid narrative.""".strip()
 }

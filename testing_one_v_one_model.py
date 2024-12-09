@@ -62,14 +62,14 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     # df_test_data = pd.DataFrame(data=data.test_set)
     
     df_sum, file_exists = check_and_return_df(test_summaries_file_name)
-
+    # col_name = col_name + "_shortprompt"
     # TODO: write the testing function with a metric.
     test_summaries = {
         "article": [],
         "truth": [],
         col_name: []
     }
-
+    logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data.domain.name]))
     # for i in range(min_samples):
     for i, _obj in enumerate(data.test_set):
         logger.info("Summary for {} sample".format(i))
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=training_samples,
                          eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
                          chat_template=chat_template)
-    data.loading_dataset_splits()
+    # data.loading_dataset_splits()
 
     data.train_set = None
     data.validation_set = None
