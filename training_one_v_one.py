@@ -233,8 +233,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     best_checkpoint_path = best_checkpoint_path.split("/")[-1]
     # save_path = main_directory+"saved_models/{}/{}_{}_{}".format(date_time, provider, peft_layer_name,
     #                                                              best_checkpoint_path)
-    save_path = main_directory + "trained_pefts/{}_{}_{}".format(provider, peft_layer_name,
-                                                                   best_checkpoint_path)
+    save_path = main_directory + "trained_pefts/{}_{}".format(peft_layer_name, best_checkpoint_path)
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
