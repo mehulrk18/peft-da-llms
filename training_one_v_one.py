@@ -312,7 +312,7 @@ if __name__ == "__main__":
     peft_name = args.peft
     domain = args.domain
     dataset_name = args.dataset
-    ATTENTION_MASK = False if not args.tokenization_with_attention else True
+    ATTENTION_MASK = False if not args.mlm else True
     use_mlm = False if not args.mlm else True
     training_epochs = args.train_epochs
     # ft = args.ft  # False
