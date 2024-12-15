@@ -48,6 +48,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     else:
         raise ValueError("Invalid Metric")
 
+    save_df = True
     min_samples = data.test_set.num_rows
     if test_summaries_file_name is None:
         test_summaries_file_name = "summaries/summaries_{}_{}_{}samples.csv".format(data.domain.name.lower(),
@@ -107,6 +108,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     else:
         logger.info("Summaries in col: {} already exists in file: {}".format(col_name, test_summaries_file_name))
         test_summaries[col_name] = df_sum[col_name]
+        save_df = False
 
     scores = 0
 
@@ -127,16 +129,18 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     else:
         df_sum = pd.DataFrame(test_summaries)
 
+    # TODO: understand where is the mistake and fix it.
+    if save_df:
+        df_sum.to_csv(test_summaries_file_name, index=False)
         # if "zero_shot" not in peft_full_name:
         #     df_sum = df_sum.remove_columns(["content", "truth"])
     # file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
-    df_sum.to_csv(test_summaries_file_name, index=False)
 
     with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
         from datetime import datetime
         fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                          peft_full_name, min_samples,
-                                                                                          metric_name, scores))
+                                                                                       peft_full_name, min_samples,
+                                                                                       metric_name, scores))
 
     logger.info("\n\n\nSummaries with {} Score {} saved to file {}!!!!".format(metric_name, scores,
                                                                                test_summaries_file_name))
