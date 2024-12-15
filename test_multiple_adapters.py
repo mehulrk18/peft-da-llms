@@ -5,77 +5,12 @@ import pandas as pd
 import torch
 
 from dataset_lib import SumDataLoader
+from testing_one_v_one_model import testing_model
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
     convert_model_adapter_params_to_torch_dtype, read_yaml, torch_dtypes_dict
 
 
 global CHAT_TEMPLATE
-
-
-def testing_model(llama_model, llama_tokenizer, test_samples, peft_full_name, device):
-    # testing the model with Test data.
-    def inference_prompt_processing(sample):
-        if "sources" in sample.keys():
-            sample["article"] = sample.pop("sources")
-
-        if CHAT_TEMPLATE:
-            from dataset_lib import chat_template_prompt_inference
-            text = [chat_template_prompt_inference(article=article) for article in sample["article"]]
-
-            return {
-                "text": text
-            }
-        else:
-            # text = [inference_prompt(article=article) for article in sample["article"]]
-            from dataset_lib import llama3_testing_prompt
-            text = [llama3_testing_prompt(article=article) for article in sample["article"]]
-
-            return {
-                "text": text
-            }
-
-    random_text = """
-            Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
-        """.strip()
-
-    summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device, chat_template=CHAT_TEMPLATE)
-    # summ = summarize(inputs=random_text, return_text=False)
-    logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
-    try:
-        with open("random_ip_summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
-            f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
-            logger.info("Written Random article summary")
-    except Exception as e:
-        logger.error("Exception: ".format(e))
-        pass
-
-    data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
-    df_test_data = pd.DataFrame(data=data.test_set)
-
-    # TODO: write the testing funciton with a metric.
-    test_summaries = {
-        "truth": [],
-        "prediction": []
-    }
-
-    # for arxiv and pubmed
-    min_samples = min(test_samples, len(df_test_data))
-    for i in range(min_samples):
-        logger.info("Summary for {} sample".format(i))
-        summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=df_test_data["article"][i],
-                                   device=device, chat_template=CHAT_TEMPLATE)
-        test_summaries["truth"].append(df_test_data["abstract"][i])
-        test_summaries["prediction"].append(summary)
-        del summary
-
-    metric = rouge_metric()
-    scores = metric.compute(predictions=test_summaries["prediction"], references=test_summaries["truth"])
-    df_sum = pd.DataFrame(test_summaries)
-    # logger.info("Rouge Scores: ", scores)
-    file_name = "Test_summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
-    df_sum.to_csv(file_name, index=False)
-
-    logger.info("\n\n\nSummaries with Rouge Score {} saved to file {}!!!!".format(scores, file_name))
 
 
 if __name__ == "__main__":
@@ -107,7 +42,8 @@ if __name__ == "__main__":
     CHAT_TEMPLATE = testing_configs["chat_template"]
     use_instruct_model = testing_configs["instruct_mode"]
     provider = testing_configs["provider"]
-    domain = testing_configs["domain"]
+    test_domain = testing_configs["test_domain"]
+    test_dataset_name = testing_configs["test_dataset_name"]
     torch_dtype = torch_dtypes_dict[testing_configs["torch_dtype"]]
     quantize = testing_configs.get("torch_dtype", False)
 
@@ -170,12 +106,13 @@ if __name__ == "__main__":
     if CHAT_TEMPLATE:
         logger.info("****** RESULTS ARE GENERATED USING CHAT TEMPLATE ******")
 
-    data = SumDataLoader(dataset_name=domain, training_samples=training_samples, eval_samples=eval_samples,
-                         test_samples=test_samples, sort_dataset_on_article_len=sort_data, chat_template=CHAT_TEMPLATE)
-    data.loading_dataset_splits()
+    data = SumDataLoader(domain=test_domain, dataset_name=test_dataset_name, training_samples=training_samples,
+                         eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
+                         chat_template=CHAT_TEMPLATE)
 
     data.train_set = None
     data.validation_set = None
 
-    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, test_samples=test_samples,
+    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, logger=logger,
+                  col_name=all_adapters, data=data, chat_template=CHAT_TEMPLATE,
                   peft_full_name=all_adapters, device=device)

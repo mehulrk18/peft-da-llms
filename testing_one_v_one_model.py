@@ -10,10 +10,11 @@ from dotenv import load_dotenv
 
 from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
-    convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger, check_and_return_df
+    convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger, check_and_return_df, bertscore_metric, \
+    bleu_metric
 
 
-def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template, col_name,
+def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template, col_name, metric_name,
                   test_summaries_file_name=None):
     # testing the model with Test data.
     # def inference_prompt_processing(sample):
@@ -37,6 +38,16 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     #         return {
     #             "text": text
     #         }
+
+    if metric_name == "rouge":
+        metric = rouge_metric()
+    elif metric_name == "bertscore":
+        metric = bertscore_metric()
+    elif metric_name == "bleu":
+        metric = bleu_metric()
+    else:
+        raise ValueError("Invalid Metric")
+
     min_samples = data.test_set.num_rows
     if test_summaries_file_name is None:
         test_summaries_file_name = "summaries/summaries_{}_{}_{}samples.csv".format(data.domain.name.lower(),
@@ -49,46 +60,64 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
 
     summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device,
                             chat_template=chat_template, prompt=DEFAULT_SYSTEM_PROMPT)
-    # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
-    try:
-        with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
-            f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
-            logger.info("Written Random article summary")
-    except Exception as e:
-        logger.error("Exception: ".format(e))
-        pass
-
-    # data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
-    # df_test_data = pd.DataFrame(data=data.test_set)
-    
-    df_sum, file_exists = check_and_return_df(test_summaries_file_name)
-    # col_name = col_name + "_shortprompt"
     # TODO: write the testing function with a metric.
     test_summaries = {
         "article": [],
         "truth": [],
         col_name: []
     }
-    logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data.domain.name]))
-    # for i in range(min_samples):
-    for i, _obj in enumerate(data.test_set):
-        logger.info("Summary for {} sample".format(i))
-        summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=_obj["content"], device=device,
-                                   chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
+    df_sum, file_exists = check_and_return_df(test_summaries_file_name)
+    # col_name = col_name + "_shortprompt"
+    if col_name not in df_sum.columns:
+        try:
+            # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
+            with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
+                f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
+                logger.info("Written Random article summary")
+        except Exception as e:
+            logger.error("Exception: ".format(e))
+            pass
+
+        # data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
+        # df_test_data = pd.DataFrame(data=data.test_set)
+
+        logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data.domain.name]))
         if not file_exists:
-            test_summaries["article"].append(_obj["content"])
-            test_summaries["truth"].append(_obj["summary"])
-        test_summaries[col_name].append(summary)
-        del summary
+            # for i in range(min_samples):
+            for i, _obj in enumerate(data.test_set):
+                logger.info("Summary for {} sample".format(i+1))
+                summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=_obj["content"], device=device,
+                                           chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
+                test_summaries["article"].append(_obj["content"])
+                test_summaries["truth"].append(_obj["summary"])
+                test_summaries[col_name].append(summary)
+                del summary
+
+        else:
+            articles = df_sum["article"]
+            i = 0
+            for i, art in enumerate(articles):
+                logger.info("Summary for {} sample".format(i+1))
+                summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=art,
+                                           device=device,
+                                           chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
+                test_summaries[col_name].append(summary)
+                del summary
+
+    else:
+        logger.info("Summaries in col: {} already exists in file: {}".format(col_name, test_summaries_file_name))
+        test_summaries[col_name] = df_sum[col_name]
 
     scores = 0
 
     if file_exists:
         test_summaries["truth"] = df_sum["truth"]
     if "mslr" not in peft_full_name:
-        metric = rouge_metric()
+        # metric = rouge_metric()
         scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-        logger.info("Rouge Scores: ", scores)
+        logger.info("{} Scores: {}".format(metric_name, scores))
+    else:
+        logger.info("!!! The dataset is MSLR where no reference summaries are available, hence SKIPPING SCORING !!!")
 
     if file_exists:
         test_summaries.pop("article")
@@ -103,13 +132,14 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     # file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
     df_sum.to_csv(test_summaries_file_name, index=False)
 
-    with open("summaries/rouge_scores.txt", "a") as fp:
+    with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
         from datetime import datetime
-        fp.write("[{}] Summaries of {} for {} samples has Rouge Scores \n {} \n\n".format(datetime.today().date(),
+        fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
                                                                                           peft_full_name, min_samples,
-                                                                                          scores))
+                                                                                          metric_name, scores))
 
-    logger.info("\n\n\nSummaries with Rouge Score {} saved to file {}!!!!".format(scores, test_summaries_file_name))
+    logger.info("\n\n\nSummaries with {} Score {} saved to file {}!!!!".format(metric_name, scores,
+                                                                               test_summaries_file_name))
 
 
 if __name__ == "__main__":
@@ -125,6 +155,8 @@ if __name__ == "__main__":
     parser.add_argument("--eval_samples", type=int, default=1, help="Number of Evaluation Samples")
     parser.add_argument("--test_samples", type=int, default=500, help="Number of Samples to be tested")
     parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
+                        help="Torch Data Type to be used")
+    parser.add_argument("--metric", type=str, required=True, choices=["rouge", "bertscore", "bleu"],
                         help="Torch Data Type to be used")
     parser.add_argument("--quantize", type=bool, default=False, help="Quantize the model")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
@@ -147,6 +179,7 @@ if __name__ == "__main__":
     test_samples = args.test_samples
     sort_data = args.sorted_dataset
     quantize = args.quantize
+    metric = args.metric
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
     chat_template = True if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True if "instruct" in trained_peft_path or args.chat_template else False
@@ -231,6 +264,6 @@ if __name__ == "__main__":
     data.validation_set = None
 
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, peft_full_name=peft_dir,
-                  col_name=peft_type, logger=logger, device=device, chat_template=chat_template,
+                  col_name=peft_type, logger=logger, device=device, chat_template=chat_template, metric_name=metric,
                   test_summaries_file_name=None)
     wnb_run.finish()

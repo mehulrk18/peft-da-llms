@@ -7,11 +7,13 @@ def rouge_metric():
 
 
 def bertscore_metric():
-    pass
+    bertscore = evaluate.load("bertscore")
+    return bertscore
 
 
 def bleu_metric():
-    pass
+    bleu = evaluate.load("bleu")
+    return bleu
 
 
 def dvo_metric():
