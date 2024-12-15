@@ -6,7 +6,7 @@ import torch
 
 from dataset_lib import SumDataLoader
 from testing_one_v_one_model import testing_model
-from utils import generate_summary, rouge_metric, LLaMAModelClass, \
+from utils import generate_summary, LLaMAModelClass, \
     convert_model_adapter_params_to_torch_dtype, read_yaml, torch_dtypes_dict
 
 
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     CHAT_TEMPLATE = testing_configs["chat_template"]
     use_instruct_model = testing_configs["instruct_mode"]
     provider = testing_configs["provider"]
+    metric = testing_configs["metric"]
     test_domain = testing_configs["test_domain"]
     test_dataset_name = testing_configs["test_dataset_name"]
     torch_dtype = torch_dtypes_dict[testing_configs["torch_dtype"]]
@@ -114,5 +115,5 @@ if __name__ == "__main__":
     data.validation_set = None
 
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, logger=logger,
-                  col_name=all_adapters, data=data, chat_template=CHAT_TEMPLATE,
+                  col_name=all_adapters, data=data, chat_template=CHAT_TEMPLATE, metric_name=metric,
                   peft_full_name=all_adapters, device=device)

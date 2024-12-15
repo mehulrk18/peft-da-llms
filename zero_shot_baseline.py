@@ -12,7 +12,7 @@ from testing_one_v_one_model import testing_model
 from utils import LLaMAModelClass, torch_dtypes_dict, WandBLogger
 
 
-def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct):
+def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metric):
     run_name = 'zero_shot_learning_{}{}_{}_{}samples.log'.format("instruct_" if instruct else "", domain, dataset_name, test_samples)
     logging.basicConfig(
         filename='logs/{}'.format(run_name),
@@ -44,7 +44,7 @@ def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct):
 
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, logger=logger,
                   peft_full_name="zero_shot_{}_{}_results".format(domain, dataset_name), device=device,
-                  chat_template=instruct, col_name="zero_shot_instruct" if instruct else "zero_shot")
+                  chat_template=instruct, col_name="zero_shot_instruct" if instruct else "zero_shot", metric_name=metric)
     wnb_run.finish()
 
 
@@ -57,12 +57,14 @@ if __name__ == "__main__":
     parser.add_argument("--test_samples", type=int, default=1, help="Number of testing Samples")
     parser.add_argument("--instruct", type=bool, default=False, help="Use Instruct Model")
     parser.add_argument("--mlm", type=bool, default=False, help="Use MLM")
+    parser.add_argument("--metric", type=str, required=True, help="metric to be used")
 
     args = parser.parse_args()
 
     domain = args.domain
     dataset_name = args.dataset_name
     test_samples = args.test_samples
+    metric = args.metric
     instruct = True if args.instruct else False
     mlm = True if args.mlm else False
     load_dotenv(".env")
@@ -84,4 +86,4 @@ if __name__ == "__main__":
     #     for dataset_name in datasets:
     print("** Generating Zero SHot results from {} in domain {} for {} samples with "
           "domain specific prompts".format(dataset_name, domain, test_samples))
-    zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct)
+    zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metric)

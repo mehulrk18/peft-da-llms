@@ -12,4 +12,5 @@ sorted_dataset: True
 chat_template: True
 provider: "hf"
 instruct_mode: True
+metric: "rouge"
 torch_dtype: "bf16"
