@@ -45,6 +45,10 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         metric = bertscore_metric()
     elif metric_name == "bleu":
         metric = bleu_metric()
+    elif metric_name == "all":
+        rouge = rouge_metric()
+        bertscore = bertscore_metric()
+        bleu = bleu_metric()
     else:
         raise ValueError("Invalid Metric")
 
@@ -110,14 +114,21 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         test_summaries[col_name] = df_sum[col_name]
         save_df = False
 
-    scores = 0
-
+    scores, rouge_scores, bertscore_scores, bleu_scores = 0, 0, 0, 0
     if file_exists:
         test_summaries["truth"] = df_sum["truth"]
     if "mslr" not in peft_full_name:
         # metric = rouge_metric()
-        scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-        logger.info("{} Scores: {}".format(metric_name, scores))
+        if metric_name == "all":
+            rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            bertscore_scores = bertscore.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            logger.info("ROUGE Scores: {}".format(rouge_scores))
+            logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
+            logger.info("BLEU Scores: {}".format(bleu_scores))
+        else:
+            scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            logger.info("{} Scores: {}".format(metric_name, scores))
     else:
         logger.info("!!! The dataset is MSLR where no reference summaries are available, hence SKIPPING SCORING !!!")
 
@@ -136,14 +147,42 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         #     df_sum = df_sum.remove_columns(["content", "truth"])
     # file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
 
-    with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
+    if metric_name == "all":
         from datetime import datetime
-        fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                       peft_full_name, min_samples,
-                                                                                       metric_name, scores))
+        with open("summaries/rouge_scores.txt", "a") as fp:
+            fp.write("[{}] Summaries of {} for {} samples has rouge Scores \n {} \n\n".format(datetime.today().date(),
+                                                                                              peft_full_name,
+                                                                                              min_samples,
+                                                                                              rouge_scores))
 
-    logger.info("\n\n\nSummaries with {} Score {} saved to file {}!!!!".format(metric_name, scores,
-                                                                               test_summaries_file_name))
+        logger.info("\n\n\nSummaries with rouge Score {} saved to file {}!!!!".format(rouge_scores,
+                                                                                      test_summaries_file_name))
+
+        with open("summaries/bertscore_scores.txt", "a") as fp:
+            fp.write("[{}] Summaries of {} for {} samples has bertscore Scores \n {} \n\n".format(datetime.today().date(),
+                                                                                                  peft_full_name,
+                                                                                                  min_samples,
+                                                                                                  bertscore_scores))
+
+        logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(scores,
+                                                                                          test_summaries_file_name))
+
+        with open("summaries/bleu_scores.txt", "a") as fp:
+            fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
+                                                                                             peft_full_name, min_samples,
+                                                                                             bleu_scores))
+
+        logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(scores,
+                                                                                     test_summaries_file_name))
+    else:
+        with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
+            from datetime import datetime
+            fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
+                                                                                           peft_full_name, min_samples,
+                                                                                           metric_name, scores))
+
+        logger.info("\n\n\nSummaries with {} Score {} saved to file {}!!!!".format(metric_name, scores,
+                                                                                   test_summaries_file_name))
 
 
 if __name__ == "__main__":
@@ -160,7 +199,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_samples", type=int, default=500, help="Number of Samples to be tested")
     parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
                         help="Torch Data Type to be used")
-    parser.add_argument("--metric", type=str, required=True, choices=["rouge", "bertscore", "bleu"],
+    parser.add_argument("--metric", type=str, required=True, choices=["rouge", "bertscore", "bleu", "all"],
                         help="Torch Data Type to be used")
     parser.add_argument("--quantize", type=bool, default=False, help="Quantize the model")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
