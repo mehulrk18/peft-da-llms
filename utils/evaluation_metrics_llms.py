@@ -16,6 +16,14 @@ def bleu_metric():
     return bleu
 
 
+def bleurt_metric():
+    bleurt = evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20")
+    return bleurt
+
+
 def dvo_metric():
     pass
 
+
+def factscore_metric():
+    pass

@@ -24,8 +24,8 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
                                          num_return_sequences=1,  # Generate a single sequence
                                          eos_token_id=terminators,
                                          # early_stopping=True,
-                                         temperature=0.6,
-                                         max_new_tokens=1024) # 256
+                                         temperature=0.3,
+                                         max_new_tokens=256) # 256
         summary = tokenizer.decode(summary_ids[0][in_len:], skip_special_tokens=True)
 
     else:
@@ -40,10 +40,10 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
         with torch.amp.autocast(device):
             summary_ids = model.generate(
                 input_ids,
-                max_new_tokens=1024,
+                max_new_tokens=256,
                 eos_token_id=terminators,
                 do_sample=True,
-                temperature=0.6,
+                temperature=0.3,
                 top_p=0.9
             )
         summary = tokenizer.decode(summary_ids[0][input_ids.shape[-1]:], skip_special_tokens=True)

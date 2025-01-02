@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
     convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger, check_and_return_df, bertscore_metric, \
-    bleu_metric
+    bleu_metric, bleurt_metric
 
 
 def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template, col_name, metric_name,
@@ -45,10 +45,13 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         metric = bertscore_metric()
     elif metric_name == "bleu":
         metric = bleu_metric()
+    elif metric_name == "bleurt":
+        metric = bleurt_metric()
     elif metric_name == "all":
         rouge = rouge_metric()
         bertscore = bertscore_metric()
         bleu = bleu_metric()
+        bleurt = bleurt_metric()
     else:
         raise ValueError("Invalid Metric")
 
@@ -114,7 +117,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         test_summaries[col_name] = df_sum[col_name]
         save_df = False
 
-    scores, rouge_scores, bertscore_scores, bleu_scores = 0, 0, 0, 0
+    scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores = 0, 0, 0, 0, 0
     if file_exists:
         test_summaries["truth"] = df_sum["truth"]
     if "mslr" not in peft_full_name:
@@ -123,9 +126,11 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
             rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
             bertscore_scores = bertscore.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
             bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
             logger.info("ROUGE Scores: {}".format(rouge_scores))
             logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
             logger.info("BLEU Scores: {}".format(bleu_scores))
+            logger.info("BLEURT Scores: {}".format(bleurt_scores))
         else:
             scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
             logger.info("{} Scores: {}".format(metric_name, scores))
@@ -199,8 +204,8 @@ if __name__ == "__main__":
     parser.add_argument("--test_samples", type=int, default=500, help="Number of Samples to be tested")
     parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
                         help="Torch Data Type to be used")
-    parser.add_argument("--metric", type=str, required=True, choices=["rouge", "bertscore", "bleu", "all"],
-                        help="Torch Data Type to be used")
+    parser.add_argument("--metric", type=str, required=True, choices=["rouge", "bertscore", "bleu", "bleurt", "all"],
+                        help="Metric to be used for testing, pass 'all' if you want test on all")
     parser.add_argument("--quantize", type=bool, default=False, help="Quantize the model")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
     parser.add_argument("--chat_template", type=bool, default=False, help="Using chat template for tokenizing")

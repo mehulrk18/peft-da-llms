@@ -7,7 +7,7 @@ class SumDomains(Enum):
     MEDICAL = "medical"
     LEGAL = "legal"
     NEWS = "news"
-    UNGROUPED = "ungrouped"
+    UNSEEN_TEST = "unseen_test"
 
 
 DEFAULT_SYSTEM_PROMPT = """
@@ -415,16 +415,34 @@ datasets_info_dict = {
 #         Summarize the news article by focusing on the main event, context, key details, reactions, implications, and overall takeaway.""".strip()
 # }
 
+# DEFAULT_DOMAIN_PROMPT = {
+#     SumDomains.SCIENTIFIC.name: """
+#         Write a concise paragraph summarizing the scientific article, seamlessly integrating its objective, background, methods, key findings, conclusions, and broader impact.""".strip(),
+#
+#     SumDomains.MEDICAL.name: """
+#         Write a cohesive paragraph summarizing the medical article, addressing its objective, background, methods, key findings, conclusions, and clinical implications.""".strip(),
+#
+#     SumDomains.LEGAL.name: """
+#         Provide a paragraph summarizing the legal case study, including its background, legal question, arguments, rulings, key precedents, and implications as a unified narrative.""".strip(),
+#
+#     SumDomains.NEWS.name: """
+#         Generate a paragraph summarizing the news article, incorporating the main event, context, key details, reactions, implications, and overall takeaway into a fluid narrative.""".strip()
+# }
+
 DEFAULT_DOMAIN_PROMPT = {
     SumDomains.SCIENTIFIC.name: """
-        Write a concise paragraph summarizing the scientific article, seamlessly integrating its objective, background, methods, key findings, conclusions, and broader impact.""".strip(),
+        Summarize the provided scientific article in a clear and concise paragraph. Include the study's objective, 
+        background, methodology, key findings, and conclusions, ensuring the summary represents the article's essence.""".strip(),
 
     SumDomains.MEDICAL.name: """
-        Write a cohesive paragraph summarizing the medical article, addressing its objective, background, methods, key findings, conclusions, and clinical implications.""".strip(),
+        Provide a cohesive summary of the given medical article in one paragraph. Highlight the study's objective, 
+        background, methods, major conclusions, and potential clinical implications in a clear and professional manner.""".strip(),
 
     SumDomains.LEGAL.name: """
-        Provide a paragraph summarizing the legal case study, including its background, legal question, arguments, rulings, key precedents, and implications as a unified narrative.""".strip(),
+        Generate a concise paragraph summarizing the provided legal case study. Address the background, legal questions, 
+        key arguments, rulings, and any significant precedents, ensuring clarity and accuracy.""".strip(),
 
     SumDomains.NEWS.name: """
-        Generate a paragraph summarizing the news article, incorporating the main event, context, key details, reactions, implications, and overall takeaway into a fluid narrative.""".strip()
+        Create a clear and concise summary of the given news article in one paragraph. Focus on the main event, its 
+        context, key details, and broader implications, presenting the information in an informative manner.""".strip()
 }
