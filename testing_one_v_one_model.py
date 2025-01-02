@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import statistics
 
 import adapters
 import pandas as pd
@@ -62,12 +63,12 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                                                                                     data.dataset_name.lower(),
                                                                                     min_samples)
 
-    random_text = """
-            Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
-        """.strip()
-
-    summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device,
-                            chat_template=chat_template, prompt=DEFAULT_SYSTEM_PROMPT)
+    # random_text = """
+    #         Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
+    #     """.strip()
+    #
+    # summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device,
+    #                         chat_template=chat_template, prompt=DEFAULT_SYSTEM_PROMPT)
     # TODO: write the testing function with a metric.
     test_summaries = {
         "article": [],
@@ -77,14 +78,14 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     df_sum, file_exists = check_and_return_df(test_summaries_file_name)
     # col_name = col_name + "_shortprompt"
     if col_name not in df_sum.columns:
-        try:
-            # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
-            with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
-                f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
-                logger.info("Written Random article summary")
-        except Exception as e:
-            logger.error("Exception: ".format(e))
-            pass
+        # try:
+        #     # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
+        #     with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
+        #         f.write("Wikipedia Article: \n{} \n\n\n\n Summary:{}\n".format(random_text, summ))
+        #         logger.info("Written Random article summary")
+        # except Exception as e:
+        #     logger.error("Exception: ".format(e))
+        #     pass
 
         # data.test_set = data.test_set.map(inference_prompt_processing, batched=True)
         # df_test_data = pd.DataFrame(data=data.test_set)
@@ -124,15 +125,43 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         # metric = rouge_metric()
         if metric_name == "all":
             rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-            bertscore_scores = bertscore.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            bertscore_scores = bertscore.compute(predictions=test_summaries[col_name],
+                                                 references=test_summaries["truth"], lang="en", verbose=True)
+
+            bertscore_scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
+                                             "median": statistics.median(bertscore_scores["precision"])}
+            bertscore_scores["recall"] = {"mean": statistics.mean(bertscore_scores["recall"]),
+                                          "median": statistics.median(bertscore_scores["recall"])}
+            bertscore_scores["f1"] = {"mean": statistics.mean(bertscore_scores["f1"]),
+                                      "median": statistics.median(bertscore_scores["f1"])}
+
             bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
             bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+                                "median": statistics.median(bleurt_scores["scores"])}
+
             logger.info("ROUGE Scores: {}".format(rouge_scores))
             logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
             logger.info("BLEU Scores: {}".format(bleu_scores))
             logger.info("BLEURT Scores: {}".format(bleurt_scores))
         else:
-            scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            if metric_name == "bertscore":
+                bertscore_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"],
+                                        lang="en", verbose=True)
+                scores = {}
+                scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
+                                       "median": statistics.median(bertscore_scores["precision"])}
+                scores["recall"]  = {"mean": statistics.mean(bertscore_scores["recall"]),
+                                     "median": statistics.median(bertscore_scores["recall"])}
+                scores["f1"] =  {"mean": statistics.mean(bertscore_scores["f1"]),
+                                 "median": statistics.median(bertscore_scores["f1"])}
+            elif metric_name == "bleurt":
+                bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+                scores = {}
+                scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+                                       "median": statistics.median(bleurt_scores["scores"])}
+            else:
+                scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
             logger.info("{} Scores: {}".format(metric_name, scores))
     else:
         logger.info("!!! The dataset is MSLR where no reference summaries are available, hence SKIPPING SCORING !!!")

@@ -57,7 +57,8 @@ if __name__ == "__main__":
     parser.add_argument("--test_samples", type=int, default=1, help="Number of testing Samples")
     parser.add_argument("--instruct", type=bool, default=False, help="Use Instruct Model")
     parser.add_argument("--mlm", type=bool, default=False, help="Use MLM")
-    parser.add_argument("--metric", type=str, required=True, help="metric to be used")
+    parser.add_argument("--metric", type=str, required=True, help="metric to be used",
+                        choices=["rouge", "bertscore", "bleu", "bleurt", "all"])
 
     args = parser.parse_args()
 

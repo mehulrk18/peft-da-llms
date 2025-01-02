@@ -58,8 +58,9 @@ def print_model_weights(model):
 def check_and_return_df(file_name: str):
     import pandas as pd
     if os.path.exists(file_name):
-        return pd.read_csv(file_name), True
+        df = pd.read_csv(file_name)
+        return df, True
 
     else:
         print("File not found: ", file_name)
-        return None, False
+        return pd.DataFrame([{}]), False
