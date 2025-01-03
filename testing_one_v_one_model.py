@@ -92,6 +92,8 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
 
         logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data.domain.name]))
         if not file_exists:
+            logger.info("File DOES NOT EXIST: {}, hence generating "
+                        "summaries for {} samples".format(test_summaries_file_name, min_samples))
             # for i in range(min_samples):
             for i, _obj in enumerate(data.test_set):
                 logger.info("Summary for {} sample".format(i+1))
@@ -103,6 +105,9 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                 del summary
 
         else:
+            logger.info(
+                "File EXISTS: {}, generating summaries for {} samples".format(test_summaries_file_name,
+                                                                                             min_samples))
             articles = df_sum["article"]
             i = 0
             for i, art in enumerate(articles):
@@ -205,6 +210,10 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
             fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
                                                                                              peft_full_name, min_samples,
                                                                                              bleu_scores))
+        with open("summaries/bleurt_scores.txt", "a") as fp:
+            fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
+                                                                                             peft_full_name, min_samples,
+                                                                                             bleurt_scores))
 
         logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(scores,
                                                                                      test_summaries_file_name))
@@ -270,8 +279,10 @@ if __name__ == "__main__":
 
     # elif trained_peft_path.split("/")[0] ==  :# "saved_models":
     peft_dir = peft_path_splits[1]
-    provider, domain, dataset_name, peft_type = tuple(peft_dir.split("_")[:4])
+    domain, dataset_name, peft_type = tuple(peft_dir.split("_")[:3])
     adapter_name = "{}_{}_{}".format(domain, dataset_name, peft_type)
+
+    provider = "hf"
 
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
