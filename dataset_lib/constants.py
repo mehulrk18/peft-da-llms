@@ -311,6 +311,80 @@ class NewsroomDataset(DatasetInfo):
         self.download_url = "https://lil.nlp.cornell.edu/newsroom/download/index.html"
 
 
+class ScientificDataset(DatasetInfo):
+    domain = SumDomains.UNSEEN_TEST
+    name = "scientific"  # aclsum
+
+    # total samples = 100
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "sobamchan/aclsum"
+        self.local_path = "domains/unseen_test/unseen_scientific_data.csv"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["document", "challenge", "approach", "outcome"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class MedicalDataset(DatasetInfo):
+    domain = SumDomains.UNSEEN_TEST
+    name = "medical"
+
+    # total samples = 96
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "domains/test_medical_articles.xlsx"
+        self.local_path = "domains/unseen_test/medical"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["title", "abstract", "content", "published_on", "link"]
+        self.source = "xlsx"
+        self.download_url = ""
+
+
+class LegalDataset(DatasetInfo):
+    # TODO: Write a loader
+    domain = SumDomains.UNSEEN_TEST
+    name = "legal"
+
+    # total samples = 100
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "domains/test_medical_articles.xlsx"
+        self.local_path = "domains/unseen_test/legal"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["title", "abstract", "content", "published_on", "link"]
+        self.source = "xlsx"
+        self.download_url = ""
+
+
+class NewsDataset(DatasetInfo):
+    # TODO: Write a loader
+    domain = SumDomains.UNSEEN_TEST
+    name = "news"
+
+    # total samples = 87
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "domains/inshorts_news.xlsx"
+        self.local_path = "domains/unseen_test/news"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["id", "author_name", "article_url", "summary_url", "category", "title", "article",
+                                  "summary"]
+        self.source = "xlsx"
+        self.download_url = ""
+
 datasets_info_dict = {
     SumDomains.SCIENTIFIC: {
         "arxiv": ArxivDataset(),
@@ -334,6 +408,12 @@ datasets_info_dict = {
         "multinews": MultiNewsDataset(),
         "xsum": XSumDataset(),
         "newsroom": NewsroomDataset()
+    },
+    SumDomains.UNSEEN_TEST: {
+        "scientific": ScientificDataset,
+        "medical": MedicalDataset,
+        "legal": LegalDataset,
+        "news": NewsDataset
     }
 }
 

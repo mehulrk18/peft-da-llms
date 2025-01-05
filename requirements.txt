@@ -17,3 +17,4 @@ packaging
 jupyter
 wandb
 tensorboard
+bert-score

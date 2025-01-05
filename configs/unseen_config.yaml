@@ -1,0 +1,8 @@
+zero_shot: False
+
+pefts:
+  - "trained_pefts/peft_1"
+  - "trained_pefts/peft_2"
+  -  "trained_pefts/peft_3"
+
+dataset_name: "scientific" # "medical" or "legal" or "news"
