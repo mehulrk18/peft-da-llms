@@ -126,50 +126,50 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores = 0, 0, 0, 0, 0
     if file_exists:
         test_summaries["truth"] = df_sum["truth"]
-    if "mslr" not in peft_full_name:
+    # if "mslr" not in peft_full_name:
         # metric = rouge_metric()
-        if metric_name == "all":
-            rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-            bertscore_scores = bertscore.compute(predictions=test_summaries[col_name],
-                                                 references=test_summaries["truth"], lang="en", verbose=True)
+    if metric_name == "all":
+        rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        bertscore_scores = bertscore.compute(predictions=test_summaries[col_name],
+                                             references=test_summaries["truth"], lang="en", verbose=True)
 
-            bertscore_scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
-                                             "median": statistics.median(bertscore_scores["precision"])}
-            bertscore_scores["recall"] = {"mean": statistics.mean(bertscore_scores["recall"]),
-                                          "median": statistics.median(bertscore_scores["recall"])}
-            bertscore_scores["f1"] = {"mean": statistics.mean(bertscore_scores["f1"]),
-                                      "median": statistics.median(bertscore_scores["f1"])}
+        bertscore_scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
+                                         "median": statistics.median(bertscore_scores["precision"])}
+        bertscore_scores["recall"] = {"mean": statistics.mean(bertscore_scores["recall"]),
+                                      "median": statistics.median(bertscore_scores["recall"])}
+        bertscore_scores["f1"] = {"mean": statistics.mean(bertscore_scores["f1"]),
+                                  "median": statistics.median(bertscore_scores["f1"])}
 
-            bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-            bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-            bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
-                                "median": statistics.median(bleurt_scores["scores"])}
+        bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+                            "median": statistics.median(bleurt_scores["scores"])}
 
-            logger.info("ROUGE Scores: {}".format(rouge_scores))
-            logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
-            logger.info("BLEU Scores: {}".format(bleu_scores))
-            logger.info("BLEURT Scores: {}".format(bleurt_scores))
-        else:
-            if metric_name == "bertscore":
-                bertscore_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"],
-                                        lang="en", verbose=True)
-                scores = {}
-                scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
-                                       "median": statistics.median(bertscore_scores["precision"])}
-                scores["recall"]  = {"mean": statistics.mean(bertscore_scores["recall"]),
-                                     "median": statistics.median(bertscore_scores["recall"])}
-                scores["f1"] =  {"mean": statistics.mean(bertscore_scores["f1"]),
-                                 "median": statistics.median(bertscore_scores["f1"])}
-            elif metric_name == "bleurt":
-                bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-                scores = {}
-                scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
-                                       "median": statistics.median(bleurt_scores["scores"])}
-            else:
-                scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-            logger.info("{} Scores: {}".format(metric_name, scores))
+        logger.info("ROUGE Scores: {}".format(rouge_scores))
+        logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
+        logger.info("BLEU Scores: {}".format(bleu_scores))
+        logger.info("BLEURT Scores: {}".format(bleurt_scores))
     else:
-        logger.info("!!! The dataset is MSLR where no reference summaries are available, hence SKIPPING SCORING !!!")
+        if metric_name == "bertscore":
+            bertscore_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"],
+                                    lang="en", verbose=True)
+            scores = {}
+            scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
+                                   "median": statistics.median(bertscore_scores["precision"])}
+            scores["recall"]  = {"mean": statistics.mean(bertscore_scores["recall"]),
+                                 "median": statistics.median(bertscore_scores["recall"])}
+            scores["f1"] =  {"mean": statistics.mean(bertscore_scores["f1"]),
+                             "median": statistics.median(bertscore_scores["f1"])}
+        elif metric_name == "bleurt":
+            bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            scores = {}
+            scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+                                   "median": statistics.median(bleurt_scores["scores"])}
+        else:
+            scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        logger.info("{} Scores: {}".format(metric_name, scores))
+    # else:
+    #     logger.info("!!! The dataset is MSLR where no reference summaries are available, hence SKIPPING SCORING !!!")
 
     if file_exists:
         test_summaries.pop("article")
