@@ -18,3 +18,5 @@ jupyter
 wandb
 tensorboard
 bert-score
+openai
+spacy

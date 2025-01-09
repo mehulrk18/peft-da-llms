@@ -33,10 +33,12 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     else:
         raise ValueError("Invalid Metric")
 
-    save_df = True
-    test_summaries_file_name = data_class.local_path
-    data = pd.read_csv(test_summaries_file_name)
+    save_df, file_exists = True, False
+    test_summaries_file_name = "summaries/summaries_{}_{}.csv".format(data_class.domain.lower(), data_class.name.lower())
+    data = pd.read_csv(data_class.local_path)
     min_samples = data.test_set.num_rows
+
+
 
     # if test_summaries_file_name is None:
     #     test_summaries_file_name = "summaries/summaries_{}_{}_{}samples.csv".format(data.domain.name.lower(),
@@ -51,13 +53,13 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     #                         chat_template=chat_template, prompt=DEFAULT_SYSTEM_PROMPT)
     # TODO: write the testing function with a metric.
     test_summaries = {
-        "content": [],
-        "truth": [],
+        # "article": [],
+        # "truth": [],
         col_name: []
     }
-    # df_sum, file_exists = check_and_return_df(test_summaries_file_name)
+    df_sum, file_exists = check_and_return_df(test_summaries_file_name)
     # col_name = col_name + "_shortprompt"
-    if col_name not in data.columns:
+    if col_name not in df_sum.columns:
         logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data_class.name.upper()]))
         articles = data["content"]
         i = 0
@@ -65,22 +67,21 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
             logger.info("Summary for {} sample".format(i+1))
             summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=art,
                                        device=device,
-                                       chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
+                                       chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data_class.name.upper()])
             test_summaries[col_name].append(summary)
             del summary
-
     else:
         logger.info("Summaries in col: {} already exists in file: {}".format(col_name, test_summaries_file_name))
         test_summaries[col_name] = data[col_name]
         save_df = False
 
     scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores = 0, 0, 0, 0, 0
-    test_summaries["truth"] = data["summary"]
+    truth = data["summary"]
         # metric = rouge_metric()
     if metric_name == "all":
-        rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=truth)
         bertscore_scores = bertscore.compute(predictions=test_summaries[col_name],
-                                             references=test_summaries["truth"], lang="en", verbose=True)
+                                             references=truth, lang="en", verbose=True)
 
         bertscore_scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
                                          "median": statistics.median(bertscore_scores["precision"])}
@@ -89,8 +90,8 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         bertscore_scores["f1"] = {"mean": statistics.mean(bertscore_scores["f1"]),
                                   "median": statistics.median(bertscore_scores["f1"])}
 
-        bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-        bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=truth)
+        bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=truth)
         bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
                             "median": statistics.median(bleurt_scores["scores"])}
 
@@ -100,33 +101,46 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         logger.info("BLEURT Scores: {}".format(bleurt_scores))
     else:
         if metric_name == "bertscore":
-            bertscore_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"],
+            bertscore_scores = metric.compute(predictions=test_summaries[col_name], references=truth,
                                     lang="en", verbose=True)
             scores = {}
             scores["precision"] = {"mean": statistics.mean(bertscore_scores["precision"]),
                                    "median": statistics.median(bertscore_scores["precision"])}
-            scores["recall"]  = {"mean": statistics.mean(bertscore_scores["recall"]),
-                                 "median": statistics.median(bertscore_scores["recall"])}
-            scores["f1"] =  {"mean": statistics.mean(bertscore_scores["f1"]),
-                             "median": statistics.median(bertscore_scores["f1"])}
+            scores["recall"] = {"mean": statistics.mean(bertscore_scores["recall"]),
+                                "median": statistics.median(bertscore_scores["recall"])}
+            scores["f1"] = {"mean": statistics.mean(bertscore_scores["f1"]),
+                            "median": statistics.median(bertscore_scores["f1"])}
         elif metric_name == "bleurt":
-            bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=truth)
             scores = {}
             scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
                                 "median": statistics.median(bleurt_scores["scores"])}
         else:
-            scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+            scores = metric.compute(predictions=test_summaries[col_name], references=truth)
         logger.info("{} Scores: {}".format(metric_name, scores))
 
-    test_summaries.pop("content")
-    test_summaries.pop("truth")
-    data[col_name] = test_summaries[col_name]
+    if file_exists:
+        test_summaries.pop("content")
+        test_summaries.pop("summary")
+    else:
+        df_sum["article"] = data["content"]
+        df_sum["truth"] = truth
+    df_sum[col_name] = test_summaries[col_name]
 
     if save_df:
-        data.to_csv(test_summaries_file_name, index=False)
+        df_sum.to_csv(test_summaries_file_name, index=False)
 
     # TODO: Write Scores to a CSV file directly, without storing it in a txt file.
     if metric_name == "all":
+        """
+        unseen_metrics_results_{}.csv # scientific, medical, legal, news
+        
+        peft_name | rouge_1 | rouge_2 | rouge_L | rouge_Lsum | bertscore_precision_mean | bertscore_precision_median | bertscore_recall_mean | bertscore_recall_median | bertscore_f1_mean | bertscore_f1_median | bleu | bleu_ngram_precision | bleurt_mean | bleurt_median
+        
+        """
+
+
+
         from datetime import datetime
         with open("summaries/rouge_scores.txt", "a") as fp:
             fp.write("[{}] Summaries of {} for {} samples has rouge Scores \n {} \n\n".format(datetime.today().date(),
@@ -143,20 +157,23 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                                                                                                   min_samples,
                                                                                                   bertscore_scores))
 
-        logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(scores,
+        logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(bertscore_scores,
                                                                                           test_summaries_file_name))
 
         with open("summaries/bleu_scores.txt", "a") as fp:
             fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
                                                                                              peft_full_name, min_samples,
                                                                                              bleu_scores))
+        logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu_scores,
+                                                                                     test_summaries_file_name))
+
         with open("summaries/bleurt_scores.txt", "a") as fp:
             fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
                                                                                              peft_full_name, min_samples,
                                                                                              bleurt_scores))
+        logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(bleurt_scores,
+                                                                                       test_summaries_file_name))
 
-        logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(scores,
-                                                                                     test_summaries_file_name))
     else:
         with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
             from datetime import datetime

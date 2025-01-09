@@ -16,29 +16,7 @@ from utils import generate_summary, rouge_metric, LLaMAModelClass, \
 
 
 def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template, col_name, metric_name,
-                  test_summaries_file_name=None):
-    # testing the model with Test data.
-    # def inference_prompt_processing(sample):
-    #     # if "sources" in sample.keys():
-    #     #     sample["article"] = sample.pop("sources")
-    #
-    #     if chat_template:
-    #         from dataset_lib import chat_template_prompt_inference
-    #         text = [chat_template_prompt_inference(content=article, system_prompt=DEFAULT_DOMAIN_PROMPT[domain])
-    #                 for article in sample["content"]]
-    #
-    #         return {
-    #             "text": text
-    #         }
-    #     else:
-    #         # text = [inference_prompt(article=article) for article in sample["article"]]
-    #         from dataset_lib import llama3_testing_prompt
-    #         text = [llama3_testing_prompt(content=article, system_prompt=DEFAULT_DOMAIN_PROMPT[domain])
-    #                 for article in sample["content"]]
-    #
-    #         return {
-    #             "text": text
-    #         }
+                  test_summaries_file_name=None, overwrite_results=False):
 
     if metric_name == "rouge":
         metric = rouge_metric()
@@ -77,7 +55,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     }
     df_sum, file_exists = check_and_return_df(test_summaries_file_name)
     # col_name = col_name + "_shortprompt"
-    if col_name not in df_sum.columns:
+    if col_name not in df_sum.columns or overwrite_results:
         # try:
         #     # logger.info("Summary of Random Text from Wikipedia: \n{}".format(summ))
         #     with open("summaries/random_text_{}.txt".format(peft_full_name), "w") as f:
@@ -180,7 +158,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         df_sum = pd.DataFrame(test_summaries)
 
     # TODO: understand where is the mistake and fix it.
-    if save_df:
+    if save_df or overwrite_results:
         df_sum.to_csv(test_summaries_file_name, index=False)
         # if "zero_shot" not in peft_full_name:
         #     df_sum = df_sum.remove_columns(["content", "truth"])
@@ -188,41 +166,166 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
 
     if metric_name == "all":
         from datetime import datetime
-        with open("summaries/rouge_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has rouge Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                              peft_full_name,
-                                                                                              min_samples,
-                                                                                              rouge_scores))
+        # with open("summaries/rouge_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has rouge Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                       peft_full_name,
+        #                                                                                       min_samples,
+        #                                                                                       rouge_scores))
+
+        # ROUGE
+        logger.info("Writing ROUGE Scores {} to file: summaries/rouge_scores.csv".format(rouge_scores))
+        rouge_df = pd.read_csv("summaries/rouge_scores.csv")
+        new_row = {
+            "model": peft_full_name,
+            "rouge1": rouge_scores["rouge1"],
+            "rouge2": rouge_scores["rouge2"],
+            "rougeL": rouge_scores["rougeL"],
+            "rougeLsum": rouge_scores["rougeLsum"]
+        }
+        if peft_full_name in rouge_df["model"].values:
+            # Update the existing row
+            rouge_df.loc[rouge_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            rouge_df = pd.concat([rouge_df, pd.DataFrame([new_row])], ignore_index=True)
+        rouge_df.to_csv("summaries/rouge_scores.csv", index=False)
 
         logger.info("\n\n\nSummaries with rouge Score {} saved to file {}!!!!".format(rouge_scores,
                                                                                       test_summaries_file_name))
 
-        with open("summaries/bertscore_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has bertscore Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                                  peft_full_name,
-                                                                                                  min_samples,
-                                                                                                  bertscore_scores))
+        # with open("summaries/bertscore_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has bertscore Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                           peft_full_name,
+        #                                                                                           min_samples,
+        #                                                                                           bertscore_scores))
+        # BERTSCORE
+        bertscore_df = pd.read_csv("summaries/bertscore_scores.csv")
+        logger.info("Writing BERTScores {} to file: summaries/bertscore_scores.csv".format(bertscore_scores))
+        new_row = {
+            "model": peft_full_name,
+            "precision_mean": bertscore_scores["precision"]["mean"],
+            "precision_median": bertscore_scores["precision"]["median"],
+            "recall_mean": bertscore_scores["recall"]["mean"],
+            "recall_median": bertscore_scores["recall"]["median"],
+            "f1_mean": bertscore_scores["f1"]["mean"],
+            "f1_median": bertscore_scores["f1"]["median"]
+        }
+        if peft_full_name in bertscore_df["model"].values:
+            # Update the existing row
+            bertscore_df.loc[bertscore_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            bertscore_df = pd.concat([bertscore_df, pd.DataFrame([new_row])], ignore_index=True)
+        bertscore_df.to_csv("summaries/bertscore_scores.csv", index=False)
 
+        # TODO: Add the scores to the bertscore_scores.csv file
         logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(scores,
                                                                                           test_summaries_file_name))
 
-        with open("summaries/bleu_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                             peft_full_name, min_samples,
-                                                                                             bleu_scores))
-        with open("summaries/bleurt_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                             peft_full_name, min_samples,
-                                                                                             bleurt_scores))
-
+        # BLEU
+        # with open("summaries/bleu_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                      peft_full_name, min_samples,
+        #                                                                                      bleu_scores))
+        logger.info("Writing Bleu Scores {} to file: summaries/bleu_scores.csv".format(bleu_scores))
+        bleu_df = pd.read_csv("summaries/bleu_scores.csv")
+        new_row = {
+            "model": peft_full_name,
+            "bleu": bleu_scores["bleu"],
+            "precisions": bleu_scores["precisions"],
+            "brevity_penalty": bleu_scores["brevity_penalty"],
+            "length_ratio": bleu_scores["length_ratio"],
+            "translation_length": bleu_scores["translation_length"],
+            "reference_length": bleu_scores["reference_length"]
+        }
+        if peft_full_name in bleu_df["model"].values:
+            # Update the existing row
+            bleu_df.loc[bleu_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            bleu_df = pd.concat([bleu_df, pd.DataFrame([new_row])], ignore_index=True)
+        bleu_df.to_csv("summaries/bleu_scores.csv", index=False)
         logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(scores,
                                                                                      test_summaries_file_name))
+
+        # TODO: Add the scores to the bleu_scores.csv file
+        # BLEURT
+        # with open("summaries/bleurt_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                      peft_full_name, min_samples,
+        #                                                                                      bleurt_scores))
+        logger.info("Writing BleuRT Scores {} to file: summaries/bleurt_scores.csv".format(bleurt_scores))
+        bleurt_df = pd.read_csv("summaries/bleurt_scores.csv")
+        new_row = {
+            "model": peft_full_name,
+            "mean": bleurt_scores["scores"]["mean"],
+            "median": bleurt_scores["scores"]["median"],
+        }
+        if peft_full_name in bleurt_df["model"].values:
+            # Update the existing row
+            bleurt_df.loc[bleurt_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            bleurt_df = pd.concat([bleurt_df, pd.DataFrame([new_row])], ignore_index=True)
+        bleurt_df.to_csv("summaries/bleurt_scores.csv", index=False)
+        logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(scores,
+                                                                                     test_summaries_file_name))
+
     else:
-        with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
-            from datetime import datetime
-            fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                           peft_full_name, min_samples,
-                                                                                           metric_name, scores))
+        # with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
+        #     from datetime import datetime
+        #     fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                    peft_full_name, min_samples,
+        #                                                                                    metric_name, scores))
+        if metric_name == "rouge":
+            logger.info("Writing Rouge Scores {} to file: summaries/rouge_scores.csv".format(scores))
+            metric_df = pd.read_csv("summaries/rouge_scores.csv")
+            new_row = {
+                "model": peft_full_name,
+                "rouge1": scores["rouge1"],
+                "rouge2": scores["rouge2"],
+                "rougeL": scores["rougeL"],
+                "rougeLsum": scores["rougeLsum"]
+            }
+        elif metric_name == "bertscore":
+            logger.info("Writing BertScore Scores {} to file: summaries/bertscore_scores.csv".format(scores))
+            metric_df = pd.read_csv("summaries/bertscore_scores.csv")
+            new_row = {
+                "model": peft_full_name,
+                "precision_mean": scores["precision"]["mean"],
+                "precision_median": scores["precision"]["median"],
+                "recall_mean": scores["recall"]["mean"],
+                "recall_median": scores["recall"]["median"],
+                "f1_mean": scores["f1"]["mean"],
+                "f1_median": scores["f1"]["median"]
+            }
+        elif metric_name == "bleu":
+            logger.info("Writing Bleu Scores {} to file: summaries/bleu_scores.csv".format(scores))
+            metric_df = pd.read_csv("summaries/bleu_scores.csv")
+            new_row = {
+                "model": peft_full_name,
+                "bleu": scores["bleu"],
+                "precisions": scores["precisions"],
+                "brevity_penalty": scores["brevity_penalty"],
+                "length_ratio": scores["length_ratio"],
+                "translation_length": scores["translation_length"],
+                "reference_length": scores["reference_length"]
+            }
+        elif metric_name == "bleurt":
+            logger.info("Writing Bleurt Scores {} to file: summaries/bleurt_scores.csv".format(scores))
+            metric_df = pd.read_csv("summaries/bleurt_scores.csv")
+            new_row = {
+                "model": peft_full_name,
+                "mean": scores["scores"]["mean"],
+                "median": scores["scores"]["median"],
+            }
+
+        if peft_full_name in metric_df["model"].values:
+            # Update the existing row
+            metric_df.loc[metric_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            metric_df = pd.concat([metric_df, pd.DataFrame([new_row])], ignore_index=True)
 
         logger.info("\n\n\nSummaries with {} Score {} saved to file {}!!!!".format(metric_name, scores,
                                                                                    test_summaries_file_name))
@@ -233,7 +336,7 @@ if __name__ == "__main__":
     from warnings import simplefilter
     simplefilter(action='ignore', category=FutureWarning)
 
-    parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
+    parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and model (domain) for training")
 
     parser.add_argument("--checkpoint",type=str, default=None, help="Path of the PT Model Checkpoint to be loaded." )
     parser.add_argument("--trained_peft_path", type=str, help="Path of the PEFT to be loaded.")
@@ -248,6 +351,7 @@ if __name__ == "__main__":
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="do you want to sort the dataset?")
     parser.add_argument("--chat_template", type=bool, default=False, help="Using chat template for tokenizing")
     parser.add_argument("--mlm", type=bool, default=False, help="Using attention mask")
+    parser.add_argument("--overwrite_results", type=bool, default=False, help="Overwrite the results generated")
 
     try:
         from google.colab import drive
@@ -269,6 +373,7 @@ if __name__ == "__main__":
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
     chat_template = True if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True if "instruct" in trained_peft_path or args.chat_template else False
+    overwrite_results = args.overwrite_results
     # provider = "hf" if "hf" in trained_peft_path else "ah"
 
     peft_path_splits = trained_peft_path.split("/")
@@ -353,5 +458,5 @@ if __name__ == "__main__":
 
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, peft_full_name=peft_dir,
                   col_name=peft_type, logger=logger, device=device, chat_template=chat_template, metric_name=metric,
-                  test_summaries_file_name=None)
+                  test_summaries_file_name=None, overwrite_results=overwrite_results)
     wnb_run.finish()
