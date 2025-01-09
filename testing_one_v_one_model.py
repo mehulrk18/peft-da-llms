@@ -30,7 +30,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         rouge = rouge_metric()
         bertscore = bertscore_metric()
         bleu = bleu_metric()
-        bleurt = bleurt_metric()
+        # bleurt = bleurt_metric()
     else:
         raise ValueError("Invalid Metric")
 
@@ -119,14 +119,14 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                                   "median": statistics.median(bertscore_scores["f1"])}
 
         bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-        bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-        bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
-                            "median": statistics.median(bleurt_scores["scores"])}
+        # bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        # bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+        #                     "median": statistics.median(bleurt_scores["scores"])}
 
         logger.info("ROUGE Scores: {}".format(rouge_scores))
         logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
         logger.info("BLEU Scores: {}".format(bleu_scores))
-        logger.info("BLEURT Scores: {}".format(bleurt_scores))
+        # logger.info("BLEURT Scores: {}".format(bleurt_scores))
     else:
         if metric_name == "bertscore":
             bertscore_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"],
@@ -139,10 +139,11 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
             scores["f1"] =  {"mean": statistics.mean(bertscore_scores["f1"]),
                              "median": statistics.median(bertscore_scores["f1"])}
         elif metric_name == "bleurt":
-            bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
-            scores = {}
-            scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
-                                   "median": statistics.median(bleurt_scores["scores"])}
+            raise ValueError("BLEURT is not supported in the current version")
+        #     bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
+        #     scores = {}
+        #     scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+        #                            "median": statistics.median(bleurt_scores["scores"])}
         else:
             scores = metric.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
         logger.info("{} Scores: {}".format(metric_name, scores))
@@ -219,7 +220,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         bertscore_df.to_csv("summaries/bertscore_scores.csv", index=False)
 
         # TODO: Add the scores to the bertscore_scores.csv file
-        logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(scores,
+        logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(bertscore_scores,
                                                                                           test_summaries_file_name))
 
         # BLEU
@@ -245,7 +246,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
             # Add a new row
             bleu_df = pd.concat([bleu_df, pd.DataFrame([new_row])], ignore_index=True)
         bleu_df.to_csv("summaries/bleu_scores.csv", index=False)
-        logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(scores,
+        logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu,
                                                                                      test_summaries_file_name))
 
         # TODO: Add the scores to the bleu_scores.csv file
@@ -254,22 +255,24 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         #     fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
         #                                                                                      peft_full_name, min_samples,
         #                                                                                      bleurt_scores))
-        logger.info("Writing BleuRT Scores {} to file: summaries/bleurt_scores.csv".format(bleurt_scores))
-        bleurt_df = pd.read_csv("summaries/bleurt_scores.csv")
-        new_row = {
-            "model": peft_full_name,
-            "mean": bleurt_scores["scores"]["mean"],
-            "median": bleurt_scores["scores"]["median"],
-        }
-        if peft_full_name in bleurt_df["model"].values:
-            # Update the existing row
-            bleurt_df.loc[bleurt_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
-        else:
-            # Add a new row
-            bleurt_df = pd.concat([bleurt_df, pd.DataFrame([new_row])], ignore_index=True)
-        bleurt_df.to_csv("summaries/bleurt_scores.csv", index=False)
-        logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(scores,
-                                                                                     test_summaries_file_name))
+
+        # TODO: Uncomment After fixing
+        # logger.info("Writing BleuRT Scores {} to file: summaries/bleurt_scores.csv".format(bleurt_scores))
+        # bleurt_df = pd.read_csv("summaries/bleurt_scores.csv")
+        # new_row = {
+        #     "model": peft_full_name,
+        #     "mean": bleurt_scores["scores"]["mean"],
+        #     "median": bleurt_scores["scores"]["median"],
+        # }
+        # if peft_full_name in bleurt_df["model"].values:
+        #     # Update the existing row
+        #     bleurt_df.loc[bleurt_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        # else:
+        #     # Add a new row
+        #     bleurt_df = pd.concat([bleurt_df, pd.DataFrame([new_row])], ignore_index=True)
+        # bleurt_df.to_csv("summaries/bleurt_scores.csv", index=False)
+        # logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(scores,
+        #                                                                              test_summaries_file_name))
 
     else:
         # with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
@@ -311,14 +314,14 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                 "translation_length": scores["translation_length"],
                 "reference_length": scores["reference_length"]
             }
-        elif metric_name == "bleurt":
-            logger.info("Writing Bleurt Scores {} to file: summaries/bleurt_scores.csv".format(scores))
-            metric_df = pd.read_csv("summaries/bleurt_scores.csv")
-            new_row = {
-                "model": peft_full_name,
-                "mean": scores["scores"]["mean"],
-                "median": scores["scores"]["median"],
-            }
+        # elif metric_name == "bleurt":
+        #     logger.info("Writing Bleurt Scores {} to file: summaries/bleurt_scores.csv".format(scores))
+        #     metric_df = pd.read_csv("summaries/bleurt_scores.csv")
+        #     new_row = {
+        #         "model": peft_full_name,
+        #         "mean": scores["scores"]["mean"],
+        #         "median": scores["scores"]["median"],
+        #     }
 
         if peft_full_name in metric_df["model"].values:
             # Update the existing row

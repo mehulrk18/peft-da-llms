@@ -17,7 +17,7 @@ def bleu_metric():
 
 
 def bleurt_metric():
-    bleurt = evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20")
+    bleurt = evaluate.load("bleurt", module_type="metric", checkpoint="bleurt-large-128")
     return bleurt
 
 
