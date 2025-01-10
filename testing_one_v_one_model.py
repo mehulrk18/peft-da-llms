@@ -246,7 +246,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
             # Add a new row
             bleu_df = pd.concat([bleu_df, pd.DataFrame([new_row])], ignore_index=True)
         bleu_df.to_csv("summaries/bleu_scores.csv", index=False)
-        logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu,
+        logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu_scores,
                                                                                      test_summaries_file_name))
 
         # TODO: Add the scores to the bleu_scores.csv file
@@ -281,8 +281,9 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         #                                                                                    peft_full_name, min_samples,
         #                                                                                    metric_name, scores))
         if metric_name == "rouge":
-            logger.info("Writing Rouge Scores {} to file: summaries/rouge_scores.csv".format(scores))
-            metric_df = pd.read_csv("summaries/rouge_scores.csv")
+            df_file = "summaries/rouge_scores.csv"
+            logger.info("Writing Rouge Scores {} to file: {}".format(scores, df_file))
+            metric_df = pd.read_csv(df_file)
             new_row = {
                 "model": peft_full_name,
                 "rouge1": scores["rouge1"],
@@ -291,8 +292,9 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                 "rougeLsum": scores["rougeLsum"]
             }
         elif metric_name == "bertscore":
-            logger.info("Writing BertScore Scores {} to file: summaries/bertscore_scores.csv".format(scores))
-            metric_df = pd.read_csv("summaries/bertscore_scores.csv")
+            df_file = "summaries/bertscore_scores.csv"
+            logger.info("Writing BertScore Scores {} to file: {}".format(scores, df_file))
+            metric_df = pd.read_csv(df_file)
             new_row = {
                 "model": peft_full_name,
                 "precision_mean": scores["precision"]["mean"],
@@ -303,8 +305,9 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                 "f1_median": scores["f1"]["median"]
             }
         elif metric_name == "bleu":
-            logger.info("Writing Bleu Scores {} to file: summaries/bleu_scores.csv".format(scores))
-            metric_df = pd.read_csv("summaries/bleu_scores.csv")
+            df_file = "summaries/bleu_scores.csv"
+            logger.info("Writing Bleu Scores {} to file: {}".format(scores, df_file))
+            metric_df = pd.read_csv(df_file)
             new_row = {
                 "model": peft_full_name,
                 "bleu": scores["bleu"],
@@ -329,6 +332,8 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         else:
             # Add a new row
             metric_df = pd.concat([metric_df, pd.DataFrame([new_row])], ignore_index=True)
+
+        metric_df.to_csv(df_file, index=False)
 
         logger.info("\n\n\nSummaries with {} Score {} saved to file {}!!!!".format(metric_name, scores,
                                                                                    test_summaries_file_name))
