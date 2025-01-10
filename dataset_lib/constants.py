@@ -126,7 +126,7 @@ class ScitldrDataset(DatasetInfo):
         self.local_path = "domains/scientific/scitldr"
         self.streaming = True
         self.trust_remote_code = True
-        self.version = None
+        self.version = "AIC" # "FullText"
         self.columns_to_remove = ["source", "source_labels", "rouge_scores", "paper_id", "target"]
         self.source = "hugging_face"
         self.download_url = ""
@@ -338,12 +338,12 @@ class MedicalDataset(DatasetInfo):
     def __init__(self):
         super().__init__()
         self.dataset_id = "domains/test_medical_articles.xlsx"
-        self.local_path = "domains/unseen_test/unseen_medical_data.csv"
+        self.local_path = "domains/unseen_test/medical"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None
         self.columns_to_remove = ["title", "abstract", "content", "published_on", "link"]
-        self.source = "csv"
+        self.source = "xlsx"
         self.download_url = ""
 
 
@@ -356,14 +356,14 @@ class LegalDataset(DatasetInfo):
 
     def __init__(self):
         super().__init__()
-        self.dataset_id = "domains/ind_uk_abs"
-        self.local_path = "domains/unseen_test/unseen_legal_data.csv"
+        self.dataset_id = "domains/test_medical_articles.xlsx"
+        self.local_path = "domains/unseen_test/legal"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None
         self.columns_to_remove = ["title", "abstract", "content", "published_on", "link"]
-        self.source = "txt"
-        self.download_url = "https://www.kaggle.com/datasets/kageneko/legal-case-document-summarization/data"
+        self.source = "xlsx"
+        self.download_url = ""
 
 
 class NewsDataset(DatasetInfo):
@@ -376,15 +376,14 @@ class NewsDataset(DatasetInfo):
     def __init__(self):
         super().__init__()
         self.dataset_id = "domains/inshorts_news.xlsx"
-        self.local_path = "domains/unseen_test/unseen_news_data.csv"
+        self.local_path = "domains/unseen_test/news"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None
         self.columns_to_remove = ["id", "author_name", "article_url", "summary_url", "category", "title", "article",
                                   "summary"]
-        self.source = "csv"
+        self.source = "xlsx"
         self.download_url = ""
-
 
 datasets_info_dict = {
     SumDomains.SCIENTIFIC: {
