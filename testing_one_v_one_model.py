@@ -346,6 +346,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and model (domain) for training")
 
+    parser.add_argument("--peft_dir", type=str, default="", help="Directory where PEFTs are stored")
     parser.add_argument("--checkpoint",type=str, default=None, help="Path of the PT Model Checkpoint to be loaded." )
     parser.add_argument("--trained_peft_path", type=str, help="Path of the PEFT to be loaded.")
     parser.add_argument("--training_samples", type=int, default=1, help="Number of training Samples")
@@ -361,14 +362,15 @@ if __name__ == "__main__":
     parser.add_argument("--mlm", type=bool, default=False, help="Using attention mask")
     parser.add_argument("--overwrite_results", type=bool, default=False, help="Overwrite the results generated")
 
-    try:
-        from google.colab import drive
-        drive.mount('/content/drive')
-        main_directory = "/content/drive/My Drive/Colab Notebooks/"
-    except Exception as e:
-        main_directory = ""
+    # try:
+    #     from google.colab import drive
+    #     drive.mount('/content/drive')
+    #     main_directory = "/content/drive/My Drive/Colab Notebooks/"
+    # except Exception as e:
 
     args = parser.parse_args()
+    main_directory = ""
+    peft_storage_dir = args.peft_dir if args.peft_dir else ""
     trained_peft_path = main_directory + args.trained_peft_path
     mlm = True if "mlm" in trained_peft_path or args.mlm else False
     model_checkpoint = args.checkpoint
@@ -433,7 +435,7 @@ if __name__ == "__main__":
         from peft import PeftModel
         # llama.model = PeftModel.from_pretrained(llama.model, trained_peft_path, adapter_name=adapter_name) #, use_safetensors=True)
         # llama.model = llama.model.merge_and_unload()
-        llama.model.load_adapter(trained_peft_path, adapter_name=adapter_name)
+        llama.model.load_adapter(peft_storage_dir+trained_peft_path, adapter_name=adapter_name)
         llama.model.set_adapter([adapter_name])
         llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=adapter_name,
                                                                   torch_dtype=torch_dtype)
