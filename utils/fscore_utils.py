@@ -99,14 +99,14 @@ def csv_to_jsonl_for_factscore(results_dir):
     return jsonl_paths
 
 
-def df_to_jsonl_for_factscore(df, predictions_col_name):
+def df_to_jsonl_for_factscore(df, predictions_col_name, main_data_dir=""):
     # extension = "csv"
     # runs = glob.glob("{}/*.{}".format(results_dir, extension))
     # print(runs)
     print("DF Head: \n", df.head())
     jsonl_paths = []
     # for run in runs:
-    file_name = "json_data/{}.jsonl".format(predictions_col_name) #+".jsonl"
+    file_name = "{}json_data/{}.jsonl".format(main_data_dir, predictions_col_name) #+".jsonl"
     # if ".csv" in file_name:
     #     file_name = file_name.replace(".csv", ".jsonl")
     # # else:

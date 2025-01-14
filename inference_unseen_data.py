@@ -23,13 +23,13 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         metric = bertscore_metric()
     elif metric_name == "bleu":
         metric = bleu_metric()
-    elif metric_name == "bleurt":
-        metric = bleurt_metric()
+    # elif metric_name == "bleurt":
+    #     metric = bleurt_metric()
     elif metric_name == "all":
         rouge = rouge_metric()
         bertscore = bertscore_metric()
         bleu = bleu_metric()
-        bleurt = bleurt_metric()
+        # bleurt = bleurt_metric()
     else:
         raise ValueError("Invalid Metric")
 
@@ -91,14 +91,14 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                                   "median": statistics.median(bertscore_scores["f1"])}
 
         bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=truth)
-        bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=truth)
-        bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
-                            "median": statistics.median(bleurt_scores["scores"])}
+        # bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=truth)
+        # bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+        #                     "median": statistics.median(bleurt_scores["scores"])}
 
         logger.info("ROUGE Scores: {}".format(rouge_scores))
         logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
         logger.info("BLEU Scores: {}".format(bleu_scores))
-        logger.info("BLEURT Scores: {}".format(bleurt_scores))
+        # logger.info("BLEURT Scores: {}".format(bleurt_scores))
     else:
         if metric_name == "bertscore":
             bertscore_scores = metric.compute(predictions=test_summaries[col_name], references=truth,
@@ -110,11 +110,11 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                                 "median": statistics.median(bertscore_scores["recall"])}
             scores["f1"] = {"mean": statistics.mean(bertscore_scores["f1"]),
                             "median": statistics.median(bertscore_scores["f1"])}
-        elif metric_name == "bleurt":
-            bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=truth)
-            scores = {}
-            scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
-                                "median": statistics.median(bleurt_scores["scores"])}
+        # elif metric_name == "bleurt":
+        #     bleurt_scores = metric.compute(predictions=test_summaries[col_name], references=truth)
+        #     scores = {}
+        #     scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
+        #                         "median": statistics.median(bleurt_scores["scores"])}
         else:
             scores = metric.compute(predictions=test_summaries[col_name], references=truth)
         logger.info("{} Scores: {}".format(metric_name, scores))
@@ -167,12 +167,12 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu_scores,
                                                                                      test_summaries_file_name))
 
-        with open("summaries/bleurt_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                             peft_full_name, min_samples,
-                                                                                             bleurt_scores))
-        logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(bleurt_scores,
-                                                                                       test_summaries_file_name))
+        # with open("summaries/bleurt_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                      peft_full_name, min_samples,
+        #                                                                                      bleurt_scores))
+        # logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(bleurt_scores,
+        #                                                                                test_summaries_file_name))
 
     else:
         with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:

@@ -30,6 +30,9 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
     fs_reslts = []
 
     for _peft in pefts:
+        # skipping zero shot for now.
+        if "zero_shot_" in _peft:
+            continue
         print("Running FactScore for: Domain: {} - Dataset: {} - Peft: {}".format(domain, dataset_name, _peft))
         new_df = df[["article", "truth", _peft]]  # summary
         prediction_col_name = "data-{}_{}-peft-{}".format(domain, dataset_name, _peft)
@@ -74,10 +77,20 @@ if __name__ == "__main__":
     grounding_provided: bool = True
     openai_key = "api.key"
 
-    domain = "scientific"
-    dataset_name = "arxiv"
-    generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
-                                        summary_file_path="summaries/summaries_scientific_arxiv_150samples.csv")
+    # domain = "scientific"
+    # dataset_name = "arxiv"
+
+    from dataset_lib import datasets_info_dict
+
+    did = datasets_info_dict.pop("unseen_test")
+
+    for domain, datasets in datasets_info_dict.items():
+        for dataset_name in datasets:
+            generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
+                                                summary_file_path="summaries/summaries_{}_{}_150samples.csv".format(domain, dataset_name))
+
+    # generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
+    #                                     summary_file_path="summaries/summaries_scientific_arxiv_150samples.csv")
 
     # for all generated summaries for all the 14 + 4 test datasets, on all PEFTs
     # summary_files = glob.glob("summaries/summaries_*.csv")
