@@ -1,6 +1,7 @@
 import glob
 import os.path
 
+import argparse
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -11,6 +12,7 @@ load_dotenv()
 
 
 factscore_results_file = "summaries/factscore_results.csv"
+STORE_DATA_DIR = ""
 
 def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_key, domain, dataset_name,
                                         summary_file_path=None):
@@ -39,7 +41,7 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
 
         new_df.rename(columns={_peft: prediction_col_name}, inplace=True)
 
-        jsonl_path = df_to_jsonl_for_factscore(df=new_df, predictions_col_name=prediction_col_name)
+        jsonl_path = df_to_jsonl_for_factscore(df=new_df, predictions_col_name=prediction_col_name, main_data_dir=STORE_DATA_DIR)
 
         arg_dict = {
             "input_path": jsonl_path,
@@ -77,8 +79,13 @@ if __name__ == "__main__":
     grounding_provided: bool = True
     openai_key = "api.key"
 
+    parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
+    parser.add_argument("--data_dir", default="", type=str, help="Path to main data directory")
+
     # domain = "scientific"
     # dataset_name = "arxiv"
+    args = parser.parse_args()
+    STORE_DATA_DIR = args.data_dir
 
     from dataset_lib import datasets_info_dict
 
