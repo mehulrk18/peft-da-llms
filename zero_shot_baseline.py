@@ -39,7 +39,7 @@ def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metr
     # data.loading_dataset_splits()
 
 
-    if domain == "unseen_data":
+    if domain == "unseen_test":
         domain_sum= SumDomains("unseen_test")
         data_class = datasets_info_dict[domain_sum][dataset_name]
         unseen_test_data_inference(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data_class=data_class, 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argument parser for Zero Shot Baseline")
 
     parser.add_argument("--domain", type=str, help="Domain name for dataset", choices=["scientific", "medical", "legal",
-                                                                                       "news"], required=True)
+                                                                                       "news", "unseen_test"], required=True)
     parser.add_argument("--dataset_name", type=str, help="Dataset to be used for training", required=True)
     parser.add_argument("--test_samples", type=int, default=1, help="Number of testing Samples")
     parser.add_argument("--instruct", type=bool, default=False, help="Use Instruct Model")

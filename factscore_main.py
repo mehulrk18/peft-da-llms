@@ -68,10 +68,23 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
             # Update the row where the "Dataset" value matches
             # fs_df.loc[fs_df["peft_name"] == obj["peft_name"], obj.keys()] = obj.values()
             # fs_df.loc[fs_df["peft_name"] == obj["peft_name"] and fs_df["test_domain_data"] == obj["test_domain_data"], obj.keys()] = obj.values()
-            fs_df.loc[
-                (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
-                list(obj.keys())
-            ] = list(obj.values())
+            
+            
+            # fs_df.loc[
+            #     (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
+            #     list(obj.keys())
+            # ] = list(obj.values())
+            if "test_domain_data" not in fs_df.columns:
+                fs_df["test_domain_data"] = None  # Add with default value if missing
+
+            # Ensure the column exists in obj
+            if "test_domain_data" in obj:
+                fs_df.loc[
+                    (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
+                    list(obj.keys())
+                ] = list(obj.values())
+            else:
+                print("'test_domain_data' is missing in obj")
 
         else:
             # Append the new row
