@@ -328,7 +328,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--config_pefts_file_path", default=None, type=str, help="Path of the config file containing pefts and dataset for multiple pefts inference")
     parser.add_argument("--peft_path", type=str, default=None, help="For single peft")
-    parser.add_argument("--data_dir", type=str, default="", help="Storage directory")
+    parser.add_argument("--peft_dir", type=str, default="trained_pefts/", help="Storage directory")
     parser.add_argument("--test_dataset", required=True, type=str, help="Only test dataest.")
     parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
                         help="Torch Data Type to be used")
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument("--chat_template", type=bool, default=False, help="Using chat template for tokenizing")
     parser.add_argument("--mlm", type=bool, default=False, help="Using attention mask")
 
-    main_directory, config_file, data_dir = "", "", ""
+    main_directory, config_file = "", ""
     configs = {}
 
     args = parser.parse_args()
@@ -353,6 +353,7 @@ if __name__ == "__main__":
     sort_data = args.sorted_dataset
     quantize = args.quantize
     metric = args.metric
+    peft_dir = args.peft_dir 
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
     chat_template = True # if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True # if "instruct" in trained_peft_path or args.chat_template else False
@@ -364,8 +365,9 @@ if __name__ == "__main__":
     peft_names = []
     # if not zero_shot:
     zero_shot = False
-    for path in configs["pefts"]:
-        a_name = path.split("/")[-1]
+    for i, path in enumerate(configs["pefts"]):
+        a_name = path.split("_checkpoint")[0]
+        configs["pefts"][i] = configs["pefts"][i]+ "/"+ a_name
         peft_names.append(a_name)
 
     provider = "hf"
@@ -403,7 +405,7 @@ if __name__ == "__main__":
     # Method 1 - HuggingFace
     if not zero_shot:
         for a_path, a_name in zip(configs["paths"], peft_names):
-            llama.model.load_adapter(data_dir+a_path, adapter_name=a_name)
+            llama.model.load_adapter(peft_dir+a_path, adapter_name=a_name)
     # llama.model.load_adapter(trained_peft_path, adapter_name=adapter_name)
     # llama.model.set_adapter([adapter_name])
     # llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=adapter_name,
