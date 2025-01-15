@@ -39,7 +39,7 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
             continue
         print("Running FactScore for: Domain: {} - Dataset: {} - Peft: {}".format(domain, dataset_name, _peft))
         new_df = df[["article", "truth", _peft]]  # summary
-        prediction_col_name = "data-{}_{}-peft-{}".format(domain, dataset_name, _peft)
+        prediction_col_name = "data-{}_{}-peft-{}".format(domain., dataset_name, _peft)
 
         new_df.rename(columns={_peft: prediction_col_name}, inplace=True)
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     for domain, datasets in datasets_info_dict.items():
         for dataset_name in datasets:
             print("Calculating FactScore for: Domain: {} - Dataset: {}".format(domain.name.lower(), dataset_name))
-            generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
+            generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain.name.lower(), dataset_name,
                                                 summary_file_path="summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name))
 
     # generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
