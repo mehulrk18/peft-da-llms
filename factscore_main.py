@@ -89,14 +89,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     STORE_DATA_DIR = args.data_dir
 
-    from dataset_lib import datasets_info_dict
+    from dataset_lib import datasets_info_dict, SumDomains
 
-    did = datasets_info_dict.pop("unseen_test")
+    did = datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
 
     for domain, datasets in datasets_info_dict.items():
         for dataset_name in datasets:
+            print("Calculating FactScore for: Domain: {} - Dataset: {}".format(domain.name.lower(), dataset_name))
             generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
-                                                summary_file_path="summaries/summaries_{}_{}_150samples.csv".format(domain, dataset_name))
+                                                summary_file_path="summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name))
 
     # generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
     #                                     summary_file_path="summaries/summaries_scientific_arxiv_150samples.csv")
