@@ -29,6 +29,8 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
         # fs_df = pd.DataFrame(columns=["peft_name", "score", "num_atomic_facts"])
         fs_df = pd.DataFrame(columns=["test_domain_dataset", "peft_name", "score", "num_atomic_facts"])
 
+    print("Data Directory: ", STORE_DATA_DIR)
+
     fs_reslts = []
 
     for _peft in pefts:
