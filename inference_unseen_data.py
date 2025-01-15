@@ -353,7 +353,7 @@ if __name__ == "__main__":
     # sort_data = args.sorted_dataset
     quantize = args.quantize
     metric = args.metric
-    peft_dir = args.peft_dir 
+    peft_dir = args.peft_dir
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
     chat_template = True # if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True # if "instruct" in trained_peft_path or args.chat_template else False
