@@ -64,10 +64,15 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
         fs_reslts.append(res_obj)
 
     for obj in fs_reslts:
-        if obj["peft_name"] in fs_df["peft_name"].values:
+        if obj["test_domain_dataset"] in fs_df["test_domain_dataset"].values and obj["peft_name"] in fs_df["peft_name"].values:
             # Update the row where the "Dataset" value matches
             # fs_df.loc[fs_df["peft_name"] == obj["peft_name"], obj.keys()] = obj.values()
-            fs_df.loc[fs_df["peft_name"] == obj["peft_name"] and fs_df["test_domain_data"] == obj["test_domain_data"], obj.keys()] = obj.values()
+            # fs_df.loc[fs_df["peft_name"] == obj["peft_name"] and fs_df["test_domain_data"] == obj["test_domain_data"], obj.keys()] = obj.values()
+            fs_df.loc[
+                (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
+                list(obj.keys())
+            ] = list(obj.values())
+
         else:
             # Append the new row
             fs_df = pd.concat([fs_df, pd.DataFrame([obj])], ignore_index=True)
