@@ -37,7 +37,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     save_df, file_exists = True, False
     test_summaries_file_name = "summaries/summaries_{}_{}.csv".format(data_class.domain.name.lower(), data_class.name.lower())
     data = pd.read_csv(data_class.local_path)
-    min_samples = data.test_set.num_rows
+    min_samples = len(data) #.num_rows
 
 
 
