@@ -63,4 +63,4 @@ def check_and_return_df(file_name: str):
 
     else:
         print("File not found: ", file_name)
-        return pd.DataFrame([{}]), False
+        return pd.DataFrame([]), False

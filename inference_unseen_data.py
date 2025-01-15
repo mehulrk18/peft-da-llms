@@ -73,7 +73,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
             del summary
     else:
         logger.info("Summaries in col: {} already exists in file: {}".format(col_name, test_summaries_file_name))
-        test_summaries[col_name] = data[col_name]
+        test_summaries[col_name] = df_sum[col_name]
         save_df = False
 
     scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores = 0, 0, 0, 0, 0
@@ -349,8 +349,8 @@ if __name__ == "__main__":
         configs = read_yaml(file_name=config_file)
     elif args.peft_path is not None:
         configs["pefts"] = [args.peft_path]
-    mlm = True if "mlm" in args.mlm else False
-    sort_data = args.sorted_dataset
+    mlm = True if args.mlm else False
+    # sort_data = args.sorted_dataset
     quantize = args.quantize
     metric = args.metric
     peft_dir = args.peft_dir 
