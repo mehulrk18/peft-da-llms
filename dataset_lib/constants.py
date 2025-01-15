@@ -410,10 +410,10 @@ datasets_info_dict = {
         "newsroom": NewsroomDataset()
     },
     SumDomains.UNSEEN_TEST: {
-        "scientific": ScientificDataset,
-        "medical": MedicalDataset,
-        "legal": LegalDataset,
-        "news": NewsDataset
+        "scientific": ScientificDataset(),
+        "medical": MedicalDataset(),
+        "legal": LegalDataset(),
+        "news": NewsDataset()
     }
 }
 
