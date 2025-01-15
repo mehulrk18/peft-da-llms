@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import statistics
+import json
 
 import adapters
 import pandas as pd
@@ -233,7 +234,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         new_row = {
             "model": peft_full_name,
             "bleu": bleu_scores["bleu"],
-            "precisions": bleu_scores["precisions"],
+            "precisions": json.dumps(bleu_scores["precisions"]), # bleu_scores["precisions"],
             "brevity_penalty": bleu_scores["brevity_penalty"],
             "length_ratio": bleu_scores["length_ratio"],
             "translation_length": bleu_scores["translation_length"],
@@ -311,7 +312,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
             new_row = {
                 "model": peft_full_name,
                 "bleu": scores["bleu"],
-                "precisions": scores["precisions"],
+                "precisions": json.dumps(scores["precisions"]), #scores["precisions"],
                 "brevity_penalty": scores["brevity_penalty"],
                 "length_ratio": scores["length_ratio"],
                 "translation_length": scores["translation_length"],
