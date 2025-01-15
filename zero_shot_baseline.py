@@ -7,8 +7,9 @@ from dotenv import load_dotenv
 
 import wandb
 
-from dataset_lib import SumDataLoader
+from dataset_lib import SumDataLoader, SumDomains, datasets_info_dict
 from testing_one_v_one_model import testing_model
+from inference_unseen_data import unseen_test_data_inference
 from utils import LLaMAModelClass, torch_dtypes_dict, WandBLogger
 
 
@@ -35,17 +36,25 @@ def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metr
     logger.addHandler(wnb)
     logger.info("Running Zero Shot Baseline experiments for dataset {} in domain {} for {} "
                 "test samples.".format(dataset_name, domain, test_samples))
-
-    data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=1, eval_samples=1,
-                         test_samples=test_samples, sort_dataset_on_article_len=True)
     # data.loading_dataset_splits()
 
-    logger.info("About Dataset: \n{}".format(data.__str__()))
 
-    testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, logger=logger,
-                  peft_full_name="zero_shot_{}_{}_results".format(domain, dataset_name), device=device,
-                  chat_template=instruct, col_name="zero_shot_instruct" if instruct else "zero_shot",
-                  metric_name=metric, overwrite_results=overwrite)
+    if domain == "unseen_data":
+        domain_sum= SumDomains("unseen_test")
+        data_class = datasets_info_dict[domain_sum][dataset_name]
+        unseen_test_data_inference(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data_class=data_class, 
+                                   peft_full_name="zero_shot_{}_{}_results".format(domain, dataset_name), 
+                                   device=device, logger=logger, chat_template=instruct, 
+                                   col_name="zero_shot_instruct" if instruct else "zero_shot",
+                                   metric_name=metric)
+    else:
+        data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=1, eval_samples=1,
+                            test_samples=test_samples, sort_dataset_on_article_len=True)
+        logger.info("About Dataset: \n{}".format(data.__str__()))
+        testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data=data, logger=logger,
+                    peft_full_name="zero_shot_{}_{}_results".format(domain, dataset_name), device=device,
+                    chat_template=instruct, col_name="zero_shot_instruct" if instruct else "zero_shot",
+                    metric_name=metric, overwrite_results=overwrite)
     wnb_run.finish()
 
 

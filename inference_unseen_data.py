@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import statistics
+import json
 
 import adapters
 import pandas as pd
@@ -132,54 +133,187 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
 
     # TODO: Write Scores to a CSV file directly, without storing it in a txt file.
     if metric_name == "all":
-        """
-        unseen_metrics_results_{}.csv # scientific, medical, legal, news
-        
-        peft_name | rouge_1 | rouge_2 | rouge_L | rouge_Lsum | bertscore_precision_mean | bertscore_precision_median | bertscore_recall_mean | bertscore_recall_median | bertscore_f1_mean | bertscore_f1_median | bleu | bleu_ngram_precision | bleurt_mean | bleurt_median
-        
-        """
-
-
-
         from datetime import datetime
-        with open("summaries/rouge_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has rouge Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                              peft_full_name,
-                                                                                              min_samples,
-                                                                                              rouge_scores))
+        # with open("summaries/rouge_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has rouge Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                       peft_full_name,
+        #                                                                                       min_samples,
+        #                                                                                       rouge_scores))
+
+        # ROUGE
+        logger.info("Writing ROUGE Scores {} to file: summaries/unseen_data_rouge_scores.csv".format(rouge_scores))
+        try:
+            rouge_df = pd.read_csv("summaries/unseen_data_rouge_scores.csv")
+        except Exception as e:
+            rouge_df = pd.DataFrame(columns=["model", "rouge1", "rouge2", "rougeL", "rougeLsum"])
+
+        new_row = {
+            "model": peft_full_name,
+            "rouge1": rouge_scores["rouge1"],
+            "rouge2": rouge_scores["rouge2"],
+            "rougeL": rouge_scores["rougeL"],
+            "rougeLsum": rouge_scores["rougeLsum"]
+        }
+        if peft_full_name in rouge_df["model"].values:
+            # Update the existing row
+            rouge_df.loc[rouge_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            rouge_df = pd.concat([rouge_df, pd.DataFrame([new_row])], ignore_index=True)
+        rouge_df.to_csv("summaries/unseen_data_rouge_scores.csv", index=False)
 
         logger.info("\n\n\nSummaries with rouge Score {} saved to file {}!!!!".format(rouge_scores,
                                                                                       test_summaries_file_name))
 
-        with open("summaries/bertscore_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has bertscore Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                                  peft_full_name,
-                                                                                                  min_samples,
-                                                                                                  bertscore_scores))
+        # with open("summaries/bertscore_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has bertscore Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                           peft_full_name,
+        #                                                                                           min_samples,
+        #                                                                                           bertscore_scores))
+        # BERTSCORE
+        try:
+            bertscore_df = pd.read_csv("summaries/unseen_data_bertscore_scores.csv")
+        except Exception as e:
+            bertscore_df = pd.DataFrame(columns=["model", "precision_mean", "precision_median", "recall_mean",
+                                                 "recall_median", "f1_mean", "f1_median"])
 
+        logger.info("Writing BERTScores {} to file: summaries/unseen_data_bertscore_scores.csv".format(bertscore_scores))
+        new_row = {
+            "model": peft_full_name,
+            "precision_mean": bertscore_scores["precision"]["mean"],
+            "precision_median": bertscore_scores["precision"]["median"],
+            "recall_mean": bertscore_scores["recall"]["mean"],
+            "recall_median": bertscore_scores["recall"]["median"],
+            "f1_mean": bertscore_scores["f1"]["mean"],
+            "f1_median": bertscore_scores["f1"]["median"]
+        }
+        if peft_full_name in bertscore_df["model"].values:
+            # Update the existing row
+            bertscore_df.loc[bertscore_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            bertscore_df = pd.concat([bertscore_df, pd.DataFrame([new_row])], ignore_index=True)
+        bertscore_df.to_csv("summaries/unseen_data_bertscore_scores.csv", index=False)
+
+        # TODO: Add the scores to the bertscore_scores.csv file
         logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(bertscore_scores,
                                                                                           test_summaries_file_name))
 
-        with open("summaries/bleu_scores.txt", "a") as fp:
-            fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                             peft_full_name, min_samples,
-                                                                                             bleu_scores))
+        # BLEU
+        # with open("summaries/bleu_scores.txt", "a") as fp:
+        #     fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                      peft_full_name, min_samples,
+        #                                                                                      bleu_scores))
+        logger.info("Writing Bleu Scores {} to file: summaries/unseen_data_bleu_scores.csv".format(bleu_scores))
+        try:
+            bleu_df = pd.read_csv("summaries/unseen_data_bleu_scores.csv")
+        except Exception as e:
+            bleu_df = pd.DataFrame(columns=["model", "bleu", "precisions", "brevity_penalty", "length_ratio",
+                                            "translation_length", "reference_length"])
+        new_row = {
+            "model": peft_full_name,
+            "bleu": bleu_scores["bleu"],
+            "precisions": json.dumps(bleu_scores["precisions"]), # bleu_scores["precisions"],
+            "brevity_penalty": bleu_scores["brevity_penalty"],
+            "length_ratio": bleu_scores["length_ratio"],
+            "translation_length": bleu_scores["translation_length"],
+            "reference_length": bleu_scores["reference_length"]
+        }
+        if peft_full_name in bleu_df["model"].values:
+            # Update the existing row
+            bleu_df.loc[bleu_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            bleu_df = pd.concat([bleu_df, pd.DataFrame([new_row])], ignore_index=True)
+        bleu_df.to_csv("summaries/unseen_data_bleu_scores.csv", index=False)
         logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu_scores,
                                                                                      test_summaries_file_name))
 
+        # TODO: Add the scores to the bleu_scores.csv file
+        # BLEURT
         # with open("summaries/bleurt_scores.txt", "a") as fp:
         #     fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
         #                                                                                      peft_full_name, min_samples,
         #                                                                                      bleurt_scores))
-        # logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(bleurt_scores,
-        #                                                                                test_summaries_file_name))
+
+        # TODO: Uncomment After fixing
+        # logger.info("Writing BleuRT Scores {} to file: summaries/bleurt_scores.csv".format(bleurt_scores))
+        # bleurt_df = pd.read_csv("summaries/bleurt_scores.csv")
+        # new_row = {
+        #     "model": peft_full_name,
+        #     "mean": bleurt_scores["scores"]["mean"],
+        #     "median": bleurt_scores["scores"]["median"],
+        # }
+        # if peft_full_name in bleurt_df["model"].values:
+        #     # Update the existing row
+        #     bleurt_df.loc[bleurt_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        # else:
+        #     # Add a new row
+        #     bleurt_df = pd.concat([bleurt_df, pd.DataFrame([new_row])], ignore_index=True)
+        # bleurt_df.to_csv("summaries/bleurt_scores.csv", index=False)
+        # logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(scores,
+        #                                                                              test_summaries_file_name))
 
     else:
-        with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
-            from datetime import datetime
-            fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
-                                                                                           peft_full_name, min_samples,
-                                                                                           metric_name, scores))
+        # with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
+        #     from datetime import datetime
+        #     fp.write("[{}] Summaries of {} for {} samples has {} Scores \n {} \n\n".format(datetime.today().date(),
+        #                                                                                    peft_full_name, min_samples,
+        #                                                                                    metric_name, scores))
+        if metric_name == "rouge":
+            df_file = "summaries/unseen_data_rouge_scores.csv"
+            logger.info("Writing Rouge Scores {} to file: {}".format(scores, df_file))
+            metric_df = pd.read_csv(df_file)
+            new_row = {
+                "model": peft_full_name,
+                "rouge1": scores["rouge1"],
+                "rouge2": scores["rouge2"],
+                "rougeL": scores["rougeL"],
+                "rougeLsum": scores["rougeLsum"]
+            }
+        elif metric_name == "bertscore":
+            df_file = "summaries/unseen_data_bertscore_scores.csv"
+            logger.info("Writing BertScore Scores {} to file: {}".format(scores, df_file))
+            metric_df = pd.read_csv(df_file)
+            new_row = {
+                "model": peft_full_name,
+                "precision_mean": scores["precision"]["mean"],
+                "precision_median": scores["precision"]["median"],
+                "recall_mean": scores["recall"]["mean"],
+                "recall_median": scores["recall"]["median"],
+                "f1_mean": scores["f1"]["mean"],
+                "f1_median": scores["f1"]["median"]
+            }
+        elif metric_name == "bleu":
+            df_file = "summaries/unseen_data_bleu_scores.csv"
+            logger.info("Writing Bleu Scores {} to file: {}".format(scores, df_file))
+            metric_df = pd.read_csv(df_file)
+            new_row = {
+                "model": peft_full_name,
+                "bleu": scores["bleu"],
+                "precisions": json.dumps(scores["precisions"]), #scores["precisions"],
+                "brevity_penalty": scores["brevity_penalty"],
+                "length_ratio": scores["length_ratio"],
+                "translation_length": scores["translation_length"],
+                "reference_length": scores["reference_length"]
+            }
+        # elif metric_name == "bleurt":
+        #     logger.info("Writing Bleurt Scores {} to file: summaries/bleurt_scores.csv".format(scores))
+        #     metric_df = pd.read_csv("summaries/bleurt_scores.csv")
+        #     new_row = {
+        #         "model": peft_full_name,
+        #         "mean": scores["scores"]["mean"],
+        #         "median": scores["scores"]["median"],
+        #     }
+
+        if peft_full_name in metric_df["model"].values:
+            # Update the existing row
+            metric_df.loc[metric_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            metric_df = pd.concat([metric_df, pd.DataFrame([new_row])], ignore_index=True)
+
+        metric_df.to_csv(df_file, index=False)
 
         logger.info("\n\n\nSummaries with {} Score {} saved to file {}!!!!".format(metric_name, scores,
                                                                                    test_summaries_file_name))
@@ -192,7 +326,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
-    parser.add_argument("--config_file_path", type=str, help="Path of the config file containing pefts and dataset.")
+    parser.add_argument("--config_pefts_file_path", default=None, type=str, help="Path of the config file containing pefts and dataset for multiple pefts inference")
+    parser.add_argument("--peft_path", type=str, default=None, help="For single peft")
+    parser.add_argument("--data_dir", type=str, default="", help="Storage directory")
+    parser.add_argument("--test_dataset", required=True, type=str, help="Only test dataest.")
     parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
                         help="Torch Data Type to be used")
     parser.add_argument("--metric", type=str, required=True, choices=["rouge", "bertscore", "bleu", "bleurt", "all"],
@@ -201,10 +338,17 @@ if __name__ == "__main__":
     parser.add_argument("--chat_template", type=bool, default=False, help="Using chat template for tokenizing")
     parser.add_argument("--mlm", type=bool, default=False, help="Using attention mask")
 
-    main_directory = ""
+    main_directory, config_file, data_dir = "", "", ""
+    configs = {}
 
     args = parser.parse_args()
-    config_file = main_directory + args.config_file_path
+    if args.config_pefts_file_path is None and args.peft_path is None:
+        raise ValueError("Please provide the path of the config file containing pefts and dataset for multiple pefts inference or the path of the peft for single peft inference")
+    if args.config_pefts_file_path is not None:
+        config_file = main_directory + args.config_file_path
+        configs = read_yaml(file_name=config_file)
+    elif args.peft_path is not None:
+        configs["pefts"] = [args.peft_path]
     mlm = True if "mlm" in args.mlm else False
     sort_data = args.sorted_dataset
     quantize = args.quantize
@@ -213,23 +357,23 @@ if __name__ == "__main__":
     chat_template = True # if "chat_template" in trained_peft_path or args.chat_template else False
     use_instruct_model = True # if "instruct" in trained_peft_path or args.chat_template else False
     # provider = "hf" if "hf" in trained_peft_path else "ah"
-    configs = read_yaml(file_name=config_file)
-    dataset_name = configs["dataset_name"]
-    zero_shot = configs["zero_shot"]
+    
+    dataset_name = args.test_dataset # configs["dataset_name"]
 
     # elif trained_peft_path.split("/")[0] ==  :# "saved_models":
     peft_names = []
-    if not zero_shot:
-        for path in configs["pefts"]:
-            a_name = path.split("/")[-1]
-            peft_names.append(a_name)
+    # if not zero_shot:
+    zero_shot = False
+    for path in configs["pefts"]:
+        a_name = path.split("/")[-1]
+        peft_names.append(a_name)
 
     provider = "hf"
 
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
     wandb_api_key = os.getenv("WANDB_API_KEY")
-    run_name = 'unseen_data_inference_{}_{}.log'.format("-".join(peft_names) if not zero_shot else "zero_shot", dataset_name)
+    run_name = 'unseen_data_inference_{}_{}.log'.format(("-".join(peft_names) if len(peft_names) > 1 else peft_names[0]) if not zero_shot else "zero_shot", dataset_name)
     wnb_run = wandb.init(name=run_name)
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
     logging.basicConfig(
@@ -259,7 +403,7 @@ if __name__ == "__main__":
     # Method 1 - HuggingFace
     if not zero_shot:
         for a_path, a_name in zip(configs["paths"], peft_names):
-            llama.model.load_adapter(a_path, adapter_name=a_name)
+            llama.model.load_adapter(data_dir+a_path, adapter_name=a_name)
     # llama.model.load_adapter(trained_peft_path, adapter_name=adapter_name)
     # llama.model.set_adapter([adapter_name])
     # llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=adapter_name,
@@ -284,7 +428,7 @@ if __name__ == "__main__":
     # data.validation_set = None
 
     unseen_test_data_inference(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data_class=data_class,
-                               peft_full_name= "-".join(peft_names) if not zero_shot else "zero_shot",
-                               col_name="-".join(peft_names) if not zero_shot else "zero_shot", logger=logger,
+                               peft_full_name=("-".join(peft_names) if len(peft_names) > 1 else peft_names[0]) if not zero_shot else "zero_shot",
+                               col_name=("-".join(peft_names) if len(peft_names) > 1 else peft_names[0]) if not zero_shot else "zero_shot", logger=logger,
                                device=device, chat_template=chat_template, metric_name=metric)
     wnb_run.finish()
