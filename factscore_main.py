@@ -41,6 +41,11 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
         new_df = df[["article", "truth", _peft]]  # summary
         prediction_col_name = "data-{}_{}-peft-{}".format(domain, dataset_name, _peft)
 
+        if ("{}_{}".format(domain, dataset_name) in fs_df["test_domain_dataset"].values
+                and _peft in fs_df["peft_name"].values):
+            print("!!!! Skipping already calculated FactScore for: Domain: {} - Dataset: {} - Peft: {} !!!!".format(domain, dataset_name, _peft))
+            continue
+
         new_df.rename(columns={_peft: prediction_col_name}, inplace=True)
 
         jsonl_path = df_to_jsonl_for_factscore(df=new_df, predictions_col_name=prediction_col_name, main_data_dir=STORE_DATA_DIR)
@@ -64,7 +69,8 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
         fs_reslts.append(res_obj)
 
     for obj in fs_reslts:
-        if obj["test_domain_dataset"] in fs_df["test_domain_dataset"].values and obj["peft_name"] in fs_df["peft_name"].values:
+        if ((fs_df["test_domain_dataset"] == obj["test_domain_dataset"]) & (fs_df["peft_name"] == obj["peft_name"])).any():
+        # if obj["test_domain_dataset"] in fs_df["test_domain_dataset"].values and obj["peft_name"] in fs_df["peft_name"].values:
             # Update the row where the "Dataset" value matches
             # fs_df.loc[fs_df["peft_name"] == obj["peft_name"], obj.keys()] = obj.values()
             # fs_df.loc[fs_df["peft_name"] == obj["peft_name"] and fs_df["test_domain_data"] == obj["test_domain_data"], obj.keys()] = obj.values()
