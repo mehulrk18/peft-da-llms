@@ -408,9 +408,15 @@ if __name__ == "__main__":
         for a_path, a_name in zip(configs["pefts"], peft_names):
             llama.model.load_adapter(peft_dir+a_path, adapter_name=a_name)
     # llama.model.load_adapter(trained_peft_path, adapter_name=adapter_name)
-    # llama.model.set_adapter([adapter_name])
     # llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=adapter_name,
     #                                                           torch_dtype=torch_dtype)
+        logger.info("Active Adapters in Model before enabling adapters: {}".format(llama.model.active_adapters()))
+        llama.model.set_adapter(peft_names)
+        llama.model.enable_adapters()
+        logger.info("Active Adapters in Model after enabling adapters: {}".format(llama.model.active_adapters()))
+        
+        # llama.model.set_adapter([peft_names])
+        # logger.info("Active Adapters in Model: {}".format(llama.model.active_adapters()))
         llama.model = llama.model.to(torch_dtype)
 
     logger.info("Loaded MODEL: \n{}".format(llama.model))
