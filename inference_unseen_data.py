@@ -437,7 +437,9 @@ if __name__ == "__main__":
     # data.validation_set = None
 
     unseen_test_data_inference(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data_class=data_class,
-                               peft_full_name=("-".join(peft_names) if len(peft_names) > 1 else peft_names[0]) if not zero_shot else "zero_shot",
-                               col_name=("-".join(peft_names) if len(peft_names) > 1 else peft_names[0]) if not zero_shot else "zero_shot", logger=logger,
-                               device=device, chat_template=chat_template, metric_name=metric)
+                               peft_full_name=("-".join(peft_names)+f"_{dataset_name}" if
+                                               len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
+                               col_name=("-".join(peft_names)+f"_{dataset_name}" if
+                                         len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
+                               logger=logger, device=device, chat_template=chat_template, metric_name=metric)
     wnb_run.finish()
