@@ -1,14 +1,16 @@
 import argparse
 import logging
+import os
 
 import pandas as pd
 import torch
+import wandb
+from dotenv import load_dotenv
 
 from dataset_lib import SumDataLoader
 from testing_one_v_one_model import testing_model
 from utils import generate_summary, LLaMAModelClass, \
-    convert_model_adapter_params_to_torch_dtype, read_yaml, torch_dtypes_dict
-
+    convert_model_adapter_params_to_torch_dtype, read_yaml, torch_dtypes_dict, WandBLogger
 
 global CHAT_TEMPLATE
 
@@ -100,6 +102,16 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s -\n%(message)s'  # Log message format
     )
     logger = logging.getLogger()
+    wnb = WandBLogger()
+    wnb.wandb = wandb
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)  # Set the log level for the console handler
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    logger.addHandler(wnb)
+
     logger.info("Device in use: {}".format(device))
 
     logger.info("Adapters:-> {}".format(testing_configs["pefts"]))
@@ -161,3 +173,5 @@ if __name__ == "__main__":
     testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, logger=logger,
                   col_name="multiple_"+all_adapters, data=data, chat_template=CHAT_TEMPLATE, metric_name=metric,
                   peft_full_name="multiple_"+all_adapters, device=device)
+
+    wnb_run.finish()
