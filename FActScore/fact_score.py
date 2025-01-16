@@ -116,8 +116,8 @@ class GenFact:
             "topics": topics,
             "decisions": out["decisions"],
             "wrong_facts": out["wrong_facts"],
-            "groundings": groundings,
-            "generations": generations,
+            # "groundings": groundings,
+            # "generations": generations,
             "num_atomic_facts": out["num_facts_per_response"],
             "grounding_provided": grounding_provided,
         }
