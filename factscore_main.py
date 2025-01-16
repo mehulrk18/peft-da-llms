@@ -41,8 +41,9 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
         new_df = df[["article", "truth", _peft]]  # summary
         prediction_col_name = "data-{}_{}-peft-{}".format(domain, dataset_name, _peft)
 
-        if ("{}_{}".format(domain, dataset_name) in fs_df["test_domain_dataset"].values
-                and _peft in fs_df["peft_name"].values):
+        if ((fs_df["test_domain_dataset"] == "{}_{}".format(domain, dataset_name)) & (fs_df["peft_name"] == _peft)).any():
+        # ("{}_{}".format(domain, dataset_name) in fs_df["test_domain_dataset"].values
+                # and _peft in fs_df["peft_name"].values):
             print("!!!! Skipping already calculated FactScore for: Domain: {} - Dataset: {} - Peft: {} !!!!".format(domain, dataset_name, _peft))
             continue
 
