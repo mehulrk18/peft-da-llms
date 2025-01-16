@@ -121,8 +121,8 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         logger.info("{} Scores: {}".format(metric_name, scores))
 
     if file_exists:
-        test_summaries.pop("content")
-        test_summaries.pop("summary")
+        test_summaries.pop("content", None)
+        test_summaries.pop("summary", None)
     else:
         df_sum["article"] = data["content"]
         df_sum["truth"] = truth
@@ -350,12 +350,12 @@ if __name__ == "__main__":
     elif args.peft_path is not None:
         configs["pefts"] = [args.peft_path]
     mlm = True if args.mlm else False
-    # sort_data = args.sorted_dataset
+    chat_template = args.chat_template
     quantize = args.quantize
     metric = args.metric
     peft_dir = args.peft_dir
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
-    chat_template = True # if "chat_template" in trained_peft_path or args.chat_template else False
+    
     use_instruct_model = True # if "instruct" in trained_peft_path or args.chat_template else False
     # provider = "hf" if "hf" in trained_peft_path else "ah"
     
@@ -403,8 +403,9 @@ if __name__ == "__main__":
     logger.info("Check point MODEL: \n{}".format(llama.model))
 
     # Method 1 - HuggingFace
+    logger.info(" -->{}".format(configs))
     if not zero_shot:
-        for a_path, a_name in zip(configs["paths"], peft_names):
+        for a_path, a_name in zip(configs["pefts"], peft_names):
             llama.model.load_adapter(peft_dir+a_path, adapter_name=a_name)
     # llama.model.load_adapter(trained_peft_path, adapter_name=adapter_name)
     # llama.model.set_adapter([adapter_name])

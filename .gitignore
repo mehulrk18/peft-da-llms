@@ -19,3 +19,4 @@ api.key
 *.jsonl
 .cache/
 json_data/
+.uuid
