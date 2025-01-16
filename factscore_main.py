@@ -74,17 +74,17 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
             #     (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
             #     list(obj.keys())
             # ] = list(obj.values())
-            if "test_domain_data" not in fs_df.columns:
-                fs_df["test_domain_data"] = None  # Add with default value if missing
+            if "test_domain_dataset" not in fs_df.columns:
+                fs_df["test_domain_dataset"] = None  # Add with default value if missing
 
             # Ensure the column exists in obj
-            if "test_domain_data" in obj:
+            if "test_domain_dataset" in obj:
                 fs_df.loc[
-                    (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
+                    (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_dataset"] == obj["test_domain_dataset"]),
                     list(obj.keys())
                 ] = list(obj.values())
             else:
-                print("'test_domain_data' is missing in obj")
+                print("'test_domain_dataset' is missing in obj")
 
         else:
             # Append the new row
