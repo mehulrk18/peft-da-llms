@@ -108,6 +108,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
     parser.add_argument("--data_dir", default="", type=str, help="Path to main data directory")
+    parser.add_argument("--domain", default="all", type=str, help="Path to main data directory")
 
     # domain = "scientific"
     # dataset_name = "arxiv"
@@ -115,10 +116,16 @@ if __name__ == "__main__":
     STORE_DATA_DIR = args.data_dir
 
     from dataset_lib import datasets_info_dict, SumDomains
+    datasets_dict = {}
 
-    did = datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
+    # did = datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
+    if args.domain=="all":
+        datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
+        datasets_dict = datasets_info_dict
+    else:
+        datasets_dict[SumDomains(args.domain)] = datasets_info_dict[SumDomains(args.domain)]
 
-    for domain, datasets in datasets_info_dict.items():
+    for domain, datasets in datasets_dict.items():
         for dataset_name in datasets:
             print("Calculating FactScore for: Domain: {} - Dataset: {}".format(domain.name.lower(), dataset_name))
             generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain.name.lower(), dataset_name,
