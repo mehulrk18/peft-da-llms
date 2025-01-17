@@ -23,11 +23,14 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
     df = pd.read_csv(summary_file_path, encoding="ISO-8859-1")
     pefts = df.columns[2:]
 
-    if os.path.exists(factscore_results_file):
-        fs_df = pd.read_csv(factscore_results_file)
-    else:
-        # fs_df = pd.DataFrame(columns=["peft_name", "score", "num_atomic_facts"])
+    # if os.path.exists(factscore_results_file):
+    #     fs_df = pd.read_csv(factscore_results_file)
+    # else:
+    #     # fs_df = pd.DataFrame(columns=["peft_name", "score", "num_atomic_facts"])
+    #     fs_df = pd.DataFrame(columns=["test_domain_dataset", "peft_name", "score", "num_atomic_facts"])
+    if not os.path.exists(factscore_results_file):
         fs_df = pd.DataFrame(columns=["test_domain_dataset", "peft_name", "score", "num_atomic_facts"])
+        fs_df.to_csv(factscore_results_file, index=False)
 
     print("Data Directory: ", STORE_DATA_DIR)
 
@@ -35,17 +38,21 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
 
     for _peft in pefts:
         # skipping zero shot for now.
-        if "zero_shot_" in _peft:
+        if "zero_shot_instruct" == _peft:
             continue
         print("Running FactScore for: Domain: {} - Dataset: {} - Peft: {}".format(domain, dataset_name, _peft))
         new_df = df[["article", "truth", _peft]]  # summary
         prediction_col_name = "data-{}_{}-peft-{}".format(domain, dataset_name, _peft)
 
+        #reading the file to check for values if they exist:
+        print("Checking for existing data - peft values")
+        fs_df =  pd.read_csv(factscore_results_file)
         if ((fs_df["test_domain_dataset"] == "{}_{}".format(domain, dataset_name)) & (fs_df["peft_name"] == _peft)).any():
         # ("{}_{}".format(domain, dataset_name) in fs_df["test_domain_dataset"].values
                 # and _peft in fs_df["peft_name"].values):
             print("!!!! Skipping already calculated FactScore for: Domain: {} - Dataset: {} - Peft: {} !!!!".format(domain, dataset_name, _peft))
             continue
+        fs_df = None
 
         new_df.rename(columns={_peft: prediction_col_name}, inplace=True)
 
@@ -67,37 +74,57 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
             "score": result_scores["score"],
             "num_atomic_facts": result_scores["num_atomic_facts"]
         }
-        fs_reslts.append(res_obj)
-
-    for obj in fs_reslts:
-        if ((fs_df["test_domain_dataset"] == obj["test_domain_dataset"]) & (fs_df["peft_name"] == obj["peft_name"])).any():
-        # if obj["test_domain_dataset"] in fs_df["test_domain_dataset"].values and obj["peft_name"] in fs_df["peft_name"].values:
-            # Update the row where the "Dataset" value matches
-            # fs_df.loc[fs_df["peft_name"] == obj["peft_name"], obj.keys()] = obj.values()
-            # fs_df.loc[fs_df["peft_name"] == obj["peft_name"] and fs_df["test_domain_data"] == obj["test_domain_data"], obj.keys()] = obj.values()
-            
-            
-            # fs_df.loc[
-            #     (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
-            #     list(obj.keys())
-            # ] = list(obj.values())
+        fs_df =  pd.read_csv(factscore_results_file)
+        if ((fs_df["test_domain_dataset"] == res_obj["test_domain_dataset"]) & (fs_df["peft_name"] == res_obj["peft_name"])).any():
             if "test_domain_dataset" not in fs_df.columns:
                 fs_df["test_domain_dataset"] = None  # Add with default value if missing
 
             # Ensure the column exists in obj
-            if "test_domain_dataset" in obj:
+            if "test_domain_dataset" in res_obj:
                 fs_df.loc[
-                    (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_dataset"] == obj["test_domain_dataset"]),
-                    list(obj.keys())
-                ] = list(obj.values())
+                    (fs_df["peft_name"] == res_obj["peft_name"]) & (fs_df["test_domain_dataset"] == res_obj["test_domain_dataset"]),
+                    list(res_obj.keys())
+                ] = list(res_obj.values())
+                fs_df.to_csv(factscore_results_file, index=False)
             else:
                 print("'test_domain_dataset' is missing in obj")
-
         else:
             # Append the new row
-            fs_df = pd.concat([fs_df, pd.DataFrame([obj])], ignore_index=True)
+            fs_df = pd.concat([fs_df, pd.DataFrame([res_obj])], ignore_index=True)
+            fs_df.to_csv(factscore_results_file, index=False)
+        print("Writtent Obj: \n{}".format(res_obj))
 
-    fs_df.to_csv(factscore_results_file, index=False)
+        # fs_reslts.append(res_obj)
+
+    # for obj in fs_reslts:
+    #     if ((fs_df["test_domain_dataset"] == obj["test_domain_dataset"]) & (fs_df["peft_name"] == obj["peft_name"])).any():
+    #     # if obj["test_domain_dataset"] in fs_df["test_domain_dataset"].values and obj["peft_name"] in fs_df["peft_name"].values:
+    #         # Update the row where the "Dataset" value matches
+    #         # fs_df.loc[fs_df["peft_name"] == obj["peft_name"], obj.keys()] = obj.values()
+    #         # fs_df.loc[fs_df["peft_name"] == obj["peft_name"] and fs_df["test_domain_data"] == obj["test_domain_data"], obj.keys()] = obj.values()
+            
+            
+    #         # fs_df.loc[
+    #         #     (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_data"] == obj["test_domain_data"]),
+    #         #     list(obj.keys())
+    #         # ] = list(obj.values())
+    #         if "test_domain_dataset" not in fs_df.columns:
+    #             fs_df["test_domain_dataset"] = None  # Add with default value if missing
+
+    #         # Ensure the column exists in obj
+    #         if "test_domain_dataset" in obj:
+    #             fs_df.loc[
+    #                 (fs_df["peft_name"] == obj["peft_name"]) & (fs_df["test_domain_dataset"] == obj["test_domain_dataset"]),
+    #                 list(obj.keys())
+    #             ] = list(obj.values())
+    #         else:
+    #             print("'test_domain_dataset' is missing in obj")
+
+    #     else:
+    #         # Append the new row
+    #         fs_df = pd.concat([fs_df, pd.DataFrame([obj])], ignore_index=True)
+
+    # fs_df.to_csv(factscore_results_file, index=False)
 
 
 if __name__ == "__main__":
@@ -108,22 +135,23 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
     parser.add_argument("--data_dir", default="", type=str, help="Path to main data directory")
-    parser.add_argument("--domain", default="all", type=str, help="Path to main data directory")
+    parser.add_argument("--domain", default="all", type=str, help="Domain for which to generate FActScores")
 
     # domain = "scientific"
     # dataset_name = "arxiv"
     args = parser.parse_args()
     STORE_DATA_DIR = args.data_dir
+    _domain = args.domain
 
     from dataset_lib import datasets_info_dict, SumDomains
     datasets_dict = {}
 
     # did = datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
-    if args.domain=="all":
+    if _domain=="all":
         datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
         datasets_dict = datasets_info_dict
     else:
-        datasets_dict[SumDomains(args.domain)] = datasets_info_dict[SumDomains(args.domain)]
+        datasets_dict[SumDomains(_domain)] = datasets_info_dict[SumDomains(_domain)]
 
     for domain, datasets in datasets_dict.items():
         for dataset_name in datasets:
