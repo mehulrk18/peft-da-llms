@@ -74,7 +74,7 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
             "score": result_scores["score"],
             "num_atomic_facts": result_scores["num_atomic_facts"]
         }
-        fs_df =  pd.read_csv(factscore_results_file)
+        fs_df = pd.read_csv(factscore_results_file)
         if ((fs_df["test_domain_dataset"] == res_obj["test_domain_dataset"]) & (fs_df["peft_name"] == res_obj["peft_name"])).any():
             if "test_domain_dataset" not in fs_df.columns:
                 fs_df["test_domain_dataset"] = None  # Add with default value if missing
@@ -139,9 +139,9 @@ if __name__ == "__main__":
 
     # domain = "scientific"
     # dataset_name = "arxiv"
-    args = parser.parse_args()
-    STORE_DATA_DIR = args.data_dir
-    _domain = args.domain
+    main_args = parser.parse_args()
+    STORE_DATA_DIR = main_args.data_dir
+    _domain = main_args.domain
 
     from dataset_lib import datasets_info_dict, SumDomains
     datasets_dict = {}
