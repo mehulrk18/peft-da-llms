@@ -262,6 +262,8 @@ def parse_options(args: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--grounding_provided", type=bool, default=args.grounding_provided
     )
+    # TODO: Remove the --domain argument before final push
+    parser.add_argument("--domain", default=None, type=str, help="Domain for which to generate FActScores")
 
     args = parser.parse_args()
     return args
