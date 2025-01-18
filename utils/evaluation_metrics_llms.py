@@ -21,9 +21,11 @@ def bleurt_metric():
     return bleurt
 
 
-def dvo_metric():
-    pass
+def meteor_metric():
+    meteor = evaluate.load("meteor")
+    return meteor
 
 
 def factscore_metric():
+    print("To run factscore use factscore_main.py")
     pass

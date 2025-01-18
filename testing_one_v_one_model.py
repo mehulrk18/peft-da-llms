@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
     convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger, check_and_return_df, bertscore_metric, \
-    bleu_metric, bleurt_metric
+    bleu_metric, bleurt_metric, meteor_metric
 
 
 def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, logger, chat_template, col_name, metric_name,
@@ -27,10 +27,13 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         metric = bleu_metric()
     elif metric_name == "bleurt":
         metric = bleurt_metric()
+    elif metric_name == "meteor":
+        metric = meteor_metric()
     elif metric_name == "all":
         rouge = rouge_metric()
         bertscore = bertscore_metric()
         bleu = bleu_metric()
+        meteor = meteor_metric()
         # bleurt = bleurt_metric()
     else:
         raise ValueError("Invalid Metric")
@@ -102,7 +105,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         test_summaries[col_name] = df_sum[col_name]
         save_df = False
 
-    scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores = 0, 0, 0, 0, 0
+    scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores, meteor_scores = 0, 0, 0, 0, 0, 0
     if file_exists:
         test_summaries["truth"] = df_sum["truth"]
     # if "mslr" not in peft_full_name:
@@ -123,10 +126,11 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         # bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
         # bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
         #                     "median": statistics.median(bleurt_scores["scores"])}
-
+        meteor_scores = meteor.compute(predictions=test_summaries[col_name], references=test_summaries["truth"])
         logger.info("ROUGE Scores: {}".format(rouge_scores))
         logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
         logger.info("BLEU Scores: {}".format(bleu_scores))
+        logger.info("Meteor Scores: {}".format(meteor_scores))
         # logger.info("BLEURT Scores: {}".format(bleurt_scores))
     else:
         if metric_name == "bertscore":
@@ -250,7 +254,23 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu_scores,
                                                                                      test_summaries_file_name))
 
-        # TODO: Add the scores to the bleu_scores.csv file
+        # METEOR
+        logger.info("Writing Meteor Scores {} to file: summaries/meteor_scores.csv".format(meteor_scores))
+        meteor_df = pd.read_csv("summaries/meteor_scores.csv")
+        new_row = {
+            "model": peft_full_name,
+            "metoer": meteor_scores["meteor"]
+        }
+        if peft_full_name in meteor_df["model"].values:
+            # Update the existing row
+            meteor_df.loc[meteor_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            meteor_df = pd.concat([meteor_df, pd.DataFrame([new_row])], ignore_index=True)
+        meteor_df.to_csv("summaries/meteor_scores.csv", index=False)
+        logger.info("\n\n\nSummaries with meteor Score {} saved to file {}!!!!".format(meteor_scores,
+                                                                                       test_summaries_file_name))
+
         # BLEURT
         # with open("summaries/bleurt_scores.txt", "a") as fp:
         #     fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
@@ -284,7 +304,10 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         if metric_name == "rouge":
             df_file = "summaries/rouge_scores.csv"
             logger.info("Writing Rouge Scores {} to file: {}".format(scores, df_file))
-            metric_df = pd.read_csv(df_file)
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "rouge1", "rouge2", "rougeL", "rougeLsum"])
             new_row = {
                 "model": peft_full_name,
                 "rouge1": scores["rouge1"],
@@ -295,7 +318,11 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         elif metric_name == "bertscore":
             df_file = "summaries/bertscore_scores.csv"
             logger.info("Writing BertScore Scores {} to file: {}".format(scores, df_file))
-            metric_df = pd.read_csv(df_file)
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "precision_mean", "precision_median", "recall_mean",
+                                                  "recall_median", "f1_mean", "f1_median"])
             new_row = {
                 "model": peft_full_name,
                 "precision_mean": scores["precision"]["mean"],
@@ -308,7 +335,11 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         elif metric_name == "bleu":
             df_file = "summaries/bleu_scores.csv"
             logger.info("Writing Bleu Scores {} to file: {}".format(scores, df_file))
-            metric_df = pd.read_csv(df_file)
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "bleu", "precisions", "brevity_penalty", "length_ratio",
+                                                  "translation_length", "reference_length"])
             new_row = {
                 "model": peft_full_name,
                 "bleu": scores["bleu"],
@@ -318,6 +349,17 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                 "translation_length": scores["translation_length"],
                 "reference_length": scores["reference_length"]
             }
+        elif metric_name == "meteor":
+            df_file = "summaries/meteor_scores.csv"
+            logger.info("Writing Meteor Scores {} to file: {}".format(scores, df_file))
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "meteor"])
+            new_row = {
+                "model": peft_full_name,
+                "meteor": scores["meteor"]
+            }
         # elif metric_name == "bleurt":
         #     logger.info("Writing Bleurt Scores {} to file: summaries/bleurt_scores.csv".format(scores))
         #     metric_df = pd.read_csv("summaries/bleurt_scores.csv")
@@ -326,7 +368,6 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         #         "mean": scores["scores"]["mean"],
         #         "median": scores["scores"]["median"],
         #     }
-
         if peft_full_name in metric_df["model"].values:
             # Update the existing row
             metric_df.loc[metric_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())

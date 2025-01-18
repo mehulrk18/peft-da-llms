@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT, SumDomains, datasets_info_dict
 from utils import generate_summary, rouge_metric, LLaMAModelClass, \
     convert_model_adapter_params_to_torch_dtype, torch_dtypes_dict, WandBLogger, check_and_return_df, bertscore_metric, \
-    bleu_metric, bleurt_metric, read_yaml
+    bleu_metric, bleurt_metric, read_yaml, meteor_metric
 
 
 def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_full_name, device, logger, chat_template,
@@ -26,10 +26,13 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         metric = bleu_metric()
     # elif metric_name == "bleurt":
     #     metric = bleurt_metric()
+    elif metric_name == "meteor":
+        metric = meteor_metric()
     elif metric_name == "all":
         rouge = rouge_metric()
         bertscore = bertscore_metric()
         bleu = bleu_metric()
+        meteor = meteor_metric()
         # bleurt = bleurt_metric()
     else:
         raise ValueError("Invalid Metric")
@@ -76,7 +79,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         test_summaries[col_name] = df_sum[col_name]
         save_df = False
 
-    scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores = 0, 0, 0, 0, 0
+    scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores, meteor_scores = 0, 0, 0, 0, 0, 0
     truth = data["summary"]
         # metric = rouge_metric()
     if metric_name == "all":
@@ -92,6 +95,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                                   "median": statistics.median(bertscore_scores["f1"])}
 
         bleu_scores = bleu.compute(predictions=test_summaries[col_name], references=truth)
+        meteor_scores = meteor.compute(predictions=test_summaries[col_name], references=truth)
         # bleurt_scores = bleurt.compute(predictions=test_summaries[col_name], references=truth)
         # bleurt_scores["scores"] = {"mean": statistics.mean(bleurt_scores["scores"]),
         #                     "median": statistics.median(bleurt_scores["scores"])}
@@ -99,6 +103,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         logger.info("ROUGE Scores: {}".format(rouge_scores))
         logger.info("BERTSCORE Scores: {}".format(bertscore_scores))
         logger.info("BLEU Scores: {}".format(bleu_scores))
+        logger.info("METEOR Scores: {}".format(meteor_scores))
         # logger.info("BLEURT Scores: {}".format(bleurt_scores))
     else:
         if metric_name == "bertscore":
@@ -229,6 +234,26 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu_scores,
                                                                                      test_summaries_file_name))
 
+        # METEOR
+        logger.info("Writing Meteor Scores {} to file: summaries/unseen_data_meteor_scores.csv".format(meteor_scores))
+        try:
+            meteor_df = pd.read_csv("summaries/unseen_data_meteor_scores.csv")
+        except Exception as e:
+            meteor_df = pd.DataFrame(columns=["model", "meteor"])
+        new_row = {
+            "model": peft_full_name,
+            "metoer": meteor_scores["meteor"]
+        }
+        if peft_full_name in meteor_df["model"].values:
+            # Update the existing row
+            meteor_df.loc[meteor_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
+        else:
+            # Add a new row
+            meteor_df = pd.concat([meteor_df, pd.DataFrame([new_row])], ignore_index=True)
+        meteor_df.to_csv("summaries/unseen_data_meteor_scores.csv", index=False)
+        logger.info("\n\n\nSummaries with meteor Score {} saved to file {}!!!!".format(meteor_scores,
+                                                                                       test_summaries_file_name))
+
         # TODO: Add the scores to the bleu_scores.csv file
         # BLEURT
         # with open("summaries/bleurt_scores.txt", "a") as fp:
@@ -263,7 +288,10 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         if metric_name == "rouge":
             df_file = "summaries/unseen_data_rouge_scores.csv"
             logger.info("Writing Rouge Scores {} to file: {}".format(scores, df_file))
-            metric_df = pd.read_csv(df_file)
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "rouge1", "rouge2", "rougeL", "rougeLsum"])
             new_row = {
                 "model": peft_full_name,
                 "rouge1": scores["rouge1"],
@@ -274,7 +302,11 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         elif metric_name == "bertscore":
             df_file = "summaries/unseen_data_bertscore_scores.csv"
             logger.info("Writing BertScore Scores {} to file: {}".format(scores, df_file))
-            metric_df = pd.read_csv(df_file)
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "precision_mean", "precision_median", "recall_mean",
+                                                 "recall_median", "f1_mean", "f1_median"])
             new_row = {
                 "model": peft_full_name,
                 "precision_mean": scores["precision"]["mean"],
@@ -287,7 +319,11 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         elif metric_name == "bleu":
             df_file = "summaries/unseen_data_bleu_scores.csv"
             logger.info("Writing Bleu Scores {} to file: {}".format(scores, df_file))
-            metric_df = pd.read_csv(df_file)
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "bleu", "precisions", "brevity_penalty", "length_ratio",
+                                                 "translation_length", "reference_length"])
             new_row = {
                 "model": peft_full_name,
                 "bleu": scores["bleu"],
@@ -296,6 +332,17 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                 "length_ratio": scores["length_ratio"],
                 "translation_length": scores["translation_length"],
                 "reference_length": scores["reference_length"]
+            }
+        elif metric_name == "meteor":
+            df_file = "summaries/unseen_data_meteor_scores.csv"
+            logger.info("Writing Meteor Scores {} to file: {}".format(scores, df_file))
+            try:
+                metric_df = pd.read_csv(df_file)
+            except Exception as e:
+                metric_df = pd.DataFrame(columns=["model", "meteor"])
+            new_row = {
+                "model": peft_full_name,
+                "meteor": scores["meteor"]
             }
         # elif metric_name == "bleurt":
         #     logger.info("Writing Bleurt Scores {} to file: summaries/bleurt_scores.csv".format(scores))
