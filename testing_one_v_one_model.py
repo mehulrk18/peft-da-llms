@@ -259,7 +259,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         meteor_df = pd.read_csv("summaries/meteor_scores.csv")
         new_row = {
             "model": peft_full_name,
-            "metoer": meteor_scores["meteor"]
+            "meteor": meteor_scores["meteor"]
         }
         if peft_full_name in meteor_df["model"].values:
             # Update the existing row

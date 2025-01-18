@@ -242,7 +242,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
             meteor_df = pd.DataFrame(columns=["model", "meteor"])
         new_row = {
             "model": peft_full_name,
-            "metoer": meteor_scores["meteor"]
+            "meteor": meteor_scores["meteor"]
         }
         if peft_full_name in meteor_df["model"].values:
             # Update the existing row
