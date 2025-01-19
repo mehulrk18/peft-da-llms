@@ -65,7 +65,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     # col_name = col_name + "_shortprompt"
     if col_name not in df_sum.columns:
         logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data_class.name.upper()]))
-        articles = data["content"]
+        articles = df_sum["article"] if "multiple" in peft_name else data["content"]
         i = 0
         for i, art in enumerate(articles):
             logger.info("Summary for {} sample".format(i+1))
