@@ -141,7 +141,10 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     df_sum[col_name] = test_summaries[col_name]
 
     if save_df:
-        df_sum.to_csv(test_summaries_file_name, index=False)
+        if ".xlsx" in test_summaries_file_name:
+            df_sum.to_excel(test_summaries_file_name, index=False)
+        else:
+            df_sum.to_csv(test_summaries_file_name, index=False)
 
     # TODO: Write Scores to a CSV file directly, without storing it in a txt file.
     if metric_name == "all":
