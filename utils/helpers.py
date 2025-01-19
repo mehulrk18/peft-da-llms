@@ -4,6 +4,9 @@ import os.path
 import torch
 import yaml
 
+from itertools import chain, combinations
+
+
 MODEL_ID = "meta-llama/Meta-Llama-3-8B"  # Meta-Llama-3-8B-Instruct
 
 
@@ -64,3 +67,7 @@ def check_and_return_df(file_name: str):
     else:
         print("File not found: ", file_name)
         return pd.DataFrame([]), False
+
+
+def power_set(input_list):
+    return list(chain.from_iterable(combinations(input_list, r) for r in range(len(input_list) + 1)))
