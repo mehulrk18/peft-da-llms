@@ -18,8 +18,8 @@ test_dataset: "medical"
 pefts:
   - medical_cord19_lora_checkpoint-1330
   - medical_pubmed_lokr_checkpoint-1250
-#  - medical_scilay_loha_checkpoint-1284
-#  - medical_mslr_ia3_checkpoint-1250
+  - medical_scilay_loha_checkpoint-1284
+  - medical_mslr_ia3_checkpoint-1250
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250

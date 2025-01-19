@@ -1,27 +1,34 @@
-test_domain: medical
-# test_dataset: cord19
+# test_domain: medical
 
-# BEST PEFTS within Medical Domain from Each Dataset based on the 4 automatic metrics
-# cord19 ->
-# mslr ->
-# pubmed ->
-# scilay ->
 
-# to be added
-best_pefts:
-   cord19:
-      - medical_cord19_lora_checkpoint-1330
-   mslr:
-      - medical_mslr_ia3_checkpoint-1250
-   pubmed:
-      - medical_pubmed_lokr_checkpoint-1250
-   scilay:
-      - medical_scilay_loha_checkpoint-1284
+#best performing pefts on medical unseen_dataset are:
+#  -> rouge : medical_cord19_oft_medical, medical_cord19_lora_medical,  medical_pubmed_adalora_medical, medical_pubmed_lokr_medical, medical_mslr_ia3_medical, $medical_pubmed_lokr_medical
+#  -> bleu : medical_cord19_lora_medical, medical_pubmed_oft_medical, medical_pubmed_lora_medical, medical_scilay_loha_medical, medical_mslr_loha_medical
+#  -> bertscore : medical_cord19_lora_medical, medical_cord19_oft_medical, medical_cord19_lokr_medical, medical_mslr_ia3_medical
+#  -> meteor : medical_cord19_oft_medical, medical_cord19_lora_medical, medical_pubmed_lokr_medical, medical_pubmed_adalora_medical, medical_scilay_loha_medical
+# -> final =>
+#  1. medical_cord19_lora_medical/medical_cord19_oft_medical,
+#  2. medical_pubmed_lokr_medical,
+#  3. medical_scilay_loha_medical
+#  4. medical_mslr_ia3_medical
 
-#   - legal_billsum_adalora_checkpoint-1250
-#   - legal_billsum_ia3_checkpoint-1000
-#   - legal_billsum_loha_checkpoint-750
-#   - legal_billsum_lokr_checkpoint-1000
+test_dataset: "medical"
+
+#set1
+pefts:
+  - medical_cord19_lora_checkpoint-1330
+  - medical_pubmed_lokr_checkpoint-1250
+  - medical_scilay_loha_checkpoint-1284
+  - medical_mslr_ia3_checkpoint-1250
+
+#    _______________________________________________________________________________________________________________
+#  - medical_pubmed_adalora_checkpoint-1250
+#  - medical_pubmed_ia3_checkpoint-250
+#  - medical_pubmed_loha_checkpoint-1250
+  # - legal_billsum_adalora_checkpoint-1250
+  # - legal_billsum_ia3_checkpoint-1000
+  # - legal_billsum_loha_checkpoint-750
+  # - legal_billsum_lokr_checkpoint-1000
   # - legal_billsum_lora_checkpoint-1250
   # - legal_billsum_oft_checkpoint-1000
   # - legal_eurlex_adalora_checkpoint-3250
@@ -48,10 +55,7 @@ best_pefts:
   # - medical_mslr_lokr_checkpoint-1000
   # - medical_mslr_lora_checkpoint-1250
   # - medical_mslr_oft_checkpoint-1250
-#  - medical_pubmed_adalora_checkpoint-1250
-#  - medical_pubmed_ia3_checkpoint-250
-#  - medical_pubmed_loha_checkpoint-1250
-  # - medical_pubmed_lokr_checkpoint-1250
+
   # - medical_pubmed_lora_checkpoint-1250
   # - medical_pubmed_oft_checkpoint-1250
   # - medical_scilay_adalora_checkpoint-2140

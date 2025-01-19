@@ -78,6 +78,8 @@ if __name__ == "__main__":
 
     # adapter_paths = testing_configs["trained_adapters_path"]
 
+
+
     adapter_names = []
 
     # for path in adapter_paths:

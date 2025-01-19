@@ -338,7 +338,7 @@ class MedicalDataset(DatasetInfo):
     def __init__(self):
         super().__init__()
         self.dataset_id = "domains/test_medical_articles.xlsx"
-        self.local_path = "domains/unseen_test/unseen_medical_data.csv"
+        self.local_path = "domains/unseen_test/unseen_medical_data.xlsx"   #.csv"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None
@@ -357,7 +357,7 @@ class LegalDataset(DatasetInfo):
     def __init__(self):
         super().__init__()
         self.dataset_id = "domains/test_medical_articles.xlsx"
-        self.local_path = "domains/unseen_test/unseen_legal_data.csv"
+        self.local_path = "domains/unseen_test/unseen_legal_data.xlsx"   #.csv"
         self.streaming = True
         self.trust_remote_code = True
         self.version = None

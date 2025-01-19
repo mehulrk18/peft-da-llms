@@ -38,9 +38,15 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         raise ValueError("Invalid Metric")
 
     save_df, file_exists = True, False
-    test_summaries_file_name = "summaries/summaries_{}_{}_25samples.csv".format(data_class.domain.name.lower(), data_class.name.lower()) if "multiple" in peft_full_name else "summaries/summaries_{}_{}.csv".format(data_class.domain.name.lower(), data_class.name.lower())
-    data = pd.read_csv(data_class.local_path)
-    min_samples = len(data) #.num_rows
+    # test_summaries_file_name = "summaries/summaries_{}_{}_25samples.csv".format(data_class.domain.name.lower(), data_class.name.lower()) if "multiple" in peft_full_name else "summaries/summaries_{}_{}.csv".format(data_class.domain.name.lower(), data_class.name.lower())
+    # TODO: ONLY FOR LEGAL AND MEDICAL 25 samples from excel sheet
+    test_summaries_file_name = "summaries/summaries_{}_{}_25samples.xlsx".format(data_class.domain.name.lower(),
+                                                                                data_class.name.lower())
+
+    if data_class.name in ["medical", "legal"]:
+        test_summaries_file_name = test_summaries_file_name.replace(".csv", ".xlsx")
+    data = pd.read_excel(data_class.local_path) if ".xlsx" in data_class.local_path else pd.read_csv(data_class.local_path)
+    logger.info("Original dataset len: {}".format(len(data))) #.num_rows
 
 
 
@@ -65,7 +71,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     # col_name = col_name + "_shortprompt"
     if col_name not in df_sum.columns:
         logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data_class.name.upper()]))
-        articles = df_sum["article"] if "multiple" in peft_full_name else data["content"]
+        articles = df_sum["article"] if "multiple" in peft_full_name or "25" in test_summaries_file_name else data["content"]
         logger.info("Running infernce of {} on {} articles.".format(peft_full_name, len(articles)))
         i = 0
         for i, art in enumerate(articles):
@@ -81,7 +87,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         save_df = False
 
     scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores, meteor_scores = 0, 0, 0, 0, 0, 0
-    truth = df_sum["truth"] if "multiple" in peft_full_name else data["summary"]
+    truth = df_sum["truth"] if "multiple" in peft_full_name or "25" in test_summaries_file_name else data["summary"]
         # metric = rouge_metric()
     if metric_name == "all":
         rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=truth)
@@ -147,7 +153,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #                                                                                       rouge_scores))
 
         # ROUGE
-        f_name = "summaries/unseen_data_rouge_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_rouge_scores.csv"
+        f_name = "summaries/unseen_data_rouge_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_rouge_scores.csv"
         logger.info("Writing ROUGE Scores {} to file: {}".format(rouge_scores, f_name))
         try:
             rouge_df = pd.read_csv(f_name)
@@ -178,7 +184,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #                                                                                           min_samples,
         #                                                                                           bertscore_scores))
         # BERTSCORE
-        f_name = "summaries/unseen_data_bertscore_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_bertscore_scores.csv"
+        f_name = "summaries/unseen_data_bertscore_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_bertscore_scores.csv"
         try:
             bertscore_df = pd.read_csv(f_name)
         except Exception as e:
@@ -212,7 +218,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #     fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
         #                                                                                      peft_full_name, min_samples,
         #                                                                                      bleu_scores))
-        f_name = "summaries/unseen_data_bleu_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_bleu_scores.csv"
+        f_name = "summaries/unseen_data_bleu_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_bleu_scores.csv"
         logger.info("Writing Bleu Scores {} to file: {}".format(bleu_scores, f_name))
         try:
             bleu_df = pd.read_csv(f_name)
@@ -239,7 +245,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                                                                                      test_summaries_file_name))
 
         # METEOR
-        f_name = "summaries/unseen_data_meteor_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_meteor_scores.csv"
+        f_name = "summaries/unseen_data_meteor_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_meteor_scores.csv"
         logger.info("Writing Meteor Scores {} to file: {}".format(meteor_scores, f_name))
         try:
             meteor_df = pd.read_csv(f_name)
@@ -291,7 +297,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #                                                                                    peft_full_name, min_samples,
         #                                                                                    metric_name, scores))
         if metric_name == "rouge":
-            df_file = "summaries/unseen_data_rouge_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_rouge_scores.csv"
+            df_file = "summaries/unseen_data_rouge_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_rouge_scores.csv"
             logger.info("Writing Rouge Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
@@ -305,7 +311,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                 "rougeLsum": scores["rougeLsum"]
             }
         elif metric_name == "bertscore":
-            df_file = "summaries/unseen_data_bertscore_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_bertscore_scores.csv"
+            df_file = "summaries/unseen_data_bertscore_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_bertscore_scores.csv"
             logger.info("Writing BertScore Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
@@ -322,7 +328,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                 "f1_median": scores["f1"]["median"]
             }
         elif metric_name == "bleu":
-            df_file = "summaries/unseen_data_bleu_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_bleu_scores.csv"
+            df_file = "summaries/unseen_data_bleu_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_bleu_scores.csv"
             logger.info("Writing Bleu Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
@@ -339,7 +345,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                 "reference_length": scores["reference_length"]
             }
         elif metric_name == "meteor":
-            df_file = "summaries/unseen_data_meteor_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_meteor_scores.csv"
+            df_file = "summaries/unseen_data_meteor_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_meteor_scores.csv"
             logger.info("Writing Meteor Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
