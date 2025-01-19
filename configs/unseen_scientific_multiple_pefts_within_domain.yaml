@@ -1,26 +1,23 @@
 # test_domain: medical
 
 
-#best performing pefts on medical unseen_dataset are:
-#  -> rouge : medical_cord19_oft_medical, medical_cord19_lora_medical,  medical_pubmed_adalora_medical, medical_pubmed_lokr_medical, medical_mslr_ia3_medical, $medical_pubmed_lokr_medical
-#  -> bleu : medical_cord19_lora_medical, medical_pubmed_oft_medical, medical_pubmed_lora_medical, medical_scilay_loha_medical, medical_mslr_loha_medical
-#  -> bertscore : medical_cord19_lora_medical, medical_cord19_oft_medical, medical_cord19_lokr_medical, medical_mslr_ia3_medical
-#  -> meteor : medical_cord19_oft_medical, medical_cord19_lora_medical, medical_pubmed_lokr_medical, medical_pubmed_adalora_medical, medical_scilay_loha_medical
+#best performing pefts on scientific unseen_dataset are:
+#  -> rouge : scientific_scitldr_adalora_scientific scientific_arxiv_adalora_scientific scientific_elsevier_ia3_scientific
+#  -> bleu : scientific_scitldr_lokr_scientific scientific_arxiv_adalora_scientific scientific_elsevier_ia3_scientific
+#  -> bertscore : scientific_scitldr_adalora_scientific scientific_arxiv_ia3_scientific $scientific_elsevier_ia3_scientific
+#  -> meteor : scientific_scitldr_ia3_scientific scientific_arxiv_ia3_scientific scientific_arxiv_adalora_scientific scientific_elsevier_adalora_scientific
 # -> final =>
-#  1. medical_cord19_lora_medical/medical_cord19_oft_medical,
-#  2. medical_pubmed_lokr_medical,
-#  3. medical_scilay_loha_medical
-#  4. medical_mslr_ia3_medical
+#  1. scientific_scitldr_adalora_scientific
+#  2. scientific_arxiv_adalora_scientific
+#  3. scientific_elsevier_ia3_scientific
 
-test_dataset: "medical"
+test_dataset: "scientific"
 
 #set1
 pefts:
-  - medical_cord19_lora_checkpoint-1330
-  - medical_pubmed_lokr_checkpoint-1250
-  - medical_scilay_loha_checkpoint-1284
-  - medical_mslr_ia3_checkpoint-1250
-
+    - scientific_scitldr_adalora_checkpoint-1250
+    - scientific_arxiv_adalora_checkpoint-1480
+    - scientific_elsevier_ia3_checkpoint-502
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250
 #  - medical_pubmed_ia3_checkpoint-250
