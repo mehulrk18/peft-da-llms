@@ -38,7 +38,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         raise ValueError("Invalid Metric")
 
     save_df, file_exists = True, False
-    test_summaries_file_name = "summaries/summaries_{}_{}.csv".format(data_class.domain.name.lower(), data_class.name.lower())
+    test_summaries_file_name = "summaries/summaries_{}_{}_25samples.csv".format(data_class.domain.name.lower(), data_class.name.lower()) if "multiple" in peft_names else "summaries/summaries_{}_{}.csv".format(data_class.domain.name.lower(), data_class.name.lower())
     data = pd.read_csv(data_class.local_path)
     min_samples = len(data) #.num_rows
 
@@ -146,9 +146,10 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #                                                                                       rouge_scores))
 
         # ROUGE
-        logger.info("Writing ROUGE Scores {} to file: summaries/unseen_data_rouge_scores.csv".format(rouge_scores))
+        f_name = "summaries/unseen_data_rouge_scores25.csv" if "multiple" in peft_names else "summaries/unseen_data_rouge_scores.csv"
+        logger.info("Writing ROUGE Scores {} to file: {}".format(rouge_scores, f_name))
         try:
-            rouge_df = pd.read_csv("summaries/unseen_data_rouge_scores.csv")
+            rouge_df = pd.read_csv(f_name)
         except Exception as e:
             rouge_df = pd.DataFrame(columns=["model", "rouge1", "rouge2", "rougeL", "rougeLsum"])
 
@@ -165,7 +166,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         else:
             # Add a new row
             rouge_df = pd.concat([rouge_df, pd.DataFrame([new_row])], ignore_index=True)
-        rouge_df.to_csv("summaries/unseen_data_rouge_scores.csv", index=False)
+        rouge_df.to_csv(f_name, index=False)
 
         logger.info("\n\n\nSummaries with rouge Score {} saved to file {}!!!!".format(rouge_scores,
                                                                                       test_summaries_file_name))
@@ -176,13 +177,14 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #                                                                                           min_samples,
         #                                                                                           bertscore_scores))
         # BERTSCORE
+        f_name = "summaries/unseen_data_bertscore_scores25.csv" if "multiple" in peft_names else "summaries/unseen_data_bertscore_scores.csv"
         try:
-            bertscore_df = pd.read_csv("summaries/unseen_data_bertscore_scores.csv")
+            bertscore_df = pd.read_csv(f_name)
         except Exception as e:
             bertscore_df = pd.DataFrame(columns=["model", "precision_mean", "precision_median", "recall_mean",
                                                  "recall_median", "f1_mean", "f1_median"])
 
-        logger.info("Writing BERTScores {} to file: summaries/unseen_data_bertscore_scores.csv".format(bertscore_scores))
+        logger.info("Writing BERTScores {} to file: {}".format(bertscore_scores, f_name))
         new_row = {
             "model": peft_full_name,
             "precision_mean": bertscore_scores["precision"]["mean"],
@@ -198,7 +200,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         else:
             # Add a new row
             bertscore_df = pd.concat([bertscore_df, pd.DataFrame([new_row])], ignore_index=True)
-        bertscore_df.to_csv("summaries/unseen_data_bertscore_scores.csv", index=False)
+        bertscore_df.to_csv(f_name, index=False)
 
         # TODO: Add the scores to the bertscore_scores.csv file
         logger.info("\n\n\nSummaries with bertscore Score {} saved to file {}!!!!".format(bertscore_scores,
@@ -209,9 +211,10 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #     fp.write("[{}] Summaries of {} for {} samples has bleu Scores \n {} \n\n".format(datetime.today().date(),
         #                                                                                      peft_full_name, min_samples,
         #                                                                                      bleu_scores))
-        logger.info("Writing Bleu Scores {} to file: summaries/unseen_data_bleu_scores.csv".format(bleu_scores))
+        f_name = "summaries/unseen_data_bleu_scores25.csv" if "multiple" in peft_names else "summaries/unseen_data_bleu_scores.csv"
+        logger.info("Writing Bleu Scores {} to file: {}".format(bleu_scores, f_name))
         try:
-            bleu_df = pd.read_csv("summaries/unseen_data_bleu_scores.csv")
+            bleu_df = pd.read_csv(f_name)
         except Exception as e:
             bleu_df = pd.DataFrame(columns=["model", "bleu", "precisions", "brevity_penalty", "length_ratio",
                                             "translation_length", "reference_length"])
@@ -230,14 +233,15 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         else:
             # Add a new row
             bleu_df = pd.concat([bleu_df, pd.DataFrame([new_row])], ignore_index=True)
-        bleu_df.to_csv("summaries/unseen_data_bleu_scores.csv", index=False)
+        bleu_df.to_csv(f_name, index=False)
         logger.info("\n\n\nSummaries with bleu Score {} saved to file {}!!!!".format(bleu_scores,
                                                                                      test_summaries_file_name))
 
         # METEOR
-        logger.info("Writing Meteor Scores {} to file: summaries/unseen_data_meteor_scores.csv".format(meteor_scores))
+        f_name = "summaries/unseen_data_meteor_scores25.csv" if "multiple" in peft_names else "summaries/unseen_data_meteor_scores.csv"
+        logger.info("Writing Meteor Scores {} to file: {}".format(meteor_scores, f_name))
         try:
-            meteor_df = pd.read_csv("summaries/unseen_data_meteor_scores.csv")
+            meteor_df = pd.read_csv(f_name)
         except Exception as e:
             meteor_df = pd.DataFrame(columns=["model", "meteor"])
         new_row = {
@@ -250,7 +254,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         else:
             # Add a new row
             meteor_df = pd.concat([meteor_df, pd.DataFrame([new_row])], ignore_index=True)
-        meteor_df.to_csv("summaries/unseen_data_meteor_scores.csv", index=False)
+        meteor_df.to_csv(f_name, index=False)
         logger.info("\n\n\nSummaries with meteor Score {} saved to file {}!!!!".format(meteor_scores,
                                                                                        test_summaries_file_name))
 
@@ -286,7 +290,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         #                                                                                    peft_full_name, min_samples,
         #                                                                                    metric_name, scores))
         if metric_name == "rouge":
-            df_file = "summaries/unseen_data_rouge_scores.csv"
+            df_file = "summaries/unseen_data_rouge_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_rouge_scores.csv"
             logger.info("Writing Rouge Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
@@ -300,7 +304,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                 "rougeLsum": scores["rougeLsum"]
             }
         elif metric_name == "bertscore":
-            df_file = "summaries/unseen_data_bertscore_scores.csv"
+            df_file = "summaries/unseen_data_bertscore_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_bertscore_scores.csv"
             logger.info("Writing BertScore Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
@@ -317,7 +321,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                 "f1_median": scores["f1"]["median"]
             }
         elif metric_name == "bleu":
-            df_file = "summaries/unseen_data_bleu_scores.csv"
+            df_file = "summaries/unseen_data_bleu_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_bleu_scores.csv"
             logger.info("Writing Bleu Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
@@ -334,7 +338,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
                 "reference_length": scores["reference_length"]
             }
         elif metric_name == "meteor":
-            df_file = "summaries/unseen_data_meteor_scores.csv"
+            df_file = "summaries/unseen_data_meteor_scores25.csv" if "multiple" in peft_full_name else "summaries/unseen_data_meteor_scores.csv"
             logger.info("Writing Meteor Scores {} to file: {}".format(scores, df_file))
             try:
                 metric_df = pd.read_csv(df_file)
@@ -376,7 +380,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_pefts_file_path", default=None, type=str, help="Path of the config file containing pefts and dataset for multiple pefts inference")
     parser.add_argument("--peft_path", type=str, default=None, help="For single peft")
     parser.add_argument("--peft_dir", type=str, default="trained_pefts/", help="Storage directory")
-    parser.add_argument("--test_dataset", required=True, type=str, help="Only test dataest.")
+    parser.add_argument("--test_dataset", default=None, type=str, help="Only test dataest.")
     parser.add_argument("--torch_dtype", type=str, default="bf16", choices=["bf16", "fp32", "fp16"],
                         help="Torch Data Type to be used")
     parser.add_argument("--metric", type=str, required=True, choices=["rouge", "bertscore", "bleu", "bleurt", "all"],
@@ -406,7 +410,7 @@ if __name__ == "__main__":
     use_instruct_model = True # if "instruct" in trained_peft_path or args.chat_template else False
     # provider = "hf" if "hf" in trained_peft_path else "ah"
     
-    dataset_name = args.test_dataset # configs["dataset_name"]
+    dataset_name = args.test_dataset if args.test_dataset else configs["test_dataset"]
 
     # elif trained_peft_path.split("/")[0] ==  :# "saved_models":
     peft_names = []

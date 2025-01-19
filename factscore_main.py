@@ -14,7 +14,7 @@ load_dotenv()
 factscore_results_file = "summaries/factscore_results.csv"
 STORE_DATA_DIR = ""
 
-def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_key, domain, dataset_name,
+def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_key, domain, dataset_name, factscore_results_file=factscore_results_file,
                                         summary_file_path=None):
     # if domain == "unseen_test":
     #     df = pd.read_csv("summaries/summaries_{}_{}.csv".format(domain, dataset_name), encoding="ISO-8859-1")
@@ -156,8 +156,14 @@ if __name__ == "__main__":
     for domain, datasets in datasets_dict.items():
         for dataset_name in datasets:
             print("Calculating FactScore for: Domain: {} - Dataset: {}".format(domain.name.lower(), dataset_name))
+            if not "unseen_test" == domain.name.lower():
+                f_name = "summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name)
+                fs_results_file = factscore_results_file
+            else:
+                f_name = "summaries/summaries_{}_{}_25samples.csv".format(domain.name.lower(), dataset_name)
+                fs_results_file = "summaries/factscore_results_unseen_test_25samples.csv"
             generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain.name.lower(), dataset_name,
-                                                summary_file_path="summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name))
+                                                factscore_results_file=fs_results_file, summary_file_path=f_name)
 
     # generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
     #                                     summary_file_path="summaries/summaries_scientific_arxiv_150samples.csv")
