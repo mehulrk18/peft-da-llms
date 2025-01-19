@@ -396,7 +396,7 @@ if __name__ == "__main__":
     if args.config_pefts_file_path is None and args.peft_path is None:
         raise ValueError("Please provide the path of the config file containing pefts and dataset for multiple pefts inference or the path of the peft for single peft inference")
     if args.config_pefts_file_path is not None:
-        config_file = main_directory + args.config_file_path
+        config_file = main_directory + args.config_pefts_file_path
         configs = read_yaml(file_name=config_file)
     elif args.peft_path is not None:
         configs["pefts"] = [args.peft_path]
