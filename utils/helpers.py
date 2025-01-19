@@ -61,7 +61,10 @@ def print_model_weights(model):
 def check_and_return_df(file_name: str):
     import pandas as pd
     if os.path.exists(file_name):
-        df = pd.read_csv(file_name)
+        if ".csv" in file_name:
+            df = pd.read_csv(file_name)
+        else:
+            df = pd.read_excel(file_name)
         return df, True
 
     else:
