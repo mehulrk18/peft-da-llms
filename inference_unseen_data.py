@@ -81,7 +81,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         save_df = False
 
     scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores, meteor_scores = 0, 0, 0, 0, 0, 0
-    truth = data["summary"]
+    truth = df_sum["truth"] if "multiple" in peft_full_name else data["summary"]
         # metric = rouge_metric()
     if metric_name == "all":
         rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=truth)
