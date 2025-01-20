@@ -43,7 +43,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     # test_summaries_file_name = "summaries/summaries_{}_{}_25samples.xlsx".format(data_class.domain.name.lower(),
     #                                                                             data_class.name.lower())
 
-    if data_class.name in ["medical", "legal"]:
+    if data_class.name.lower() in ["medical", "legal"]:
         test_summaries_file_name = test_summaries_file_name.replace(".csv", ".xlsx")
     data = pd.read_excel(data_class.local_path) if ".xlsx" in data_class.local_path else pd.read_csv(data_class.local_path)
     logger.info("Original dataset len: {}".format(len(data))) #.num_rows
