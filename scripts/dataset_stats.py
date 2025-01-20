@@ -23,13 +23,15 @@ if __name__ == "__main__":
     for domain, datasets in datasets_info_dict.items():
         for _dataset in datasets.keys():
             if domain.name.lower() == "unseen_test":
-                if datasets_info_dict[domain][_dataset].local_path.endswith(".xlsx"):
-                    data = pd.read_excel(_dataset.local_path)
+                p = datasets_info_dict[domain][_dataset]
+                print(p.local_path)
+                if p.local_path.endswith(".xlsx"):
+                    data = pd.read_excel(p.local_path)
                 else:
-                    data = pd.read_csv(_dataset.local_path)
+                    data = pd.read_csv(p.local_path)
                 test_df = pd.DataFrame()
-                test_df["content_tokens"] = data["content"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
-                test_df["summary_tokens"] = data["summary"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
+                test_df["content_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data["content"].tolist()]
+                test_df["summary_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data["summary"].tolist()]
             else:
                 data = SumDataLoader(
                     domain=domain.name.lower(),
