@@ -2,24 +2,24 @@
 
 
 #best performing pefts on medical unseen_dataset are:
-#  -> rouge : medical_cord19_oft_medical, medical_cord19_lora_medical,  medical_pubmed_adalora_medical, medical_pubmed_lokr_medical, medical_mslr_ia3_medical, $medical_pubmed_lokr_medical
-#  -> bleu : medical_cord19_lora_medical, medical_pubmed_oft_medical, medical_pubmed_lora_medical, medical_scilay_loha_medical, medical_mslr_loha_medical
-#  -> bertscore : medical_cord19_lora_medical, medical_cord19_oft_medical, medical_cord19_lokr_medical, medical_mslr_ia3_medical
-#  -> meteor : medical_cord19_oft_medical, medical_cord19_lora_medical, medical_pubmed_lokr_medical, medical_pubmed_adalora_medical, medical_scilay_loha_medical
+#  -> rouge : news_newsroom_lokr_news news_newsroom_adalora_news news_xsum_lokr_news news_xsum_adalora_news news_cnndm_adalora_news news_multinews_adalora_news news_multinews_ia3_news news_cnndm_ia3_news
+#  -> bleu : news_newsroom_lokr_news news_newsroom_adalora_news news_xsum_lokr_news news_xsum_adalora_news news_cnndm_adalora_news news_multinews_adalora_news news_multinews_ia3_news news_cnndm_ia3_news
+#  -> bertscore : news_xsum_adalora_news news_newsroom_adalora_news news_multinews_ia3_news news_xsum_ia3_news $news_cnndm_adalora_news
+#  -> meteor : news_newsroom_lokr_news news_newsroom_lora_news news_multinews_adalora_news news_multinews_lokr_news news_xsum_adalora_news news_cnndm_ia3_news
 # -> final =>
-#  1. medical_cord19_lora_medical/medical_cord19_oft_medical,
-#  2. medical_pubmed_lokr_medical,
-#  3. medical_scilay_loha_medical
-#  4. medical_mslr_ia3_medical
+#  1. news_newsroom_lokr_news
+#  2. news_xsum_adalora_news
+#  3. news_multinews_adalora_news
+#  4. news_cnndm_ia3_news
 
-test_dataset: "medical"
+test_dataset: "news"
 
 #set1
 pefts:
-  - medical_cord19_lora_checkpoint-1330
-  - medical_pubmed_lokr_checkpoint-1250
-  - medical_scilay_loha_checkpoint-1284
-  - medical_mslr_ia3_checkpoint-1250
+  - news_newsroom_lokr_checkpoint-1250
+  - news_xsum_adalora_checkpoint-1000
+  - news_multinews_adalora_checkpoint-1250
+  - news_cnndm_ia3_checkpoint-500
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250
