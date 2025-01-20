@@ -45,6 +45,9 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                                                                                     data.dataset_name.lower(),
                                                                                     min_samples)
 
+    if data.domain.name.lower() == "legal":
+        test_summaries_file_name = test_summaries_file_name.replace(".csv", ".xlsx")
+
     # random_text = """
     #         Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
     #     """.strip()
@@ -165,7 +168,10 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
 
     # TODO: understand where is the mistake and fix it.
     if save_df or overwrite_results:
-        df_sum.to_csv(test_summaries_file_name, index=False)
+        if test_summaries_file_name.endswith(".xlsx"):
+            df_sum.to_excel(test_summaries_file_name, index=False)
+        else:
+            df_sum.to_csv(test_summaries_file_name, index=False)
         # if "zero_shot" not in peft_full_name:
         #     df_sum = df_sum.remove_columns(["content", "truth"])
     # file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
