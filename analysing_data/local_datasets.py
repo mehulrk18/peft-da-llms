@@ -1,4 +1,6 @@
 import logging
+import pandas as pd
+import dataset_lib
 from typing import Mapping, Sequence, Union
 
 from datasets import Dataset, DatasetDict, load_dataset, load_from_disk
@@ -31,27 +33,42 @@ class LoadDatasetFromLocal:
         from dataset_lib import SumDomains
         self.dataset_info = datasets_info_dict[SumDomains(self.domain_name)][self.ds_name]
 
-        data = load_from_disk(self.dataset_info["local_path"])
+        if self.dataset_info.local_path.endswith(".csv"):
+            data = pd.read_csv(self.dataset_info.local_path)
+            data = data.drop(columns=[col for col in data.columns if not col in ["content", "summary"]])
+            # data.rename(columns={"content": "text"}, inplace=True)
+            data = DatasetDict({"test": Dataset.from_pandas(data)})
+
+        elif self.dataset_info.local_path.endswith(".xlsx"):
+            data = pd.read_excel(self.dataset_info.local_path)
+            data = data.drop(columns=[col for col in data.columns if not col in ["content", "summary"]])
+            # data.rename(columns={"content": "text"}, inplace=True)
+            data = DatasetDict({"test": Dataset.from_pandas(data)})
+        else:
+            data = load_from_disk(self.dataset_info["local_path"])
 
         if preview:
             for k in data.keys():
                 data[k] = data[k].select(range(preview_size))
 
         elif samples != "max":
-            data["train"] = data["train"].select(
-                range(min(len(data["train"]), samples))
-            )
+            if "train" in list(data.keys()):
+                data["train"] = data["train"].select(
+                    range(min(len(data["train"]), samples))
+                )
 
         self.ds = self.preprocess(
             data, col_map, min_input_size, remove_columns=[] if remove_columns is None else remove_columns
         )
 
     def get_split(self, key: str) -> Dataset:
-        return self.ds[key]
+        if key in list(self.ds.keys()):
+            return self.ds[key]
+        else:
+            raise ValueError(f"Key {key} not found in dataset.")
 
-    @classmethod
     def scrolls_preprocess(
-        cls,
+        self,
         data: DatasetDict,
         col_map: dict,
         min_input_size: int,
@@ -144,12 +161,10 @@ class LoadDatasetFromLocal:
         )
 
 
-class Arxiv(LoadDatasetFromLocal):
+class LocalDatasetArxiv(LoadDatasetFromLocal):
     ds_name = "arxiv"
-    domain_name = "scientific"
+    domain_name = dataset_lib.SumDomains.SCIENTIFIC.name.lower() #"scientific"
     dataset_kwargs = {
-        # "ds_name": "ccdv/arxiv-summarization",
-        # "ds_subset": "document",
         "col_map": {"content": "text", "summary": "summary"},
         "remove_columns": [],
     }
@@ -172,12 +187,62 @@ class Arxiv(LoadDatasetFromLocal):
         )
 
 
-class Pubmed(LoadDatasetFromLocal):
-    ds_name = "pubmed"
-    domain_name = "medical"
+class LocalDatasetElsevier(LoadDatasetFromLocal):
+    ds_name = "elsevier"
+    domain_name = dataset_lib.SumDomains.SCIENTIFIC.name.lower() #"scientific"
     dataset_kwargs = {
-        # "ds_name": "ccdv/pubmed-summarization",
-        # "ds_subset": "document",
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            data_files=data_files,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetSciTLDR(LoadDatasetFromLocal):
+    ds_name = "scitldr"
+    domain_name = dataset_lib.SumDomains.SCIENTIFIC.name.lower() #"scientific"
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            data_files=data_files,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetPubmed(LoadDatasetFromLocal):
+    ds_name = "pubmed"
+    domain_name = dataset_lib.SumDomains.MEDICAL.name.lower() # "medical"
+    dataset_kwargs = {
         "col_map": {"content": "text", "summary": "summary"},
         "remove_columns": [],
     }
@@ -199,20 +264,86 @@ class Pubmed(LoadDatasetFromLocal):
         )
 
 
-class MultiLex(LoadDatasetFromLocal):
-    ds_name = "multilex"
-    domain_name = "legal"
+class LocalDatasetCord19(LoadDatasetFromLocal):
+    ds_name = "cord19"
+    domain_name = dataset_lib.SumDomains.MEDICAL.name.lower() # "medical"
     dataset_kwargs = {
-        # "ds_name": "allenai/multilexsum",
-        # "ds_subset": "v20230518",
         "col_map": {"content": "text", "summary": "summary"},
-        "remove_columns": [
-            "sources_metadata",
-            "summary/short",
-            "summary/tiny",
-            "id",
-            "case_metadata",
-        ],
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            **self.dataset_kwargs,
+        )
+
+class LocalDatasetMSLR(LoadDatasetFromLocal):
+    ds_name = "mslr"
+    domain_name = dataset_lib.SumDomains.MEDICAL.name.lower() # "medical"
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetSciLay(LoadDatasetFromLocal):
+    ds_name = "scilay"
+    domain_name = dataset_lib.SumDomains.MEDICAL.name.lower() # "medical"
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetMultiLex(LoadDatasetFromLocal):
+    ds_name = "multilex"
+    domain_name = dataset_lib.SumDomains.LEGAL.name.lower() #"legal"
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
     }
 
     def __init__(
@@ -233,12 +364,62 @@ class MultiLex(LoadDatasetFromLocal):
         )
 
 
-class CNNDailyMail(LoadDatasetFromLocal):
+class LocalDatasetEurLex(LoadDatasetFromLocal):
+    ds_name = "eurlex"
+    domain_name = dataset_lib.SumDomains.LEGAL.name.lower() #"legal"
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        # load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            data_files=data_files,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetBillSum(LoadDatasetFromLocal):
+    ds_name = "billsum"
+    domain_name = dataset_lib.SumDomains.LEGAL.name.lower() #"legal"
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        # load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            data_files=data_files,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetCNNDailyMail(LoadDatasetFromLocal):
     ds_name = "cnndm"
-    domain_name = "news"
+    domain_name = dataset_lib.SumDomains.NEWS.name.lower()
     dataset_kwargs = {
-        # "ds_name": "abisee/cnn_dailymail",
-        # "ds_subset": "1.0.0",  # other options: "2.0.0" and  "3.0.0"
         "col_map": {"content": "text", "summary": "summary"},
         "remove_columns": [],
     }
@@ -260,12 +441,10 @@ class CNNDailyMail(LoadDatasetFromLocal):
         )
 
 
-class MultiNews(LoadDatasetFromLocal):
+class LocalDatasetMultiNews(LoadDatasetFromLocal):
     ds_name = "multinews"
-    domain_name = "news"
+    domain_name = dataset_lib.SumDomains.NEWS.name.lower()
     dataset_kwargs = {
-        # "ds_name": "abisee/cnn_dailymail",
-        # "ds_subset": "1.0.0",  # other options: "2.0.0" and  "3.0.0"
         "col_map": {"content": "text", "summary": "summary"},
         "remove_columns": [],
     }
@@ -287,12 +466,10 @@ class MultiNews(LoadDatasetFromLocal):
         )
 
 
-class XSumNews(LoadDatasetFromLocal):
+class LocalDatasetXSumNews(LoadDatasetFromLocal):
     ds_name = "xsum"
-    domain_name = "news"
+    domain_name = dataset_lib.SumDomains.NEWS.name.lower()
     dataset_kwargs = {
-        # "ds_name": "abisee/cnn_dailymail",
-        # "ds_subset": "1.0.0",  # other options: "2.0.0" and  "3.0.0"
         "col_map": {"content": "text", "summary": "summary"},
         "remove_columns": [],
     }
@@ -313,24 +490,15 @@ class XSumNews(LoadDatasetFromLocal):
             **self.dataset_kwargs,
         )
 
-class NewsRoom(LoadDatasetFromLocal):
+
+class LocalDatasetNewsRoom(LoadDatasetFromLocal):
     ds_name = "newsroom"
-    domain_name = "news"
+    domain_name = dataset_lib.SumDomains.NEWS.name.lower()
     dataset_kwargs = {
         # "ds_name": "lil-lab/newsroom",
         # "ds_subset": "default",
         "col_map": {"content": "text", "summary": "summary"},
-        "remove_columns": [
-            # "title",
-            # "url",
-            # "date",
-            # "density",
-            # "coverage",
-            # "compression",
-            # "density_bin",
-            # "coverage_bin",
-            # "compression_bin",
-        ],
+        "remove_columns": [],
     }
 
     def __init__(
@@ -339,6 +507,106 @@ class NewsRoom(LoadDatasetFromLocal):
         samples: int,
         min_input_size: int,
         # load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetScientific(LoadDatasetFromLocal):
+    ds_name = dataset_lib.SumDomains.SCIENTIFIC.name.lower()
+    domain_name = dataset_lib.SumDomains.UNSEEN_TEST.name.lower()
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetMedical(LoadDatasetFromLocal):
+    ds_name = dataset_lib.SumDomains.MEDICAL.name.lower()
+    domain_name = dataset_lib.SumDomains.UNSEEN_TEST.name.lower()
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetLegal(LoadDatasetFromLocal):
+    ds_name = dataset_lib.SumDomains.LEGAL.name.lower()
+    domain_name = dataset_lib.SumDomains.UNSEEN_TEST.name.lower()
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
+        data_files=None,
+    ) -> None:
+        super().__init__(
+            preview=preview,
+            samples=samples,
+            min_input_size=min_input_size,
+            # load_csv=load_csv,
+            **self.dataset_kwargs,
+        )
+
+
+class LocalDatasetNews(LoadDatasetFromLocal):
+    ds_name = dataset_lib.SumDomains.NEWS.name.lower()
+    domain_name = dataset_lib.SumDomains.UNSEEN_TEST.name.lower()
+    dataset_kwargs = {
+        "col_map": {"content": "text", "summary": "summary"},
+        "remove_columns": [],
+    }
+
+    def __init__(
+        self,
+        preview: bool,
+        samples: int,
+        min_input_size: int,
+        load_csv: bool = False,
         data_files=None,
     ) -> None:
         super().__init__(

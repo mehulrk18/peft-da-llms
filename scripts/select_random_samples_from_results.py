@@ -4,10 +4,13 @@ import pandas as pd
 
 
 if __name__ == "__main__":
-    files = glob.glob("summaries/summaries_*150samples.csv")
-    files.extend(glob.glob("summaries/summaries_*150samples.xlsx"))
-    files.extend(glob.glob("summaries/summaries_unseen_test_*.csv"))
-    files.extend(glob.glob("summaries/summaries_unseen_test_*.xlsx"))
+    # files = glob.glob("summaries/summaries_*150samples.csv")
+    # files.extend(glob.glob("summaries/summaries_*150samples.xlsx"))
+    # files.extend(glob.glob("summaries/summaries_unseen_test_*.csv"))
+    # files.extend(glob.glob("summaries/summaries_unseen_test_*.xlsx"))
+
+    # for legal
+    files = ["summaries/summaries_legal_multilex_150samples.xlsx", "summaries/summaries_legal_eurlex_150samples.xlsx"]
     for file in files:
         samples = 25 if "unseen_test" in file else 50
         print("\nSelecting {} Random Samples from {}".format(samples, file))
