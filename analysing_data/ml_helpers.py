@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge, RidgeCV
 import xgboost as xgb
-from dotenv import load_dotenv
 import functools
 warnings.filterwarnings("ignore")
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error

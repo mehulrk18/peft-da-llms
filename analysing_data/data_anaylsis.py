@@ -14,14 +14,14 @@ from nltk.tokenize import word_tokenize
 import argparse
 import nltk
 
-from analysing_data.ml_helpers import clear_cache, run_regression, normalize_features, derive_baseline_features
+from ml_helpers import clear_cache, run_regression, normalize_features, derive_baseline_features
 
 nltk.download('wordnet')
-from .local_datasets import LoadDatasetFromLocal, LocalDatasetArxiv, LocalDatasetElsevier, LocalDatasetPubmed, \
+from local_datasets import LoadDatasetFromLocal, LocalDatasetArxiv, LocalDatasetElsevier, LocalDatasetPubmed, \
     LocalDatasetCord19, LocalDatasetMSLR, LocalDatasetSciLay, LocalDatasetSciTLDR, LocalDatasetBillSum, \
     LocalDatasetEurLex, LocalDatasetMultiLex, LocalDatasetCNNDailyMail, LocalDatasetNewsRoom, LocalDatasetMultiNews, \
     LocalDatasetXSumNews, LocalDatasetScientific, LocalDatasetMedical, LocalDatasetLegal, LocalDatasetNews
-from .domains import DomainsDataset
+from domains import DomainsDataset
 from analysing_data import Similarity
 from openai import OpenAI
 from dotenv import load_dotenv, find_dotenv
@@ -503,7 +503,7 @@ def construct_training_corpus(
 
 
 if __name__ == '__main__':
-    load_dotenv("/Users/mehul/TUM/SS24/DomainAdaptationLLMs/.env")
+    load_dotenv("/dss/dsshome1/03/ge85giy2/domainadaptationllms.env")
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--da_type',
