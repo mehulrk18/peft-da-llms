@@ -38,10 +38,10 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         raise ValueError("Invalid Metric")
 
     save_df, file_exists = True, False
-    # test_summaries_file_name = "summaries/summaries_{}_{}_25samples.csv".format(data_class.domain.name.lower(), data_class.name.lower()) if "multiple" in peft_full_name else "summaries/summaries_{}_{}.csv".format(data_class.domain.name.lower(), data_class.name.lower())
+    test_summaries_file_name = "summaries/summaries_{}_{}_25samples.csv".format(data_class.domain.name.lower(), data_class.name.lower()) if "multiple" in peft_full_name else "summaries/summaries_{}_{}.csv".format(data_class.domain.name.lower(), data_class.name.lower())
     # TODO: ONLY FOR LEGAL AND MEDICAL 25 samples from excel sheet
-    test_summaries_file_name = "summaries/summaries_{}_{}_25samples.xlsx".format(data_class.domain.name.lower(),
-                                                                                data_class.name.lower())
+    # test_summaries_file_name = "summaries/summaries_{}_{}_25samples.xlsx".format(data_class.domain.name.lower(),
+    #                                                                             data_class.name.lower())
 
     if data_class.name in ["medical", "legal"]:
         test_summaries_file_name = test_summaries_file_name.replace(".csv", ".xlsx")
