@@ -46,14 +46,14 @@ if __name__ == "__main__":
                 # data.validation_set = data.validation_set.map(count_tokens, batched=True)
                 # data.test_set = data.test_set.map(count_tokens, batched=True)
 
-                train_df["content_tokens"] = data.train_set["content"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
-                train_df["summary_tokens"] = data.train_set["summary"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
+                train_df["content_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data.train_set["content"]]
+                train_df["summary_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data.train_set["summary"]]
 
-                val_df["content_tokens"] = data.validation_set["content"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
-                val_df["summary_tokens"] = data.validation_set["summary"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
+                val_df["content_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data.validation_set["content"]]
+                val_df["summary_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data.validation_set["summary"]]
 
-                test_df["content_tokens"] = data.test_set["content"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
-                test_df["summary_tokens"] = data.test_set["summary"].apply(lambda x: len(llama.tokenizer.tokenize(x)))
+                test_df["content_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data.test_set["content"]]
+                test_df["summary_tokens"] = [len(llama.tokenizer.tokenize(x)) for x in data.test_set["summary"]]
 
                 print(f"**** Domain: {domain} ---  Dataset: {_dataset} ***")
                 print("\n\nAvg Tokens Articles in Training Set:", train_df["content_tokens"].mean())
