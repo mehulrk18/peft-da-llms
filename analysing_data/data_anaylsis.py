@@ -178,11 +178,19 @@ def get_domain_similarity_metrics(src_domain: str, source: str, tgt_domain: str,
     #         # "js-divergence": ST.js_divergence,
     #         }
     if source == target and da == "in-domain-adapt":
-        source_split = "train"
-        target_split = "test"
+        if src_domain == tgt_domain == "unseen_test":
+            source_split = "test"
+            target_split = "test"
+        else:
+            source_split = "train"
+            target_split = "test"
     elif source == target and da == "no-domain-adapt":
-        source_split = "train"
-        target_split = "train"
+        if src_domain == tgt_domain == "unseen_test":
+            source_split = "test"
+            target_split = "test"
+        else:
+            source_split = "train"
+            target_split = "train"
     else:
         source_split = "test"
         target_split = "test"
