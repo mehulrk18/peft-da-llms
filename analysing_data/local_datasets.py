@@ -45,7 +45,7 @@ class LoadDatasetFromLocal:
             # data.rename(columns={"content": "text"}, inplace=True)
             data = DatasetDict({"test": Dataset.from_pandas(data)})
         else:
-            data = load_from_disk(self.dataset_info["local_path"])
+            data = load_from_disk(self.dataset_info.local_path)
 
         if preview:
             for k in data.keys():

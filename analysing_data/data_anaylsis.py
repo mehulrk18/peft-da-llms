@@ -85,8 +85,6 @@ def load_domain_dataset(
         ] = None,
 ) -> LoadDatasetFromLocal:
     logging.info(f"Preparing dataset {dataset_name} from domain {domain_name}")
-    print(f"Preparing dataset {dataset_name} from domain {domain_name}")
-    print(translate_dataset_name.keys())
     assert domain_name in list(translate_dataset_name.keys())
     assert dataset_name in list(translate_dataset_name[domain_name].keys())
 
