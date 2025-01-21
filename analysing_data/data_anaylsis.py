@@ -535,7 +535,7 @@ if __name__ == '__main__':
                         default= "template.xlsx") # "inference_results/inference_results_ds_13_500_all.xlsx")
 
     args = parser.parse_args()
-    num_samples = 500
+    num_samples = 100 #
     total_datasets = 18 #14
     minumum_datasets = 3
     cache = True
