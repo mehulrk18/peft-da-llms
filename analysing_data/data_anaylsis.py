@@ -465,9 +465,16 @@ def construct_training_corpus(
     assert da_type in ["in-domain-adapt", "single-domain-adapt"]
 
     df = pd.read_excel(template_path, header=0)
-    df_zero_shot = df.loc[df['model'] == 'Meta-Llama-3-8B-Instruct']
+    try:
+        df_zero_shot = df.loc[df['model'] == 'Meta-Llama-3-8B-Instruct']
     # df_zero_shot = df.loc[df['model'] == 'meta-llama-Meta-Llama-3.1-8B-Instruct-Turbo']
-    df_ft = df.loc[(df['split'] == 'test') & (df['ds'] != 'aclsum')]
+        df_ft = df.loc[(df['split'] == 'test') & (df['ds'] != 'aclsum')]
+    except Exception as e:
+        print(f"Error: {e}")
+        df_zero_shot = pd.DataFrame([])
+        df_ft = pd.DataFrame([])
+
+
 
     template_2 = get_template(df_ft, num_datasets=num_datasets, num_samples=num_samples, ft=True
                               )
