@@ -390,7 +390,11 @@ def get_features(
 #     return df
 
 def get_template(task_scores: pd.DataFrame, num_datasets=None, num_samples=10, ft=False) -> pd.DataFrame:
-    domain_datasets = list(set(task_scores["ds"]))
+    try:
+        domain_datasets = list(set(task_scores["ds"]))
+    except Exception as e:
+        print("except: ", e)
+        domain_datasets = [str(v) for _, v in translate_dataset_name.items() for k in v.keys()]
     # domains = ['arxiv', 'gigaword', 'wispermed', 'govreport']
     if num_datasets is not None:
         if len(domain_datasets) > num_datasets:
