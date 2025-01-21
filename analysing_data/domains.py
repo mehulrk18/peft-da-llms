@@ -8,6 +8,7 @@ from nltk.corpus import stopwords
 from collections import Counter
 from nltk.tokenize import word_tokenize
 from openai import OpenAI
+from scipy.stats import entropy
 import numpy as np
 
 import pandas as pd
