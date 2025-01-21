@@ -70,7 +70,7 @@ translate_dataset_name = {
 
 def find_domain(dataset_name):
     for domain in translate_dataset_name.keys():
-        if dataset_name in translate_dataset_name[domain]:
+        if dataset_name in list(translate_dataset_name[domain].keys()):
             return domain.lower()
 
 
@@ -395,7 +395,7 @@ def get_template(task_scores: pd.DataFrame, num_datasets=None, num_samples=10, f
         domain_datasets = list(set(task_scores["ds"]))
     except Exception as e:
         print("except: ", e)
-        domain_datasets = [str(v) for _, v in translate_dataset_name.items() for k in v.keys()]
+        domain_datasets = [str(k) for _, v in translate_dataset_name.items() for k in v.keys()]
     # domains = ['arxiv', 'gigaword', 'wispermed', 'govreport']
     if num_datasets is not None:
         if len(domain_datasets) > num_datasets:
@@ -626,3 +626,5 @@ if __name__ == '__main__':
         print(f"Feature Selection Baseline : {Counter(selected_feat_rouge)}")
         print (f"Feature Selection : {Counter(selected_feat_all)}")
 clear_cache()
+
+
