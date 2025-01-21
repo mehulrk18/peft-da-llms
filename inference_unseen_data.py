@@ -144,6 +144,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         if ".xlsx" in test_summaries_file_name:
             from utils import clean_illegal_chars
             df_sum[col_name] = df_sum[col_name].apply(clean_illegal_chars)
+            df_sum = df_sum.applymap(clean_illegal_chars)
             df_sum.to_excel(test_summaries_file_name, index=False)
         else:
             df_sum.to_csv(test_summaries_file_name, index=False)
