@@ -20,4 +20,5 @@ wandb
 tensorboard
 bert-score
 openai
+tiktoken
 spacy
