@@ -5,7 +5,7 @@ from utils import LLaMAModelClass
 
 
 def calculate_stats(llama, samples, dest_file: str):
-    data = []
+    data_statss = []
     for domain, datasets in datasets_info_dict.items():
         for _dataset in datasets.keys():
             train_df, val_df, test_df = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
@@ -51,7 +51,7 @@ def calculate_stats(llama, samples, dest_file: str):
                 "test_average_content_tokens": test_df["content_tokens"].mean() if len(test_df) > 0 else 0,
                 "test_average_summary_tokens": test_df["summary_tokens"].mean() if len(test_df) > 0 else 0
             }
-            data.append(obj)
+            data_statss.append(obj)
             # print("\n\nAvg Tokens Articles in Training Set:", train_df["content_tokens"].mean())
             # print("Avg Tokens Summary in Training Set:", train_df["summary_tokens"].mean())
             #
@@ -61,7 +61,7 @@ def calculate_stats(llama, samples, dest_file: str):
             # print("\n\nAvg Tokens Articles in Test Set:", test_df["content_tokens"].mean())
             # print("Avg Tokens Summary in Test Set:", test_df["summary_tokens"].mean())
     print("Saving statistics to file: ", dest_file)
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(data_statss)
     df.to_excel(dest_file, index=False)
 
 

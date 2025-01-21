@@ -85,6 +85,7 @@ def load_domain_dataset(
         ] = None,
 ) -> LoadDatasetFromLocal:
     logging.info(f"Preparing dataset {dataset_name} from domain {domain_name}")
+    print(f"dataset -> {dataset_name} \nfrom domain -> {domain_name}")
     assert domain_name in list(translate_dataset_name.keys())
     assert dataset_name in list(translate_dataset_name[domain_name].keys())
 
@@ -284,7 +285,7 @@ def get_features(
     feature_names += list(domain_spec_features.keys())
 
     domain_similarity_features = get_domain_similarity_metrics(
-        source=source, src_domain=src_domain, target=target, tgt_domain=source, da=da, num_samples=num_samples
+        source=source, src_domain=src_domain, target=target, tgt_domain=tgt_domain, da=da, num_samples=num_samples
     )
     features += list(domain_similarity_features.values())
     feature_names += list(domain_similarity_features.keys())
