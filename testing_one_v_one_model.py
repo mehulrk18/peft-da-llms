@@ -169,6 +169,8 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     # TODO: understand where is the mistake and fix it.
     if save_df or overwrite_results:
         if test_summaries_file_name.endswith(".xlsx"):
+            from utils import clean_illegal_chars
+            df_sum[col_name] = df_sum[col_name].applymap(clean_illegal_chars)
             df_sum.to_excel(test_summaries_file_name, index=False)
         else:
             df_sum.to_csv(test_summaries_file_name, index=False)

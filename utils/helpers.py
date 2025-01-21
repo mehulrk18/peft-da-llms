@@ -1,5 +1,6 @@
 import logging
 import os.path
+import re
 
 import torch
 import yaml
@@ -74,3 +75,11 @@ def check_and_return_df(file_name: str):
 
 def power_set(input_list):
     return list(chain.from_iterable(combinations(input_list, r) for r in range(len(input_list) + 1)))
+
+
+def clean_illegal_chars(text):
+    if isinstance(text, str):  # Apply only to strings
+        # Remove illegal characters (non-printable and null bytes)
+        return re.sub(r'[\x00-\x1F\x7F-\x9F]', '', text)
+    return text
+
