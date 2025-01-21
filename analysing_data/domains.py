@@ -275,16 +275,40 @@ class DomainsDataset:
         @returns array - vector embedding
         """
         client = OpenAI()
-        response = (
-            client.embeddings.create(
-                model="text-embedding-3-small",
-                input=text,
-                dimensions=1024,
+
+        import tiktoken
+        tokenizer = tiktoken.get_encoding("cl100k_base")  # Use the correct tokenizer for your model
+        max_tokens = 8192  # Maximum token limit for the model
+        tokens = tokenizer.encode(text)
+        if len(tokens) > max_tokens:
+            # Chunk the tokens into smaller parts
+            chunks = [tokens[i:i + max_tokens] for i in range(0, len(tokens), max_tokens)]
+
+            # Compute embeddings for each chunk
+            embeddings = []
+            for chunk in chunks:
+                chunk_text = tokenizer.decode(chunk)
+                response = client.embeddings.create(
+                    model="text-embedding-3-small",
+                    input=chunk_text,
+                    dimensions=1024,
+                ).data[0].embedding
+                embeddings.append(response)
+
+            # Combine embeddings (e.g., by averaging)
+            combined_embedding = [sum(x) / len(embeddings) for x in zip(*embeddings)]
+            return combined_embedding
+        else:
+            response = (
+                client.embeddings.create(
+                    model="text-embedding-3-small",
+                    input=text,
+                    dimensions=1024,
+                )
+                .data[0]
+                .embedding
             )
-            .data[0]
-            .embedding
-        )
-        return response
+            return response
 
     def get_prob_dist(self):
         prob_dist = dict()
