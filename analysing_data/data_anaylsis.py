@@ -266,8 +266,8 @@ def weighted_average(nums, weights):
 
 # def get_features(da: str, src_domain, source: str, tgt_domain, target: str, task: str, task_scores) -> (List, List):
 def get_features(
-    da: str, src_domain: str, source: str, tgt_domain:str, target: str, task: str, task_scores, num_samples, ft = False
-) -> (List, List):
+    da: str, src_domain: str, source: str, tgt_domain:str, target: str, num_samples, ft=False,  task: str = "",
+        task_scores=None) -> (List, List):
     features = []
     feature_names = [
         "da-type",
@@ -290,63 +290,63 @@ def get_features(
     features += list(domain_similarity_features.values())
     feature_names += list(domain_similarity_features.keys())
 
-    try:
-        source_model = "Meta-Llama-3-8B-Instruct"
-        target_model = "Meta-Llama-3-8B-Instruct"
-        # source_model = "meta-llama-Meta-Llama-3.1-8B-Instruct-Turbo"
-        # target_model = "meta-llama-Meta-Llama-3.1-8B-Instruct-Turbo"
-        if source == target and da == "in-domain-adapt":
-            target_split = "test"
-            source_split = "test"
-            # if ft:
-            #     source_model = "meta-llama-Meta-Llama-3.1-8B-Instruct-Turbo"
-            #     target_model = "anumafzal94-llama3.1"
+    # try:
+    #     source_model = "Meta-Llama-3-8B-Instruct"
+    #     target_model = "Meta-Llama-3-8B-Instruct"
+    #     # source_model = "meta-llama-Meta-Llama-3.1-8B-Instruct-Turbo"
+    #     # target_model = "meta-llama-Meta-Llama-3.1-8B-Instruct-Turbo"
+    #     if source == target and da == "in-domain-adapt":
+    #         target_split = "test"
+    #         source_split = "test"
+    #         # if ft:
+    #         #     source_model = "meta-llama-Meta-Llama-3.1-8B-Instruct-Turbo"
+    #         #     target_model = "anumafzal94-llama3.1"
+    #
+    #     elif source == target and da == "no-domain-adapt":
+    #         target_split = "test"
+    #         source_split = "train"
+    #         # if ft:
+    #         #     source_model = "anumafzal94-llama3.1"
+    #         #     target_model = "anumafzal94-llama3.1"
+    #         #     source_split = "test"
+    #
+    #     else:
+    #         target_split = "test"
+    #         source_split = "test"
+    #         # if ft:
+    #         #     source_model = "anumafzal94-llama3.1"
+    #         #     target_model = "anumafzal94-llama3.1"
+    #
+    #     source_task_scores = task_scores.loc[
+    #         (task_scores["ds"] == source) & (task_scores["split"] == source_split) & (task_scores["model"] == source_model)
+    #     ]
+    # except:
+    #     # todo: add a dummy variable for this
+    #     print(
+    #         f"Failed to get scores for domain {source} for {da} setting. Assigning dummy scores."
+    #     )
 
-        elif source == target and da == "no-domain-adapt":
-            target_split = "test"
-            source_split = "train"
-            # if ft:
-            #     source_model = "anumafzal94-llama3.1"
-            #     target_model = "anumafzal94-llama3.1"
-            #     source_split = "test"
+    # task_specific_feature = get_task_spec_metrics(source, task, source_task_scores)
+    # features += list(task_specific_feature.values())
+    # feature_names += [f"source_{key}" for key in list(task_specific_feature.keys())]
+    # feature_weight = [1 / len(task_specific_feature.values())] * len(task_specific_feature.values())  # equal weight to all features
+    # weighted_y_source = weighted_average(
+    #     list(task_specific_feature.values()), feature_weight
+    # )
 
-        else:
-            target_split = "test"
-            source_split = "test"
-            # if ft:
-            #     source_model = "anumafzal94-llama3.1"
-            #     target_model = "anumafzal94-llama3.1"
+    # target_task_scores = task_scores.loc[(task_scores["ds"] == target) & (task_scores["split"] == target_split) & (task_scores["model"] == target_model)]
+    # task_specific_feature = get_task_spec_metrics(target, task, target_task_scores)
+    # features += list(task_specific_feature.values())
+    # feature_names += [f"target_{key}" for key in list(task_specific_feature.keys())]
+    # feature_weight = [1 / len(task_specific_feature.values())] * len(task_specific_feature.values())  # equal weight to all features
+    # weighted_y_target = weighted_average(
+    #     list(task_specific_feature.values()), feature_weight
+    # )
 
-        source_task_scores = task_scores.loc[
-            (task_scores["ds"] == source) & (task_scores["split"] == source_split) & (task_scores["model"] == source_model)
-        ]
-    except:
-        # todo: add a dummy variable for this
-        print(
-            f"Failed to get scores for domain {source} for {da} setting. Assigning dummy scores."
-        )
+    # y_drop = weighted_y_source - weighted_y_target
 
-    task_specific_feature = get_task_spec_metrics(source, task, source_task_scores)
-    features += list(task_specific_feature.values())
-    feature_names += [f"source_{key}" for key in list(task_specific_feature.keys())]
-    feature_weight = [1 / len(task_specific_feature.values())] * len(task_specific_feature.values())  # equal weight to all features
-    weighted_y_source = weighted_average(
-        list(task_specific_feature.values()), feature_weight
-    )
-
-    target_task_scores = task_scores.loc[(task_scores["ds"] == target) & (task_scores["split"] == target_split) & (task_scores["model"] == target_model)]
-    task_specific_feature = get_task_spec_metrics(target, task, target_task_scores)
-    features += list(task_specific_feature.values())
-    feature_names += [f"target_{key}" for key in list(task_specific_feature.keys())]
-    feature_weight = [1 / len(task_specific_feature.values())] * len(task_specific_feature.values())  # equal weight to all features
-    weighted_y_target = weighted_average(
-        list(task_specific_feature.values()), feature_weight
-    )
-
-    y_drop = weighted_y_source - weighted_y_target
-
-    features += [weighted_y_target, weighted_y_source, y_drop]
-    feature_names += ["y_weighted_source", "y_weighted_target", "y_drop"]
+    # features += [weighted_y_target, weighted_y_source, y_drop]
+    # feature_names += ["y_weighted_source", "y_weighted_target", "y_drop"]
 
     return features, feature_names
 
@@ -521,7 +521,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--template_path',
                         type=str,
-                        default="inference_results/inference_results_ds_13_500_all.xlsx")
+                        default= "template.xlsx") # "inference_results/inference_results_ds_13_500_all.xlsx")
 
     args = parser.parse_args()
     num_samples = 500

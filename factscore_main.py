@@ -6,6 +6,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from FActScore.fact_score import calc_factscore
+from utils import read_yaml
 from utils.fscore_utils import df_to_jsonl_for_factscore
 
 load_dotenv()
@@ -133,37 +134,57 @@ if __name__ == "__main__":
     grounding_provided: bool = True
     openai_key = "api.key"
 
+
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
     parser.add_argument("--data_dir", default="", type=str, help="Path to main data directory")
-    parser.add_argument("--domain", default="all", type=str, help="Domain for which to generate FActScores")
+    parser.add_argument("--domain", default=None, type=str, help="Domain for which to generate FActScores")
+    parser.add_argument("--best_summaries_yaml", default=None, type=str, help="Domain for which to generate FActScores")
 
-    # domain = "scientific"
-    # dataset_name = "arxiv"
     main_args = parser.parse_args()
     STORE_DATA_DIR = main_args.data_dir
     _domain = main_args.domain
+    best_summaries_yaml = main_args.best_summaries_yaml
 
-    from dataset_lib import datasets_info_dict, SumDomains
-    datasets_dict = {}
+    if best_summaries_yaml is not None:
+        list_of_best_summaries = read_yaml(best_summaries_yaml)
+        """
+        files:
+          scientific: "best_scientific_summaries_unseen_data_files_list.csv"
+          medical: "best_medical_summaries_unseen_data_files_list.xlsx"
+          legal: "best_legal_summaries_unseen_data_files_list.xlsx"
+          news:  "best_news_summaries_unseen_data_files_list.csv" 
+        """
+        for dataset_name, file_name in list_of_best_summaries["files"].items():
+            fs_results_file = "summaries/best_summaries_factscore_results.csv".format()
+            generating_factscores_for_summaries(model_name, grounding_provided, openai_key, "unseen_data", dataset_name,
+                                                factscore_results_file=fs_results_file, summary_file_path=file_name)
 
-    # did = datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
-    if _domain=="all":
-        datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
-        datasets_dict = datasets_info_dict
     else:
-        datasets_dict[SumDomains(_domain)] = datasets_info_dict[SumDomains(_domain)]
+        # domain = "scientific"
+        # dataset_name = "arxiv"
+        from dataset_lib import datasets_info_dict, SumDomains
+        datasets_dict = {}
 
-    for domain, datasets in datasets_dict.items():
-        for dataset_name in datasets:
-            print("Calculating FactScore for: Domain: {} - Dataset: {}".format(domain.name.lower(), dataset_name))
-            if not "unseen_test" == domain.name.lower():
-                f_name = "summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name)
-                fs_results_file = factscore_results_file
-            else:
-                f_name = "summaries/summaries_{}_{}_25samples.csv".format(domain.name.lower(), dataset_name)
-                fs_results_file = "summaries/factscore_results_unseen_test_25samples.csv"
-            generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain.name.lower(), dataset_name,
-                                                factscore_results_file=fs_results_file, summary_file_path=f_name)
+        # did = datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
+        if _domain is None:
+            raise ValueError("Please provide a domain to calculate FactScore for, your options are: {} or pass 'all'".format(list(datasets_info_dict.keys())))
+        if _domain == "all":
+            datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
+            datasets_dict = datasets_info_dict
+        else:
+            datasets_dict[SumDomains(_domain)] = datasets_info_dict[SumDomains(_domain)]
+
+        for domain, datasets in datasets_dict.items():
+            for dataset_name in datasets:
+                print("Calculating FactScore for: Domain: {} - Dataset: {}".format(domain.name.lower(), dataset_name))
+                if not "unseen_test" == domain.name.lower():
+                    f_name = "summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name)
+                    fs_results_file = factscore_results_file
+                else:
+                    f_name = "summaries/summaries_{}_{}_25samples.csv".format(domain.name.lower(), dataset_name)
+                    fs_results_file = "summaries/factscore_results_unseen_test_25samples.csv"
+                generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain.name.lower(), dataset_name,
+                                                    factscore_results_file=fs_results_file, summary_file_path=f_name)
 
     # generating_factscores_for_summaries(model_name, grounding_provided, openai_key, domain, dataset_name,
     #                                     summary_file_path="summaries/summaries_scientific_arxiv_150samples.csv")

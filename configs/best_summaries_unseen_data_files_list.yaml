@@ -1,0 +1,5 @@
+files:
+  scientific: "data/summaries/scientific/summaries_unseen_data_files_list.csv"
+  medical: "data/summaries/medical/summaries_unseen_data_files_list.xlsx"
+  legal: "data/summaries/legal/summaries_unseen_data_files_list.xlsx"
+  news:  "data/summaries/news/summaries_unseen_data_files_list.csv"
