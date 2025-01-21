@@ -21,7 +21,7 @@ from local_datasets import LoadDatasetFromLocal, LocalDatasetArxiv, LocalDataset
     LocalDatasetCord19, LocalDatasetMSLR, LocalDatasetSciLay, LocalDatasetSciTLDR, LocalDatasetBillSum, \
     LocalDatasetEurLex, LocalDatasetMultiLex, LocalDatasetCNNDailyMail, LocalDatasetNewsRoom, LocalDatasetMultiNews, \
     LocalDatasetXSumNews, LocalDatasetScientific, LocalDatasetMedical, LocalDatasetLegal, LocalDatasetNews
-from domains import DomainsDataset
+from analysing_data import DomainsDataset
 from analysing_data import Similarity
 from openai import OpenAI
 from dotenv import load_dotenv, find_dotenv
@@ -71,7 +71,7 @@ translate_dataset_name = {
 def find_domain(dataset_name):
     for domain in translate_dataset_name.keys():
         if dataset_name in translate_dataset_name[domain]:
-            return domain
+            return domain.lower()
 
 
 def load_domain_dataset(
@@ -85,7 +85,8 @@ def load_domain_dataset(
         ] = None,
 ) -> LoadDatasetFromLocal:
     logging.info(f"Preparing dataset {dataset_name} from domain {domain_name}")
-
+    print(f"Preparing dataset {dataset_name} from domain {domain_name}")
+    print(translate_dataset_name.keys())
     assert domain_name in list(translate_dataset_name.keys())
     assert dataset_name in list(translate_dataset_name[domain_name].keys())
 
