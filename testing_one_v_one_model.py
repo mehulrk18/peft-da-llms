@@ -186,15 +186,19 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     # file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
 
     if "multiple" in peft_full_name:
-        rouge_score_file = rouge_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
-                                                                                         min_samples))
-        bertscore_score_file = bertscore_score_file.format(
-            "_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
-                                                  min_samples))
-        bleu_score_file = bleu_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
-                                                                                       min_samples))
-        meteor_score_file = meteor_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
-                                                                                           min_samples))
+        rouge_score_file = rouge_score_file.format("_{}samples".format(min_samples))
+        bertscore_score_file = bertscore_score_file.format("_{}samples".format(min_samples))
+        bleu_score_file = bleu_score_file.format("_{}samples".format(min_samples))
+        meteor_score_file = meteor_score_file.format("_{}samples".format(min_samples))
+        # rouge_score_file = rouge_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
+        #                                                                                  min_samples))
+        # bertscore_score_file = bertscore_score_file.format(
+        #     "_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
+        #                                           min_samples))
+        # bleu_score_file = bleu_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
+        #                                                                                min_samples))
+        # meteor_score_file = meteor_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
+        #                                                                                    min_samples))
 
     else:
         rouge_score_file = rouge_score_file.format("_{}samples".format(data.domain.name.lower(), min_samples))
