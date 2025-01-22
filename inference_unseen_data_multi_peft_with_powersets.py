@@ -438,7 +438,10 @@ if __name__ == "__main__":
         hf_token = os.getenv("HF_TOKEN")
         wandb_api_key = os.getenv("WANDB_API_KEY")
         run_name, wnb_run, logger, console_handler = None, None, None, None
-        run_name = 'unseen_data_inference_{}_{}.log'.format(("-".join(peft_names) if len(peft_names) > 1 else peft_names[0]) if not zero_shot else "zero_shot", dataset_name)
+        run_name = 'unseen_data_inference_{}_domain_{}_{}.log'.format("cross" if "cross" in config_file else "within",
+                                                                      ("-".join(peft_names) if len(peft_names) > 1 else
+                                                                       peft_names[0]) if not zero_shot else "zero_shot",
+                                                                      dataset_name)
         wnb_run = wandb.init(name=run_name)
         device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
         logging.basicConfig(
