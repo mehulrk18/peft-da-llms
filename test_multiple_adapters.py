@@ -149,7 +149,7 @@ if __name__ == "__main__":
             from peft import PeftModel
 
             for a_path, a_name in zip(testing_configs["pefts"], adapter_names):  # zip(adapter_paths, adapter_names):
-                llama.model.load_adapter(peft_dir + a_path, adapter_name=a_name)
+                llama.model.load_adapter(peft_dir + a_path, adapter_name=a_name, peft_config={"bias": "none"})
 
             # for i in range(len(adapter_names)):
             #     adapter_names[i] = "trained_" + adapter_names[i]
