@@ -2,22 +2,21 @@
 
 
 #best performing pefts on medical unseen_dataset are:
-#  -> rouge : medical_cord19_oft_medical, medical_cord19_lora_medical,  medical_pubmed_adalora_medical, medical_pubmed_lokr_medical, medical_mslr_ia3_medical, $medical_pubmed_lokr_medical
-#  -> bleu : medical_cord19_lora_medical, medical_pubmed_oft_medical, medical_pubmed_lora_medical, medical_scilay_loha_medical, medical_mslr_loha_medical
-#  -> bertscore : medical_cord19_lora_medical, medical_cord19_oft_medical, medical_cord19_lokr_medical, medical_mslr_ia3_medical
-#  -> meteor : medical_cord19_oft_medical, medical_cord19_lora_medical, medical_pubmed_lokr_medical, medical_pubmed_adalora_medical, medical_scilay_loha_medical
-# -> final =>
-#  1. medical_cord19_lora_medical/medical_cord19_oft_medical,
-#  2. medical_pubmed_lokr_medical,
-#  3. medical_scilay_loha_medical
-#  4. medical_mslr_ia3_medical
+#medical_cord19_oft_medical - 28 points
+#medical_cord19_lora_medical - 19 points
+#medical_pubmed_lora_medical - 10 points
+#medical_pubmed_oft_medical - 10 points
+#medical_scilay_loha_medical - 9 points
+#medical_scilay_ia3_medical - 7 points
+#zero_shot_unseen_test_medical_results - 5 points
+#medical_mslr_ia3_medical - 2 points
 
 test_dataset: "medical"
 
 #set1
 pefts:
-  - medical_cord19_lora_checkpoint-1330
-  - medical_pubmed_lokr_checkpoint-1250
+  - medical_cord19_oft_checkpoint-1064
+  - medical_pubmed_lora_checkpoint-1250
   - medical_scilay_loha_checkpoint-1284
   - medical_mslr_ia3_checkpoint-1250
 

@@ -1,17 +1,26 @@
 # test_domain: medical
 
 
-#best Only the best performing pefts non medical unseen_dataset are:
-#  -> rouge :
-#  -> bleu :
-#  -> bertscore :
-#  -> meteor :
-# -> final =>
+#best Only the best performing pefts non legal unseen_dataset are:
+#scientific_scitldr_adalora_scientific (15 points)	medical_cord19_oft_medical - 28 points	news_newsroom_adalora_news (21 points)
+#scientific_arxiv_adalora_scientific (11 points)	medical_cord19_lora_medical - 19 points	news_newsroom_lokr_news (20 points)
+#scientific_scitldr_ia3_scientific (9 points)	medical_pubmed_oft_medical - 10 points	news_xsum_adalora_news (18 points)
+#scientific_elsevier_ia3_scientific (7 points)	medical_pubmed_lora_medical - 10 points	news_xsum_lokr_news (10 points)
+#scientific_arxiv_ia3_scientific (7 points)	medical_scilay_ia3_medical - 9 points	news_multinews_adalora_news (7 points)
+#scientific_scitldr_lokr_scientific (7 points)	medical_scilay_loha_medical - 7 points	news_multinews_ia3_news (6 points)
+#scientific_elsevier_adalora_scientific (3 points)	zero_shot_unseen_test_medical_results - 5 points	news_cnndm_adalora_news (6 points)
+#	                                                medical_mslr_ia3_medical - 2 points	news_multinews_lokr_news (3 points)
+                                                                                    #		news_cnndm_ia3_news (3 points)
+                                                                                    #		news_xsum_ia3_news (2 points)
+                                                                                    #		zero_shot_unseen_test_news_results (1 point)
 
-test_dataset: "medical"
+test_dataset: "legal"
 
 #set1
 pefts:
+  - scientific_scitldr_adalora_checkpoint-1250
+  - medical_cord19_oft_checkpoint-1064
+  - news_newsroom_adalora_checkpoint-1000
 
 #  - medical_scilay_loha_checkpoint-1284
 #  - medical_mslr_ia3_checkpoint-1250

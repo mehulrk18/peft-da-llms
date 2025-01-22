@@ -2,16 +2,21 @@
 
 
 #best Only the best performing pefts non medical unseen_dataset are:
-#  -> rouge :
-#  -> bleu :
-#  -> bertscore :
-#  -> meteor :
-# -> final =>
+#scientific_scitldr_adalora_scientific (15 points)	legal_billsum_ia3_legal (11 points, tied but higher consistency across metrics)	news_newsroom_adalora_news (21 points)
+#scientific_arxiv_adalora_scientific (11 points)	legal_multilex_lokr_legal (11 points, strong performance but slightly less consistent)	news_newsroom_lokr_news (20 points)
+#scientific_scitldr_ia3_scientific (9 points)	legal_multilex_ia3_legal (10 points)	news_xsum_adalora_news (18 points)
+#scientific_elsevier_ia3_scientific (7 points)	legal_billsum_lora_legal (8 points)	news_xsum_lokr_news (10 points)
+#scientific_arxiv_ia3_scientific (7 points)	legal_eurlex_ia3_legal (0 points)	news_multinews_adalora_news (7 points)
+#scientific_scitldr_lokr_scientific (7 points)	legal_billsum_adalora_legal (0 points)	news_multinews_ia3_news (6 points)
+#scientific_elsevier_adalora_scientific (3 points)		                                news_cnndm_adalora_news (6 points)
 
 test_dataset: "medical"
 
 #set1
 pefts:
+  - scientific_scitldr_adalora_checkpoint-1250
+  - legal_billsum_ia3_checkpoint-1000
+  - news_newsroom_adalora_checkpoint-1000
 
 #  - medical_scilay_loha_checkpoint-1284
 #  - medical_mslr_ia3_checkpoint-1250

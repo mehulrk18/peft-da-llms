@@ -427,7 +427,7 @@ if __name__ == "__main__":
         zero_shot = False
         for i, path in enumerate(configs["pefts"]):
             a_name = path.split("_checkpoint")[0]
-            configs["pefts"][i] = configs["pefts"][i]+ "/"+ a_name
+            configs["pefts"][i] = configs["pefts"][i] + "/" + a_name
             peft_names.append(a_name)
 
         provider = "hf"
@@ -435,6 +435,7 @@ if __name__ == "__main__":
         load_dotenv(".env")
         hf_token = os.getenv("HF_TOKEN")
         wandb_api_key = os.getenv("WANDB_API_KEY")
+        run_name, wnb_run, logger, console_handler = None, None, None, None
         run_name = 'unseen_data_inference_{}_{}.log'.format(("-".join(peft_names) if len(peft_names) > 1 else peft_names[0]) if not zero_shot else "zero_shot", dataset_name)
         wnb_run = wandb.init(name=run_name)
         device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
@@ -456,11 +457,12 @@ if __name__ == "__main__":
         logger.addHandler(wnb)
 
         logger.info("Device in use: {}".format(device))
+        llama = None
         # llama_model = get_pretrained_model(ah=ah)
         llama = LLaMAModelClass(version=3.0, instruct_mode=use_instruct_model, quantize=quantize, mlm=mlm, torch_dtype=torch_dtype)
         # llama = LLaMAModelClass(version=3.0, instruct_mode=False, quantization_config=None)
 
-        logger.info("Check point MODEL: \n{}".format(llama.model))
+        # logger.info("Check point MODEL: \n{}".format(llama.model))
 
         # Method 1 - HuggingFace
         logger.info(" -->{}".format(configs))

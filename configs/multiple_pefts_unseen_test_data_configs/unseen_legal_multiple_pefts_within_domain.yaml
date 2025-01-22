@@ -1,25 +1,22 @@
 # test_domain: medical
 
 
-#best performing pefts on medical unseen_dataset are:
-#  -> rouge : medical_cord19_oft_medical, medical_cord19_lora_medical,  medical_pubmed_adalora_medical, medical_pubmed_lokr_medical, medical_mslr_ia3_medical, $medical_pubmed_lokr_medical
-#  -> bleu : medical_cord19_lora_medical, medical_pubmed_oft_medical, medical_pubmed_lora_medical, medical_scilay_loha_medical, medical_mslr_loha_medical
-#  -> bertscore : medical_cord19_lora_medical, medical_cord19_oft_medical, medical_cord19_lokr_medical, medical_mslr_ia3_medical
-#  -> meteor : medical_cord19_oft_medical, medical_cord19_lora_medical, medical_pubmed_lokr_medical, medical_pubmed_adalora_medical, medical_scilay_loha_medical
-# -> final =>
-#  1. medical_cord19_lora_medical/medical_cord19_oft_medical,
-#  2. medical_pubmed_lokr_medical,
-#  3. medical_scilay_loha_medical
-#  4. medical_mslr_ia3_medical
+#best performing pefts on Legal unseen_dataset are:
+#legal_billsum_ia3_legal (11 points, tied but higher consistency across metrics)
+#legal_multilex_lokr_legal (11 points, strong performance but slightly less consistent)
+#legal_multilex_ia3_legal (10 points)
+#legal_billsum_lora_legal (8 points)
+#legal_eurlex_ia3_legal (0 points)
+#legal_billsum_adalora_legal (0 points)
 
-test_dataset: "medical"
+
+test_dataset: "legal"
 
 #set1
 pefts:
-  - medical_cord19_lora_checkpoint-1330
-  - medical_pubmed_lokr_checkpoint-1250
-  - medical_scilay_loha_checkpoint-1284
-  - medical_mslr_ia3_checkpoint-1250
+  - legal_billsum_ia3_checkpoint-1000
+  - legal_multilex_lokr_checkpoint-4075
+  - legal_eurlex_ia3_checkpoint-1300
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250

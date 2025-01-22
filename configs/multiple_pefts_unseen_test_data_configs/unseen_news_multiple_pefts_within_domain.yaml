@@ -2,15 +2,16 @@
 
 
 #best performing pefts on medical unseen_dataset are:
-#  -> rouge : news_newsroom_lokr_news news_newsroom_adalora_news news_xsum_lokr_news news_xsum_adalora_news news_cnndm_adalora_news news_multinews_adalora_news news_multinews_ia3_news news_cnndm_ia3_news
-#  -> bleu : news_newsroom_lokr_news news_newsroom_adalora_news news_xsum_lokr_news news_xsum_adalora_news news_cnndm_adalora_news news_multinews_adalora_news news_multinews_ia3_news news_cnndm_ia3_news
-#  -> bertscore : news_xsum_adalora_news news_newsroom_adalora_news news_multinews_ia3_news news_xsum_ia3_news $news_cnndm_adalora_news
-#  -> meteor : news_newsroom_lokr_news news_newsroom_lora_news news_multinews_adalora_news news_multinews_lokr_news news_xsum_adalora_news news_cnndm_ia3_news
-# -> final =>
-#  1. news_newsroom_lokr_news
-#  2. news_xsum_adalora_news
-#  3. news_multinews_adalora_news
-#  4. news_cnndm_ia3_news
+#news_newsroom_adalora_news (21 points)
+#news_newsroom_lokr_news (21 points)
+#news_xsum_adalora_news (18 points)
+#news_xsum_lokr_news (10 points)
+#news_multinews_adalora_news (7 points)
+#news_multinews_ia3_news (6 points)
+#news_cnndm_adalora_news (6 points)
+#news_multinews_lokr_news (3 points)
+#news_cnndm_ia3_news (3 points)
+#news_xsum_ia3_news (2 points)
 
 test_dataset: "news"
 
@@ -19,7 +20,7 @@ pefts:
   - news_newsroom_lokr_checkpoint-1250
   - news_xsum_adalora_checkpoint-1000
   - news_multinews_adalora_checkpoint-1250
-  - news_cnndm_ia3_checkpoint-500
+  - news_cnndm_adalora_checkpoint-1250
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250

@@ -1,20 +1,16 @@
 # test_domain: medical
 
 
-#best Only the best performing pefts non medical unseen_dataset are:
-#  -> rouge :
-#  -> bleu :
-#  -> bertscore :
-#  -> meteor :
-# -> final =>
+#best Only the best performing pefts non scientific unseen_dataset are:
+#medical_cord19_oft_medical - 28 points	legal_billsum_ia3_legal (11 points, tied but higher consistency across metrics)	news_newsroom_adalora_news (21 points)
 
-test_dataset: "medical"
+test_dataset: "scientific"
 
 #set1
 pefts:
-
-#  - medical_scilay_loha_checkpoint-1284
-#  - medical_mslr_ia3_checkpoint-1250
+  - medical_cord19_oft_checkpoint-1064
+  - legal_billsum_ia3_checkpoint-1000
+  - news_newsroom_adalora_checkpoint-1000
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250
