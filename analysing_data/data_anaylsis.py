@@ -132,6 +132,7 @@ def get_domain_dataset(domain, ds_name, split, num_samples=5, ttl_hash=None):
         domain_name=domain,
         dataset_name=ds_name,
         samples=num_samples,
+        preview=True,
     )
 
     articles = dataset.get_split(split)["text"]
@@ -488,15 +489,16 @@ def construct_training_corpus(
 
 
 
-    template_2 = get_template(df_ft, num_datasets=num_datasets, num_samples=num_samples, ft=True
-                              )
-    template_2.to_excel("template2_ft.xlsx")
+    # template_2 = get_template(df_ft, num_datasets=num_datasets, num_samples=num_samples, ft=True
+    #                           )
+    # template_2.to_excel("template2_ft.xlsx")
     template_1 = get_template(df_zero_shot, num_datasets=num_datasets, num_samples=num_samples
                               )
-    template_1.to_excel("template1.xlsx")
+    template_1.to_excel("template1_moresamples.xlsx")
 
     # print (template)
-    template = pd.concat([template_1, template_2], axis=0)
+    # template = pd.concat([template_1, template_2], axis=0)
+    template = pd.concat([template_1], axis=0)
     return template
 
 

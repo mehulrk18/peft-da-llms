@@ -46,10 +46,21 @@ class LoadDatasetFromLocal:
             data = DatasetDict({"test": Dataset.from_pandas(data)})
         else:
             data = load_from_disk(self.dataset_info.local_path)
+            data = data.filter(lambda x: len(x['content']) > 0 and len(x['summary']) > 0)
+            loaded_dataset = data.map(lambda x: {"content_len": len(x["content"])})
+            data = loaded_dataset.sort("content_len")
+            data = data.remove_columns(["content_len"])
+            
 
         if preview:
+            samples = {
+                "train": 1000,
+                "validation": 1,
+                "test": 150
+            }
             for k in data.keys():
-                data[k] = data[k].select(range(preview_size))
+                # data[k] = data[k].select(range(preview_size))
+                data[k] = data[k].select(range(samples[k]))
 
         elif samples != "max":
             if "train" in list(data.keys()):

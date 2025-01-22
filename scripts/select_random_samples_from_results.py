@@ -33,5 +33,8 @@ if __name__ == "__main__":
             else:
                 output_file = file.replace("150samples.csv", "{}samples.csv".format(samples))
         # Save the random rows to a new CSV file
-        random_rows.to_csv(output_file, index=False)
+        if output_file.endswith(".xlsx"):
+            random_rows.to_excel(output_file, index=False)
+        else:    
+            random_rows.to_csv(output_file, index=False)
         print("Random {} samples from {} saved to: {}".format(samples, file, output_file))
