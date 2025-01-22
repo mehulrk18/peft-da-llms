@@ -231,6 +231,6 @@ if __name__ == "__main__":
         else:
             if "legal" in file and file.endswith(".csv"):
                 continue
-            score_file = "summaries/{}_scores50.csv"
+            score_file = "summaries/{}_scores_50samples.csv"
             calculate_metrics_for_all_columns_in_file(summary_file=file, score_file=score_file,
                                                       column_to_leave=["zero_shot_instruct"])
