@@ -1,15 +1,19 @@
 # test_domain: medical
 
 
-#best performing pefts on scientific unseen_dataset are:
-#  -> rouge : scientific_scitldr_adalora_scientific scientific_arxiv_adalora_scientific scientific_scitldr_lokr_scientific scientific_elsevier_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bleu : scientific_scitldr_adalora_scientific scientific_scitldr_lokr_scientific scientific_arxiv_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bertscore :scientific_scitldr_adalora_scientific scientific_scitldr_ia3_scientific scientific_elsevier_ia3_scientific scientific_arxiv_ia3_scientific
-#  -> meteor : scientific_scitldr_ia3_scientific scientific_arxiv_ia3_scientific scientific_arxiv_adalora_scientific scientific_elsevier_ia3_scientific scientific_elsevier_adalora_scientific
-# -> final =>
-#  1. scientific_scitldr_adalora_scientific
-#  2. scientific_arxiv_adalora_scientific
-#  3. scientific_elsevier_ia3_scientific
+#best performing pefts on legal test data are:
+#legal_billsum_lokr_checkpoint-1000 (23 points)
+#legal_multilex_lora_checkpoint-4075 (14 points)
+#legal_billsum_oft_checkpoint-1000 (10 points)
+#legal_eurlex_oft_checkpoint-3250 (9 points)
+#legal_multilex_oft_checkpoint-3260 (6 points)
+#legal_billsum_adalora_checkpoint-1250 (6 points)
+#legal_billsum_loha_checkpoint-750 (5 points)
+#legal_eurlex_loha_checkpoint-3250 (4 points)
+#legal_multilex_loha_checkpoint-4075 (3 points)
+#legal_eurlex_ia3_checkpoint-1300 (2 points)
+#legal_eurlex_lokr_checkpoint-3250 (1 point)
+#legal_eurlex_lora_checkpoint-3250 (1 point)
 
 test_domain: "legal"
 
@@ -19,12 +23,12 @@ test_datasets:
     - multilex
 
 best_pefts:
-    - billsum_adalora
-#    - bill_sum
-    - eurlex_adalora
-#    - eurlex
-    - multilex_adalora
-#    - multilex
+    - legal_billsum_lokr_checkpoint-1000
+#   - legal_billsum_oft_checkpoint-1000
+    - legal_multilex_lora_checkpoint-4075
+#    - legal_multiex_oft_checkpoint-3260
+    - legal_eurlex_oft_checkpoint-3250
+#    - legal_eurlex_loha_checkpoint-3250
 
 
 #    _______________________________________________________________________________________________________________

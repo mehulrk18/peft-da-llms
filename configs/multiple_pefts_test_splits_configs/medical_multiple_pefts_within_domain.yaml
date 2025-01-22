@@ -1,15 +1,19 @@
 # test_domain: medical
 
 
-#best performing pefts on scientific unseen_dataset are:
-#  -> rouge : scientific_scitldr_adalora_scientific scientific_arxiv_adalora_scientific scientific_scitldr_lokr_scientific scientific_elsevier_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bleu : scientific_scitldr_adalora_scientific scientific_scitldr_lokr_scientific scientific_arxiv_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bertscore :scientific_scitldr_adalora_scientific scientific_scitldr_ia3_scientific scientific_elsevier_ia3_scientific scientific_arxiv_ia3_scientific
-#  -> meteor : scientific_scitldr_ia3_scientific scientific_arxiv_ia3_scientific scientific_arxiv_adalora_scientific scientific_elsevier_ia3_scientific scientific_elsevier_adalora_scientific
-# -> final =>
-#  1. scientific_scitldr_adalora_scientific
-#  2. scientific_arxiv_adalora_scientific
-#  3. scientific_elsevier_ia3_scientific
+#best performing pefts on medical test data are:
+#medical_pubmed_lora_checkpoint-1250 (18 points)
+#medical_cord19_adalora_checkpoint-1330 (17 points)
+#medical_pubmed_oft_checkpoint-1250 (16 points)
+#medical_cord19_oft_checkpoint-1064 (13 points)
+#medical_pubmed_lora_checkpoint-1250 (10 points)
+#medical_cord19_lora_checkpoint-1330 (8 points)
+#medical_scilay_oft_checkpoint-2140 (8 points)
+#medical_cord19_ia3_checkpoint-1064 (6 points)
+#medical_scilay_lokr_checkpoint-1284 (6 points)
+#medical_scilay_ia3_checkpoint-1284 (5 points)
+#medical_scilay_lora_checkpoint-2140 (5 points)
+#medical_mslr_ia3_checkpoint-1250 (5 points)
 
 test_domain: "medical"
 
@@ -20,14 +24,14 @@ test_datasets:
     - scilay
 
 best_pefts:
-    - cord19_adalora
-#    - cord19
-    - mslr_adalora
-#    - mslr
-    - pubmed_adalora
-#    - pubmed
-    - scilay_adalora
-#    - scilay_oft
+    - medical_pubmed_lora_checkpoint-1250
+#    - medical_pubmed_oft_checkpoint-1250
+    - medical_cord19_adalora_checkpoint-1330
+#    - medical_cord19_oft_checkpoint-1064
+    - medical_scilay_oft_checkpoint-2140
+#    - medical_scilay_lokr_checkpoint-1284
+    - medical_mslr_ia3_checkpoint-1250
+
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250

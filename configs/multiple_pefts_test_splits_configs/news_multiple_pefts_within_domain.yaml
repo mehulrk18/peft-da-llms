@@ -1,15 +1,17 @@
 # test_domain: medical
 
 
-#best performing pefts on scientific unseen_dataset are:
-#  -> rouge : scientific_scitldr_adalora_scientific scientific_arxiv_adalora_scientific scientific_scitldr_lokr_scientific scientific_elsevier_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bleu : scientific_scitldr_adalora_scientific scientific_scitldr_lokr_scientific scientific_arxiv_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bertscore :scientific_scitldr_adalora_scientific scientific_scitldr_ia3_scientific scientific_elsevier_ia3_scientific scientific_arxiv_ia3_scientific
-#  -> meteor : scientific_scitldr_ia3_scientific scientific_arxiv_ia3_scientific scientific_arxiv_adalora_scientific scientific_elsevier_ia3_scientific scientific_elsevier_adalora_scientific
-# -> final =>
-#  1. scientific_scitldr_adalora_scientific
-#  2. scientific_arxiv_adalora_scientific
-#  3. scientific_elsevier_ia3_scientific
+#best performing pefts on news test data are:
+#news_cnndm_adalora_checkpoint-1250 (30 points)
+#news_multinews_oft_checkpoint-1250 (23 points)
+#news_multinews_lora_checkpoint-1250 (19 points)
+#news_cnndm_lokr_checkpoint-1000 (16 points)
+#news_xsum_lokr_checkpoint-1000 (12 points)
+#news_xsum_adalora_checkpoint-1000 (11 points)
+#news_newsroom_adalora_checkpoint-1000 (11 points)
+#news_newsroom_lokr_checkpoint-1250 (10 points)
+#news_cnndm_ia3_checkpoint-500 (6 points)
+#news_multinews_adalora_checkpoint-1250 (4 points)
 
 test_domain: "news"
 
@@ -20,14 +22,14 @@ test_datasets:
     - xsum
 
 best_pefts:
-    - cnndm_adalora
-#    - cnndm
-    - multinews_adalora
-#    - multinews
-    - newsroom_adalora
-#    - newsroom
-    - xsum_adalora
-#    - xsum_oft
+    - news_cnndm_adalora_checkpoint-1250
+#    - news_cnndm_lokr_checkpoint-1000
+    - news_multinews_oft_checkpoint-1250
+#    - news_multinews_lora_checkpoint-1250
+    - news_xsum_lokr_checkpoint-1000
+#    - news_xsum_adalora_checkpoint-1000
+    - news_newsroom_adalora_checkpoint-1000
+#    - news_newsroom_lokr_checkpoint-1250
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250

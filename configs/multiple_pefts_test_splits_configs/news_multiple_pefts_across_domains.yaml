@@ -1,15 +1,10 @@
 # test_domain: medical
 
 
-#best performing pefts on scientific unseen_dataset are:
-#  -> rouge : scientific_scitldr_adalora_scientific scientific_arxiv_adalora_scientific scientific_scitldr_lokr_scientific scientific_elsevier_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bleu : scientific_scitldr_adalora_scientific scientific_scitldr_lokr_scientific scientific_arxiv_adalora_scientific scientific_arxiv_ia3_scientific scientific_elsevier_ia3_scientific
-#  -> bertscore :scientific_scitldr_adalora_scientific scientific_scitldr_ia3_scientific scientific_elsevier_ia3_scientific scientific_arxiv_ia3_scientific
-#  -> meteor : scientific_scitldr_ia3_scientific scientific_arxiv_ia3_scientific scientific_arxiv_adalora_scientific scientific_elsevier_ia3_scientific scientific_elsevier_adalora_scientific
-# -> final =>
-#  1. scientific_scitldr_adalora_scientific
-#  2. scientific_arxiv_adalora_scientific
-#  3. scientific_elsevier_ia3_scientific
+#best performing pefts on non news data are:
+#scientific_arxiv_lokr_checkpoint-1480 (18 points)	medical_pubmed_lora_checkpoint-1250 (18 points)	legal_billsum_lokr_checkpoint-1000 (23 points)
+#scientific_elsevier_adalora_checkpoint-1255 (16 points)	medical_cord19_adalora_checkpoint-1330 (17 points)	legal_multilex_lora_checkpoint-4075 (14 points)
+
 
 test_domain: "news"
 test_datasets:
@@ -19,9 +14,12 @@ test_datasets:
     - xsum
 
 best_pefts:
-    - scientific_pubmed_adalora
-    - legal
-    - medical
+    - scientific_arxiv_lokr_checkpoint-1480
+#    - scientific_elsevier_adalora_checkpoint-1255
+    - medical_pubmed_lora_checkpoint-1250
+#    - medical_cord19_adalora_checkpoint-1330
+    - legal_billsum_lokr_checkpoint-1000
+#    - legal_multilex_lora_checkpoint-4075
 
 #    _______________________________________________________________________________________________________________
 #  - medical_pubmed_adalora_checkpoint-1250

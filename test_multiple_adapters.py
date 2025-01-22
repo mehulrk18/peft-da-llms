@@ -14,16 +14,17 @@ from utils import generate_summary, LLaMAModelClass, \
 
 global CHAT_TEMPLATE
 
-
 if __name__ == "__main__":
 
     from warnings import simplefilter
+
     simplefilter(action='ignore', category=FutureWarning)
     global CHAT_TEMPLATE
 
     parser = argparse.ArgumentParser(description="Argument parser to fetch PEFT and Dataset (domain) for training")
 
-    parser.add_argument("--multi_pefts_configs_file", type=str, required=True, help="yaml file paths to the of trained adapters")
+    parser.add_argument("--multi_pefts_configs_file", type=str, required=True,
+                        help="yaml file paths to the of trained adapters")
 
     parser.add_argument("--peft_dir", type=str, default="trained_pefts/", help="Storage directory")
     parser.add_argument("--main_dir", type=str, default="", help="Main directory")
@@ -36,7 +37,6 @@ if __name__ == "__main__":
     parser.add_argument("--mlm", type=bool, default=False, help="Using attention mask")
     parser.add_argument("--sorted_dataset", type=bool, default=False, help="Sorted dataset")
     parser.add_argument("--test_samples", type=int, default=50, help="Test samples")
-    
 
     main_directory = ""
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # test_samples = testing_configs["test_samples"]
     # CHAT_TEMPLATE = testing_configs["chat_template"]
     # use_instruct_model = testing_configs["instruct_mode"]
-    provider = "hf" #testing_configs["provider"]
+    provider = "hf"  # testing_configs["provider"]
     # metric = testing_configs["metric"]
     # torch_dtype = torch_dtypes_dict[testing_configs["torch_dtype"]]
     # quantize = testing_configs.get("torch_dtype", False)
@@ -64,30 +64,42 @@ if __name__ == "__main__":
     test_domain = testing_configs["test_domain"]
     test_datasets = testing_configs["test_datasets"]
     torch_dtype = torch_dtypes_dict[args.torch_dtype]
-    
-    use_instruct_model = True # if "instruct" in trained_peft_path or args.chat_template else False
+
+    use_instruct_model = True  # if "instruct" in trained_peft_path or args.chat_template else False
     # provider = "hf" if "hf" in trained_peft_path else "ah"
-    
+
     # dataset_name = args.test_dataset # configs["dataset_name"]
 
     # adapter_paths = testing_configs["trained_adapters_path"]
 
+    across_domain = False
+    peft_power_set = None
+
+    if "across" in trained_peft_config_path:
+        across_domain = True
+
     for test_dataset in test_datasets:
-        pefts = testing_configs["best_pefts"]
 
-        data_pefts = [peft for peft in pefts if not test_dataset in peft]
+        if across_domain:
+            pefts = testing_configs["best_pefts"]
+            if peft_power_set is None:
+                peft_power_set = power_set(pefts)
+        else:
+            pefts = testing_configs["best_pefts"]
+            data_pefts = [peft for peft in pefts if test_dataset not in peft]
 
-        peft_set = power_set(data_pefts)
+            peft_power_set = power_set(data_pefts)
 
-        for peft in peft_set:
+        for peft in peft_power_set:
             if len(peft) < 2:
                 continue
-            testing_configs["pefts"] = list(pefts)
+            testing_configs["pefts"] = None
+            testing_configs["pefts"] = list(peft)
             adapter_names = []
 
-        # for path in adapter_paths:
-        #     a_name = path.split("/")[-1]
-        #     adapter_names.append(a_name)
+            # for path in adapter_paths:
+            #     a_name = path.split("/")[-1]
+            #     adapter_names.append(a_name)
 
             for i, path in enumerate(testing_configs["pefts"]):
                 a_name = path.split("_checkpoint")[0]
@@ -98,7 +110,9 @@ if __name__ == "__main__":
             all_adapters = "-".join(adapter_names)
             load_dotenv(".env")
             wandb_api_key = os.getenv("WANDB_API_KEY")
-            run_name = 'testing_multiple_pefts_{}_data_{}-{}_{}samples.log'.format(all_adapters, test_domain, test_dataset, samples)
+            run_name = ('testing_multiple_{}_domain_pefts_{}_data_'
+                        '{}-{}_{}samples.log').format("across" if across_domain else "within", all_adapters,
+                                                      test_domain, test_dataset, samples)
             wnb_run = wandb.init(name=run_name)
             logger, wnb = None, None
             logging.basicConfig(
@@ -133,8 +147,9 @@ if __name__ == "__main__":
             # if provider == "hf":
             # Method 1 - HuggingFace
             from peft import PeftModel
-            for a_path, a_name in zip(testing_configs["pefts"], adapter_names): # zip(adapter_paths, adapter_names):
-                llama.model.load_adapter(peft_dir+a_path, adapter_name=a_name)
+
+            for a_path, a_name in zip(testing_configs["pefts"], adapter_names):  # zip(adapter_paths, adapter_names):
+                llama.model.load_adapter(peft_dir + a_path, adapter_name=a_name)
 
             # for i in range(len(adapter_names)):
             #     adapter_names[i] = "trained_" + adapter_names[i]
@@ -177,7 +192,9 @@ if __name__ == "__main__":
             data.validation_set = None
 
             testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, logger=logger,
-                          col_name="multiple_"+all_adapters, data=data, chat_template=CHAT_TEMPLATE, metric_name=metric,
-                          peft_full_name="multiple_"+all_adapters, device=device)
+                          col_name="multiple_" + all_adapters, data=data, chat_template=CHAT_TEMPLATE,
+                          metric_name=metric,
+                          peft_full_name="multiple_" + all_adapters, device=device)
 
             wnb_run.finish()
+            del logger, wnb_run, wnb
