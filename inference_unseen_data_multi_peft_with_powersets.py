@@ -456,6 +456,7 @@ if __name__ == "__main__":
         logger.addHandler(console_handler)
         logger.addHandler(wnb)
 
+        logger.info("Configs file path: {}".format(config_file))
         logger.info("Device in use: {}".format(device))
         llama = None
         # llama_model = get_pretrained_model(ah=ah)
