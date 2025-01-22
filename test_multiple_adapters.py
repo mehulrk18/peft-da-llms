@@ -148,8 +148,13 @@ if __name__ == "__main__":
             # Method 1 - HuggingFace
             from peft import PeftModel
 
-            for a_path, a_name in zip(testing_configs["pefts"], adapter_names):  # zip(adapter_paths, adapter_names):
-                llama.model.load_adapter(peft_dir + a_path, adapter_name=a_name) # peft_config
+            try:
+                for a_path, a_name in zip(testing_configs["pefts"], adapter_names):  # zip(adapter_paths, adapter_names):
+                    llama.model.load_adapter(peft_dir + a_path, adapter_name=a_name) # peft_config
+            except Exception as e:
+                logger.error("Error while loading adapters: {}".format(e))
+                wnb_run.finish()
+                continue
 
             # for i in range(len(adapter_names)):
             #     adapter_names[i] = "trained_" + adapter_names[i]
