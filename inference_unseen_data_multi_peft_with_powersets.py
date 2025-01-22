@@ -415,6 +415,8 @@ if __name__ == "__main__":
 
     power_sets = power_set(configs["pefts"])
 
+    print("Power Sets: ", power_sets)
+
     for i, peft_set in enumerate(power_sets):
         if len(peft_set) < 2:
             continue
