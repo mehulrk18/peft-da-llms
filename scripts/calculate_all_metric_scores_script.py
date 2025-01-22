@@ -118,7 +118,11 @@ def calculate_metrics_for_all_columns_in_file(summary_file, score_file, column_t
     #     df = pd.read_csv("summaries/summaries_{}_{}_150samples.csv".format(domain, dataset_name), encoding="ISO-8859-1")
     if column_to_leave is None:
         column_to_leave = []
-    df = pd.read_csv(summary_file)
+
+    if summary_file.endswith(".xlsx"):
+        df = pd.read_excel(summary_file)
+    else:
+        df = pd.read_csv(summary_file)
     pefts = df.columns[2:]
     metrics = {"rouge": ["model", "rouge1", "rouge2", "rougeL", "rougeLsum"],
                "bertscore": ["model", "precision_mean", "precision_median", "recall_mean", "recall_median", "f1_mean",
@@ -149,7 +153,7 @@ def calculate_metrics_for_all_columns_in_file(summary_file, score_file, column_t
             model_name = model_ckpt.get(model_name, model_name)
         else:
             if "zero_shot_instruct" == _peft:
-                _domain = summary_file.split("summaries_unseen_test_")[1].split("_25samples.csv")[0]
+                _domain = summary_file.split("summaries_unseen_test_")[1].split("_25samples")[0]
                 model_name = "zero_shot_unseen_test_{}_results".format(_domain)
             else:
                 model_name = _peft
@@ -214,12 +218,16 @@ def calculate_metrics_for_all_columns_in_file(summary_file, score_file, column_t
 
 
 if __name__ == "__main__":
-    files = glob.glob("summaries/summaries_*_50samples.csv")
-    files.extend(glob.glob("summaries/summaries_unseen_test_*_25samples.csv"))
+    # files = glob.glob("summaries/summaries_*_50samples.csv")
+    # only unseen test files for now.
+    # files.extend(glob.glob("summaries/summaries_unseen_test_*_25samples.*"))
+    files = glob.glob("summaries/summaries_unseen_test_*_25samples.*")
     for file in files:
         print("Calculating All metrics for: ", file)
         if "unseen_test" in file:
             score_file = "summaries/unseen_data_{}_scores25.csv"
+            if ("medical" in file or "legal" in file) and file.endswith(".csv"):
+                continue
             calculate_metrics_for_all_columns_in_file(summary_file=file, score_file=score_file)
         else:
             score_file = "summaries/{}_scores50.csv"
