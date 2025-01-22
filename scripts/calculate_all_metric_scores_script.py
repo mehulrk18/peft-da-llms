@@ -8,7 +8,6 @@ from utils.evaluation_metrics_llms import meteor_metric, rouge_metric, bertscore
 
 load_dotenv()
 
-factscore_results_file = "summaries/factscore_results.csv"
 STORE_DATA_DIR = ""
 
 model_ckpt = {'zero_shot_legal_multilex_results': 'zero_shot_legal_multilex_results',
@@ -218,10 +217,10 @@ def calculate_metrics_for_all_columns_in_file(summary_file, score_file, column_t
 
 
 if __name__ == "__main__":
-    # files = glob.glob("summaries/summaries_*_50samples.csv")
+    files = glob.glob("summaries/summaries_*_50samples.*")
     # only unseen test files for now.
     # files.extend(glob.glob("summaries/summaries_unseen_test_*_25samples.*"))
-    files = glob.glob("summaries/summaries_unseen_test_*_25samples.*")
+    # files = glob.glob("summaries/summaries_unseen_test_*_25samples.*")
     for file in files:
         print("Calculating All metrics for: ", file)
         if "unseen_test" in file:
@@ -230,6 +229,8 @@ if __name__ == "__main__":
                 continue
             calculate_metrics_for_all_columns_in_file(summary_file=file, score_file=score_file)
         else:
+            if "legal" in file and file.endswith(".csv"):
+                continue
             score_file = "summaries/{}_scores50.csv"
             calculate_metrics_for_all_columns_in_file(summary_file=file, score_file=score_file,
                                                       column_to_leave=["zero_shot_instruct"])

@@ -60,7 +60,7 @@ class LoadDatasetFromLocal:
             }
             for k in data.keys():
                 # data[k] = data[k].select(range(preview_size))
-                data[k] = data[k].select(range(samples[k]))
+                data[k] = data[k].select(range(min(samples[k], len(data[k]))))
 
         elif samples != "max":
             if "train" in list(data.keys()):
