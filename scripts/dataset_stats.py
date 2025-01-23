@@ -80,6 +80,8 @@ if __name__ == "__main__":
         instruct_mode=True,
         mlm=True
     )
+    llama.model = None
+    del llama.model
 
     calculate_stats(llama, used_samples, "results/dataset_used_samples_stats.xlsx")
     calculate_stats(llama, max_samples, "results/dataset_max_samples_stats.xlsx")
