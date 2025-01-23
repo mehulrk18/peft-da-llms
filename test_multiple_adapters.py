@@ -154,6 +154,7 @@ if __name__ == "__main__":
             except Exception as e:
                 logger.error("Error while loading adapters: {}".format(e))
                 wnb_run.finish()
+                del logger, wnb_run, wnb, llama
                 continue
 
             # for i in range(len(adapter_names)):
@@ -199,7 +200,7 @@ if __name__ == "__main__":
             testing_model(llama_model=llama.model, llama_tokenizer=llama.tokenizer, logger=logger,
                           col_name="multiple_" + all_adapters, data=data, chat_template=CHAT_TEMPLATE,
                           metric_name=metric,
-                          peft_full_name="multiple_" + all_adapters, device=device)
+                          peft_full_name="multiple_" + all_adapters+"-dataset_"+test_dataset, device=device)
 
             wnb_run.finish()
             del logger, wnb_run, wnb
