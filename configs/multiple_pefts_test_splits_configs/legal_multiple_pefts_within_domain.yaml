@@ -23,10 +23,10 @@ test_datasets:
     - multilex
 
 best_pefts:
-    - legal_billsum_lokr_checkpoint-1000
-#   - legal_billsum_oft_checkpoint-1000
     - legal_multilex_lora_checkpoint-4075
 #    - legal_multiex_oft_checkpoint-3260
+    - legal_billsum_lokr_checkpoint-1000
+#   - legal_billsum_oft_checkpoint-1000
     - legal_eurlex_oft_checkpoint-3250
 #    - legal_eurlex_loha_checkpoint-3250
 

@@ -12,10 +12,10 @@ test_datasets:
     - multilex
 
 best_pefts:
-    - scientific_arxiv_lokr_checkpoint-1480
-#    - scientific_elsevier_adalora_checkpoint-1255
     - medical_pubmed_lora_checkpoint-1250
 #    - medical_cord19_adalora_checkpoint-1330
+    - scientific_arxiv_lokr_checkpoint-1480
+#    - scientific_elsevier_adalora_checkpoint-1255
     - news_cnndm_adalora_checkpoint-1250
 #    - news_multinews_oft_checkpoint-1250
 

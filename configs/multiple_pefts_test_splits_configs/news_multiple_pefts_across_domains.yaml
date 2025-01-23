@@ -14,10 +14,10 @@ test_datasets:
     - xsum
 
 best_pefts:
-    - scientific_arxiv_lokr_checkpoint-1480
-#    - scientific_elsevier_adalora_checkpoint-1255
     - medical_pubmed_lora_checkpoint-1250
 #    - medical_cord19_adalora_checkpoint-1330
+    - scientific_arxiv_lokr_checkpoint-1480
+#    - scientific_elsevier_adalora_checkpoint-1255
     - legal_billsum_lokr_checkpoint-1000
 #    - legal_multilex_lora_checkpoint-4075
 
