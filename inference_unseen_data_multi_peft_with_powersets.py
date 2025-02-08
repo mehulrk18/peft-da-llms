@@ -438,10 +438,16 @@ if __name__ == "__main__":
         hf_token = os.getenv("HF_TOKEN")
         wandb_api_key = os.getenv("WANDB_API_KEY")
         run_name, wnb_run, logger, console_handler = None, None, None, None
-        run_name = 'unseen_data_inference_{}_domain_{}_{}.log'.format("cross" if "cross" in config_file else "within",
+        # run_name = 'unseen_data_inference_{}_domain_{}_{}.log'.format("cross" if "cross" in config_file else "within",
+        #                                                               ("-".join(peft_names) if len(peft_names) > 1 else
+        #                                                                peft_names[0]) if not zero_shot else "zero_shot",
+        #                                                               dataset_name)
+
+        run_name = 'holdout_data_inference_{}_domain_{}_{}.log'.format("cross" if "cross" in config_file else "within",
                                                                       ("-".join(peft_names) if len(peft_names) > 1 else
                                                                        peft_names[0]) if not zero_shot else "zero_shot",
                                                                       dataset_name)
+
         wnb_run = wandb.init(name=run_name)
         device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
         logging.basicConfig(
@@ -505,9 +511,15 @@ if __name__ == "__main__":
         # data.validation_set = None
         from inference_unseen_data import unseen_test_data_inference
         unseen_test_data_inference(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data_class=data_class,
-                                   peft_full_name=("multiple_"+"-".join(peft_names)+f"_{dataset_name}" if
-                                                   len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
-                                   col_name=("multiple_"+"-".join(peft_names)+f"_{dataset_name}" if
-                                             len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
+                                   # peft_full_name=("multiple_"+"-".join(peft_names)+f"_{dataset_name}" if
+                                   #                 len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
+                                   peft_full_name=("cross_domain_test_" + "-".join(peft_names) + f"_{dataset_name}" if
+                                                   len(peft_names) > 1 else peft_names[
+                                                                                0] + f"_{dataset_name}") if not zero_shot else "zero_shot",
+                                   # col_name=("multiple_"+"-".join(peft_names)+f"_{dataset_name}" if
+                                   #           len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
+                                   col_name=("cross_domain_test_" + "-".join(peft_names) + f"_{dataset_name}" if
+                                             len(peft_names) > 1 else peft_names[
+                                                                          0] + f"_{dataset_name}") if not zero_shot else "zero_shot",
                                    logger=logger, device=device, chat_template=chat_template, metric_name=metric)
         wnb_run.finish()
