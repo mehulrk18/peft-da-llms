@@ -5,7 +5,8 @@ transformers==4.40.2
 bitsandbytes==0.42.0
 huggingface-hub==0.23.4
 accelerate==0.30.0
-evaluate==0.4.2
+evaluate==0.4.3
+openpyxl
 argparse
 pyyaml
 python-dotenv
@@ -17,3 +18,7 @@ packaging
 jupyter
 wandb
 tensorboard
+bert-score
+openai
+tiktoken
+spacy

@@ -14,8 +14,8 @@ time python training_one_v_one.py \
   --sorted_dataset "True" \
   --batch_size 4 \
   --torch_dtype "bf16" \
+  --use_instruct_model "True" \
   --return_overflowing_tokens "True"
 #  --do_inference "True" \
 #  --chat_template "True" \
-#  --use_instruct_model "True" \
 #  --mlm "True" \

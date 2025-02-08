@@ -1,6 +1,12 @@
 import logging
+import os.path
+import re
+
 import torch
 import yaml
+
+from itertools import chain, combinations
+
 
 MODEL_ID = "meta-llama/Meta-Llama-3-8B"  # Meta-Llama-3-8B-Instruct
 
@@ -51,3 +57,29 @@ def print_model_weights(model):
             print(f"Layer: {name}, dtype: {layer.bias.dtype}")
         # else:
         #     print(f"Layer: {name}, dtype: Not applicable (no weights)")
+
+
+def check_and_return_df(file_name: str):
+    import pandas as pd
+    if os.path.exists(file_name):
+        if ".csv" in file_name:
+            df = pd.read_csv(file_name)
+        else:
+            df = pd.read_excel(file_name)
+        return df, True
+
+    else:
+        print("File not found: ", file_name)
+        return pd.DataFrame([]), False
+
+
+def power_set(input_list):
+    return list(chain.from_iterable(combinations(input_list, r) for r in range(len(input_list) + 1)))
+
+
+def clean_illegal_chars(text):
+    if isinstance(text, str):  # Apply only to strings
+        # Remove illegal characters (non-printable and null bytes)
+        return re.sub(r'[\x00-\x1F\x7F-\x9F]', '', text)
+    return text
+

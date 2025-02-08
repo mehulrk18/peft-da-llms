@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from huggingface_hub import login
 from transformers import TrainingArguments, DataCollatorForLanguageModeling, Trainer
 
-from dataset_lib import SumDataLoader
+from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT
 from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
 from utils import read_yaml, LLaMAModelClass, generate_summary, convert_model_adapter_params_to_torch_dtype, \
     torch_dtypes_dict, WandBLogger
@@ -27,6 +27,10 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
 
     llama = LLaMAModelClass(version=3.0, instruct_mode=INSTRUCT_MODEL, quantize=QUANTIZE, mlm=mlm,
                             torch_dtype=torch_dtype)
+
+    data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=training_samples,
+                         eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
+                         chat_template=CHAT_TEMPLATE)
 
     def tokenization_process(input_data):
         inputs = llama.tokenizer(input_data["text"], max_length=MAX_SEQ_LENGTH, padding="max_length", return_tensors="pt")
@@ -70,33 +74,46 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
             "labels": input_ids["input_ids"] #input_ids, # labels
         }
 
-    # peft_name = None
+    def preprocessing_data_with_system_prompt(sample):
 
-    # Loading dataset
-    data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=training_samples,
-                         eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
-                         chat_template=CHAT_TEMPLATE)
+        # def preprocessing_data_with_chat_format(sample):
+        if CHAT_TEMPLATE:
+            from dataset_lib import chat_template_prompt_training
+            chats = [chat_template_prompt_training(content=content, summary=summary,
+                                                   )
+                     for content, summary in zip(sample["content"], sample["summary"])]
+            sample.pop("content", None)
+            sample.pop("summary", None)
+            return {
+                "chat": chats
+            }
+
+
+        # def preprocessing_data_with_prompt(sample):
+        else:
+            from dataset_lib import llama3_training_prompt
+            texts = [llama3_training_prompt(content=content, summary=summary,
+                                            system_prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
+                     for content, summary in zip(sample["content"], sample["summary"])]
+            sample.pop("content", None)
+            sample.pop("summary", None)
+            return {
+                "text": texts
+            }
+
+    data.train_set = data.processing_data_with_training_prompt(dataset_split=data.train_set,
+                                                               preprocess_function=preprocessing_data_with_system_prompt)
+                                                               # preprocessing_data_with_chat_format)
+    data.validation_set = data.processing_data_with_training_prompt(dataset_split=data.validation_set,
+                                                                    preprocess_function=preprocessing_data_with_system_prompt)
+                                                                    # preprocessing_data_with_chat_format)
     data.return_stats()
-    data.loading_dataset_splits()  # loading data.train_set, data.validation_set, data.test_set
-
     # Get Tokenized Train and Validation Set # tokenize dataset
     if CHAT_TEMPLATE:
         from dataset_lib import preprocessing_data_with_chat_format
-        data.train_set = data.processing_data_with_training_prompt(dataset_split=data.train_set,
-                                                                   preprocess_function=preprocessing_data_with_chat_format)
-        data.validation_set = data.processing_data_with_training_prompt(dataset_split=data.validation_set,
-                                                                        preprocess_function=preprocessing_data_with_chat_format)
-        data.return_stats()
         data.train_set, data.validation_set, data.test_set = data.tokenization_of_data_splits(
             tokenization_process=tokenization_process_with_chat_template)
     else:
-        from dataset_lib import preprocessing_data_with_prompt
-        data.train_set = data.processing_data_with_training_prompt(dataset_split=data.train_set,
-                                                                   preprocess_function=preprocessing_data_with_prompt)
-        data.validation_set = data.processing_data_with_training_prompt(dataset_split=data.validation_set,
-                                                                        preprocess_function=preprocessing_data_with_prompt)
-        # import pdb; pdb.set_trace()
-        data.return_stats()
         data.train_set, data.validation_set, data.test_set = data.tokenization_of_data_splits(
             tokenization_process=tokenization_process_with_attn)
 
@@ -129,10 +146,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         llama.reassign_model(get_peft_model(llama.model, config, adapter_name=peft_layer_name))
         llama.model.enable_input_require_grads()
         llama.model.gradient_checkpointing_enable()
-        try:
-            llama.model.add_adapter(peft_layer_name, peft_config=config)
-        except Exception as e:
-            logger.error("Error while adding adapter: {}".format(e))
+        llama.model.add_adapter(peft_layer_name, peft_config=config)
         # for param in llama.model.parameters():
         #     if param.ndim == 1:
         #         # cast the small parameters (e.g. layernorm) to fp32 for stability
@@ -214,10 +228,12 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
     trainer.model = trainer.model.to(torch_dtype)
 
     best_checkpoint_path = trainer.state.best_model_checkpoint
-    # logger.info("Best checkpoint path: {}".format(best_checkpoint_path))
+    logger.info("\nBest checkpoint path: {}".format(best_checkpoint_path))
+    logger.info("\nBest Model Perplexity: {}".format(perplexity))
     best_checkpoint_path = best_checkpoint_path.split("/")[-1]
-    save_path = main_directory+"saved_models/{}/{}_{}_{}".format(date_time, provider, peft_layer_name,
-                                                                 best_checkpoint_path)
+    # save_path = main_directory+"saved_models/{}/{}_{}_{}".format(date_time, provider, peft_layer_name,
+    #                                                              best_checkpoint_path)
+    save_path = main_directory + "trained_pefts/{}_{}".format(peft_layer_name, best_checkpoint_path)
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -237,7 +253,7 @@ def llama_model_training(main_directory, training_arguments, logger, training_sa
         # llama.model.save_adapter(main_directory + "saved_models/hf_" + save_peft_name + "_method2", peft_layer_name)
 
     summ = generate_summary(model=trainer.model, tokenizer=llama.tokenizer, content=random_text, device=device,
-                            chat_template=CHAT_TEMPLATE)
+                            prompt=DEFAULT_SYSTEM_PROMPT, chat_template=CHAT_TEMPLATE)
     logger.info("\n\nSummary of Random Text After Training Adapters: \n{}".format(summ))
 
     if DO_INFERENCE:
@@ -296,7 +312,7 @@ if __name__ == "__main__":
     peft_name = args.peft
     domain = args.domain
     dataset_name = args.dataset
-    ATTENTION_MASK = False if not args.tokenization_with_attention else True
+    ATTENTION_MASK = False if not args.mlm else True
     use_mlm = False if not args.mlm else True
     training_epochs = args.train_epochs
     # ft = args.ft  # False

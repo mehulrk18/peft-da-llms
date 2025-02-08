@@ -1,0 +1,139 @@
+# test_domain: medical
+
+
+#best performing pefts on non medical test data are:
+#scientific_arxiv_lokr_checkpoint-1480 (18 points)	legal_billsum_lokr_checkpoint-1000 (23 points)	news_cnndm_adalora_checkpoint-1250 (30 points)
+#scientific_elsevier_adalora_checkpoint-1255 (16 points) legal_multilex_lora_checkpoint-4075 (14 points)	news_multinews_oft_checkpoint-1250 (23 points)
+
+test_domain: "medical"
+test_datasets:
+    - cord19
+    - mslr
+    - pubmed
+    - scilay
+
+best_pefts:
+    - scientific_arxiv_lokr_checkpoint-1480
+#    - scientific_elsevier_adalora_checkpoint-1255
+    - legal_billsum_lokr_checkpoint-1000
+#    - legal_multilex_lora_checkpoint-4075
+    - news_cnndm_adalora_checkpoint-1250
+#    - news_multinews_oft_checkpoint-1250
+
+#    _______________________________________________________________________________________________________________
+#  - medical_pubmed_adalora_checkpoint-1250
+#  - medical_pubmed_ia3_checkpoint-250
+#  - medical_pubmed_loha_checkpoint-1250
+  # - legal_billsum_adalora_checkpoint-1250
+  # - legal_billsum_ia3_checkpoint-1000
+  # - legal_billsum_loha_checkpoint-750
+  # - legal_billsum_lokr_checkpoint-1000
+  # - legal_billsum_lora_checkpoint-1250
+  # - legal_billsum_oft_checkpoint-1000
+  # - legal_eurlex_adalora_checkpoint-3250
+  # - legal_eurlex_ia3_checkpoint-1300
+  # - legal_eurlex_loha_checkpoint-3250
+  # - legal_eurlex_lokr_checkpoint-3250
+  # - legal_eurlex_lora_checkpoint-3250
+  # - legal_eurlex_oft_checkpoint-3250
+  # - legal_multilex_adalora_checkpoint-4075
+  # - legal_multilex_ia3_checkpoint-4075
+  # - legal_multilex_loha_checkpoint-4075
+  # - legal_multilex_lokr_checkpoint-4075
+  # - legal_multilex_lora_checkpoint-4075
+  # - legal_multilex_oft_checkpoint-3260
+  # - medical_cord19_adalora_checkpoint-1330
+  # - medical_cord19_ia3_checkpoint-1064
+  # - medical_cord19_loha_checkpoint-1064
+  # - medical_cord19_lokr_checkpoint-1064
+  # - medical_cord19_lora_checkpoint-1330
+  # - medical_cord19_oft_checkpoint-1064
+  # - medical_mslr_adalora_checkpoint-1250
+  # - medical_mslr_ia3_checkpoint-1250
+  # - medical_mslr_loha_checkpoint-1000
+  # - medical_mslr_lokr_checkpoint-1000
+  # - medical_mslr_lora_checkpoint-1250
+  # - medical_mslr_oft_checkpoint-1250
+
+  # - medical_pubmed_lora_checkpoint-1250
+  # - medical_pubmed_oft_checkpoint-1250
+  # - medical_scilay_adalora_checkpoint-2140
+  # - medical_scilay_ia3_checkpoint-1284
+  # - medical_scilay_loha_checkpoint-1284
+  # - medical_scilay_lokr_checkpoint-1284
+  # - medical_scilay_lora_checkpoint-2140
+  # - medical_scilay_oft_checkpoint-2140
+  # - news_cnndm_adalora_checkpoint-1250
+  # - news_cnndm_ia3_checkpoint-500
+  # - news_cnndm_loha_checkpoint-1000
+  # - news_cnndm_lokr_checkpoint-1000
+  # - news_cnndm_lora_checkpoint-1250
+  # - news_cnndm_oft_checkpoint-1250
+  # - news_multinews_adalora_checkpoint-1250
+  # - news_multinews_ia3_checkpoint-250
+  # - news_multinews_loha_checkpoint-1000
+  # - news_multinews_lokr_checkpoint-1000
+  # - news_multinews_lora_checkpoint-1250
+  # - news_multinews_oft_checkpoint-1250
+  # - news_newsroom_adalora_checkpoint-1000
+  # - news_newsroom_ia3_checkpoint-1000
+  # - news_newsroom_loha_checkpoint-1250
+  # - news_newsroom_lokr_checkpoint-1250
+  # - news_newsroom_lora_checkpoint-1000
+  # - news_newsroom_oft_checkpoint-1250
+  # - news_xsum_adalora_checkpoint-1000
+  # - news_xsum_ia3_checkpoint-250
+  # - news_xsum_loha_checkpoint-1000
+  # - news_xsum_lokr_checkpoint-1000
+  # - news_xsum_lora_checkpoint-1000
+  # - news_xsum_oft_checkpoint-1250
+  # - scientific_arxiv_adalora_checkpoint-1480
+  # - scientific_arxiv_ia3_checkpoint-592
+  # - scientific_arxiv_loha_checkpoint-1480
+  # - scientific_arxiv_lokr_checkpoint-1480
+  # - scientific_arxiv_lora_checkpoint-592
+  # - scientific_arxiv_oft_checkpoint-1184
+  # - scientific_elsevier_adalora_checkpoint-1255
+  # - scientific_elsevier_ia3_checkpoint-502
+  # - scientific_elsevier_loha_checkpoint-753
+  # - scientific_elsevier_lokr_checkpoint-753
+  # - scientific_elsevier_lora_checkpoint-1255
+  # - scientific_elsevier_oft_checkpoint-1255
+  # - scientific_scitldr_adalora_checkpoint-1250
+  # - scientific_scitldr_ia3_checkpoint-1250
+  # - scientific_scitldr_loha_checkpoint-1000
+  # - scientific_scitldr_lokr_checkpoint-1000
+  # - scientific_scitldr_lora_checkpoint-1250
+  # - scientific_scitldr_oft_checkpoint-1250
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# test_domain: "medical"
+# test_dataset_name: "pubmed"
+# mlm: True
+# training_samples: 1
+# eval_samples: 1
+# test_samples: 50
+# sorted_dataset: True
+# chat_template: True
+# provider: "hf"
+# instruct_mode: True
+# metric: ""
+# torch_dtype: "bf16"

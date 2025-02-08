@@ -7,7 +7,7 @@ class SumDomains(Enum):
     MEDICAL = "medical"
     LEGAL = "legal"
     NEWS = "news"
-    UNGROUPED = "ungrouped"
+    UNSEEN_TEST = "unseen_test"
 
 
 DEFAULT_SYSTEM_PROMPT = """
@@ -126,7 +126,7 @@ class ScitldrDataset(DatasetInfo):
         self.local_path = "domains/scientific/scitldr"
         self.streaming = True
         self.trust_remote_code = True
-        self.version = None
+        self.version = "AIC" # "FullText"
         self.columns_to_remove = ["source", "source_labels", "rouge_scores", "paper_id", "target"]
         self.source = "hugging_face"
         self.download_url = ""
@@ -311,10 +311,84 @@ class NewsroomDataset(DatasetInfo):
         self.download_url = "https://lil.nlp.cornell.edu/newsroom/download/index.html"
 
 
+class ScientificDataset(DatasetInfo):
+    domain = SumDomains.UNSEEN_TEST
+    name = "scientific"  # aclsum
+
+    # total samples = 100
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "sobamchan/aclsum"
+        self.local_path = "domains/unseen_test/unseen_scientific_data.csv"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["document", "challenge", "approach", "outcome"]
+        self.source = "hugging_face"
+        self.download_url = ""
+
+
+class MedicalDataset(DatasetInfo):
+    domain = SumDomains.UNSEEN_TEST
+    name = "medical"
+
+    # total samples = 96
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "domains/test_medical_articles.xlsx"
+        self.local_path = "domains/unseen_test/unseen_medical_data.xlsx"   #.csv"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["title", "abstract", "content", "published_on", "link"]
+        self.source = "xlsx"
+        self.download_url = ""
+
+
+class LegalDataset(DatasetInfo):
+    # TODO: Write a loader
+    domain = SumDomains.UNSEEN_TEST
+    name = "legal"
+
+    # total samples = 100
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "domains/test_medical_articles.xlsx"
+        self.local_path = "domains/unseen_test/unseen_legal_data.xlsx"   #.csv"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["title", "abstract", "content", "published_on", "link"]
+        self.source = "xlsx"
+        self.download_url = ""
+
+
+class NewsDataset(DatasetInfo):
+    # TODO: Write a loader
+    domain = SumDomains.UNSEEN_TEST
+    name = "news"
+
+    # total samples = 87
+
+    def __init__(self):
+        super().__init__()
+        self.dataset_id = "domains/inshorts_news.xlsx"
+        self.local_path = "domains/unseen_test/unseen_news_data.csv"
+        self.streaming = True
+        self.trust_remote_code = True
+        self.version = None
+        self.columns_to_remove = ["id", "author_name", "article_url", "summary_url", "category", "title", "article",
+                                  "summary"]
+        self.source = "xlsx"
+        self.download_url = ""
+
 datasets_info_dict = {
     SumDomains.SCIENTIFIC: {
         "arxiv": ArxivDataset(),
-        "ssn": SSNDataset(),
+        # "ssn": SSNDataset(),
         "elsevier": ElsevierDataset(),
         "scitldr": ScitldrDataset()
     },
@@ -334,69 +408,121 @@ datasets_info_dict = {
         "multinews": MultiNewsDataset(),
         "xsum": XSumDataset(),
         "newsroom": NewsroomDataset()
+    },
+    SumDomains.UNSEEN_TEST: {
+        "scientific": ScientificDataset(),
+        "medical": MedicalDataset(),
+        "legal": LegalDataset(),
+        "news": NewsDataset()
     }
 }
 
 
+# DEFAULT_DOMAIN_PROMPT = {
+#     SumDomains.SCIENTIFIC.name: """
+#         Provide a summary of the given scientific article that includes the following elements:
+#
+#         1. Objective: What is the main research question or hypothesis?
+#
+#         2. Background: What is the theoretical context or motivation for the research?
+#
+#         3. Methods: Detail the approach, experiments, or simulations conducted.
+#
+#         4. Key Findings: What are the principal results or contributions of the paper?
+#
+#         5. Conclusions: What insights or conclusions do the authors derive from their research?
+#
+#         6. Broader Impact: How does this research contribute to its field or influence future work?""".strip(),
+#
+#     SumDomains.MEDICAL.name: """
+#         Summarize the given medical study by addressing the following key points:
+#
+#         1. Objective: What is the primary research question or aim of the study?
+#
+#         2. Background: What is the clinical context or rationale behind the research?
+#
+#         3. Methods: Describe the study design, population involved, and methodologies employed.
+#
+#         4. Key Findings: Highlight the most important results or discoveries of the study.
+#
+#         5. Conclusions: What conclusions do the authors reach based on their findings?
+#
+#         6. Clinical Implications: How might these findings influence clinical practice or patient outcomes?""".strip(),
+#
+#     SumDomains.LEGAL.name: """
+#         Summarize the given legal case study by focusing on the following aspects:
+#
+#         1. Case Background: What is the context and significance of the case?
+#
+#         2. Legal Question: What are the primary legal issues or questions being addressed?
+#
+#         3. Arguments: What are the main arguments presented by both sides?
+#
+#         4. Rulings: What decisions were made by the court, and on what basis?
+#
+#         5. Key Precedents: Are there important precedents cited that influence the case?
+#
+#         6. Implications: What are the potential implications of the ruling on future cases or legal interpretations?
+#         """.strip(),
+#
+#     SumDomains.NEWS.name: """
+#         Summarize the given news article by capturing the following key points:
+#
+#         1. Main Event: What is the primary event or issue being reported?
+#
+#         2. Context: What background information is necessary to understand the significance of the news?
+#
+#         3. Key Details: What are the most critical facts or figures related to the story?
+#
+#         4. Reactions: How have different stakeholders or the public responded to the event?
+#
+#         5. Implications: What are the potential consequences or future developments related to this news?
+#
+#         6. Closing Statement: What is the overarching message or takeaway from the article?""".strip()
+# }
+
+# DEFAULT_DOMAIN_PROMPT = {
+#     SumDomains.SCIENTIFIC.name: """
+#         Summarize the scientific article by covering its objective, background, methods, key findings, conclusions, and broader impact.""".strip(),
+#
+#     SumDomains.MEDICAL.name: """
+#         Summarize the medical article by addressing its objective, background, methods, key findings, conclusions, and clinical implications.""".strip(),
+#
+#     SumDomains.LEGAL.name: """
+#         Summarize the legal case study by outlining its background, legal question, arguments, rulings, key precedents, and implications.""".strip(),
+#
+#     SumDomains.NEWS.name: """
+#         Summarize the news article by focusing on the main event, context, key details, reactions, implications, and overall takeaway.""".strip()
+# }
+
+# DEFAULT_DOMAIN_PROMPT = {
+#     SumDomains.SCIENTIFIC.name: """
+#         Write a concise paragraph summarizing the scientific article, seamlessly integrating its objective, background, methods, key findings, conclusions, and broader impact.""".strip(),
+#
+#     SumDomains.MEDICAL.name: """
+#         Write a cohesive paragraph summarizing the medical article, addressing its objective, background, methods, key findings, conclusions, and clinical implications.""".strip(),
+#
+#     SumDomains.LEGAL.name: """
+#         Provide a paragraph summarizing the legal case study, including its background, legal question, arguments, rulings, key precedents, and implications as a unified narrative.""".strip(),
+#
+#     SumDomains.NEWS.name: """
+#         Generate a paragraph summarizing the news article, incorporating the main event, context, key details, reactions, implications, and overall takeaway into a fluid narrative.""".strip()
+# }
+
 DEFAULT_DOMAIN_PROMPT = {
     SumDomains.SCIENTIFIC.name: """
-        Provide a summary of the given scientific article that includes the following elements:
-
-        1. Objective: What is the main research question or hypothesis?
-
-        2. Background: What is the theoretical context or motivation for the research?
-
-        3. Methods: Detail the approach, experiments, or simulations conducted.
-
-        4. Key Findings: What are the principal results or contributions of the paper?
-
-        5. Conclusions: What insights or conclusions do the authors derive from their research?
-
-        6. Broader Impact: How does this research contribute to its field or influence future work?""".strip(),
+        Summarize the provided scientific article in a clear and concise paragraph. Include the study's objective, 
+        background, methodology, key findings, and conclusions, ensuring the summary represents the article's essence.""".strip(),
 
     SumDomains.MEDICAL.name: """
-        Summarize the given medical study by addressing the following key points:
-
-        1. Objective: What is the primary research question or aim of the study?
-
-        2. Background: What is the clinical context or rationale behind the research?
-
-        3. Methods: Describe the study design, population involved, and methodologies employed.
-
-        4. Key Findings: Highlight the most important results or discoveries of the study.
-
-        5. Conclusions: What conclusions do the authors reach based on their findings?
-
-        6. Clinical Implications: How might these findings influence clinical practice or patient outcomes?""".strip(),
+        Provide a cohesive summary of the given medical article in one paragraph. Highlight the study's objective, 
+        background, methods, major conclusions, and potential clinical implications in a clear and professional manner.""".strip(),
 
     SumDomains.LEGAL.name: """
-        Summarize the given legal case study by focusing on the following aspects:
-
-        1. Case Background: What is the context and significance of the case?
-
-        2. Legal Question: What are the primary legal issues or questions being addressed?
-
-        3. Arguments: What are the main arguments presented by both sides?
-
-        4. Rulings: What decisions were made by the court, and on what basis?
-
-        5. Key Precedents: Are there important precedents cited that influence the case?
-
-        6. Implications: What are the potential implications of the ruling on future cases or legal interpretations?
-        """.strip(),
+        Generate a concise paragraph summarizing the provided legal case study. Address the background, legal questions, 
+        key arguments, rulings, and any significant precedents, ensuring clarity and accuracy.""".strip(),
 
     SumDomains.NEWS.name: """
-        Summarize the given news article by capturing the following key points:
-
-        1. Main Event: What is the primary event or issue being reported?
-
-        2. Context: What background information is necessary to understand the significance of the news?
-
-        3. Key Details: What are the most critical facts or figures related to the story?
-
-        4. Reactions: How have different stakeholders or the public responded to the event?
-
-        5. Implications: What are the potential consequences or future developments related to this news?
-
-        6. Closing Statement: What is the overarching message or takeaway from the article?""".strip()
+        Create a clear and concise summary of the given news article in one paragraph. Focus on the main event, its 
+        context, key details, and broader implications, presenting the information in an informative manner.""".strip()
 }

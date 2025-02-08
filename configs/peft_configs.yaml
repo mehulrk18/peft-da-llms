@@ -4,7 +4,7 @@
 #    intermediate_lora: True
 ##    output_lora: True
 #    alpha: 8
-#    r: 32
+#    r: 64
 #    dropout: 0.1
 #    attn_matrices:
 #      - "self_attn.q_proj"
@@ -46,7 +46,7 @@
 hf:
   lora:
     inference_mode: False
-    r: 32
+    r: 64
     target_modules: # because trained llamaadapter with Self_Attn so need to do this for every one for consistency
       - "self_attn.q_proj"
       - "self_attn.k_proj"
@@ -71,7 +71,7 @@ hf:
 
   lokr:
     peft_type: "LOKR"
-    r: 32
+    r: 64
     alpha: 8
     rank_dropout: 0.1
     module_dropout: 0.0
@@ -84,7 +84,7 @@ hf:
 
   loha:
     peft_type: "LOHA"
-    r: 32
+    r: 64
     alpha: 8
     rank_dropout: 0.1
     module_dropout: 0.0
@@ -98,7 +98,7 @@ hf:
   adalora:
     peft_type: "ADALORA"
     task_type: "CAUSAL_LM"
-    init_r: 32
+    init_r: 64
     lora_alpha: 8
     target_modules:
       - "self_attn.q_proj"
@@ -109,17 +109,29 @@ hf:
 
   llamaadapter:
       peft_type: "ADAPTION_PROMPT"
-      adapter_len: 10
-      adapter_layers: 16
+      adapter_len: 16
+      adapter_layers: 32
       target_modules: "self_attn" # from the library
 
     # Read the paper for more details: https://arxiv.org/pdf/2303.16199
 
   oft:
     peft_type: "OFT"
-    r: 32
+    r: 64
     init_weights: True
     module_dropout: 0.0
+    target_modules:
+      - "self_attn.q_proj"
+      - "self_attn.k_proj"
+      - "self_attn.v_proj"
+      - "self_attn.o_proj"
+
+  boft:
+    peft_type: "BOFT"
+    boft_block_size: 16
+    boft_n_butterfly_factor: 8
+    boft_dropout: 0.1
+    bias: "boft_only"
     target_modules:
       - "self_attn.q_proj"
       - "self_attn.k_proj"

@@ -81,6 +81,9 @@ def read_news_summarization():
     df = pd.read_csv(file_path)
 
 
+global DOMAIN
+
+
 class SumDataLoader:
 
     def __init__(self, domain: str, dataset_name: str, force_download: bool = False, training_samples: int = 5000,
@@ -109,6 +112,8 @@ class SumDataLoader:
         #     "columns_to_remove"]
 
         self.train_set, self.validation_set, self.test_set = None, None, None
+        self.return_stats()
+        self.loading_dataset_splits()
 
     def __str__(self):
         return "DataLoader for Domain: {} and Dataset: {}\n{}".format(self.domain, self.dataset_name,
@@ -319,7 +324,10 @@ class SumDataLoader:
                                               trust_remote_code=self.dataset_info.trust_remote_code)
                 process_data = {}
                 for split in ["train", "validation", "test"]:
-                    process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
+                    if split == "test":
+                        process_data[split] = Dataset.from_list(list(loaded_dataset["validation"]))
+                    else:
+                        process_data[split] = Dataset.from_list(list(loaded_dataset[split]))
                 loaded_dataset = DatasetDict(process_data)
                 del process_data
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_mslr_data_after_downloading, batched=True)
@@ -373,18 +381,28 @@ class SumDataLoader:
                 del process_data, train_val_split
                 loaded_dataset = loaded_dataset.shuffle(seed=42).map(process_billsum_data_after_downloading, batched=True)
 
-            import pdb; pdb.set_trace()
             loaded_dataset = loaded_dataset.remove_columns(self.dataset_info.columns_to_remove)
             self.return_stats()
             self.train_set = Dataset.from_list(self.sample_dataset(loaded_dataset["train"],
                                                                    sample_size=min(self.training_samples,
                                                                                    loaded_dataset["train"].num_rows)))
-            self.validation_set = Dataset.from_list(self.sample_dataset(loaded_dataset["validation"],
-                                                                        sample_size=min(self.eval_samples,
-                                                                                        loaded_dataset["validation"].num_rows)))
-            self.test_set = Dataset.from_list(self.sample_dataset(loaded_dataset["test"],
-                                                                  sample_size=min(self.test_samples,
-                                                                                  loaded_dataset["test"].num_rows)))
+            if self.dataset_name == "mslr":
+                val_data = self.sample_dataset(loaded_dataset["validation"],
+                                               sample_size=min(self.eval_samples, 1000))
+                self.validation_set = Dataset.from_list(val_data)
+                set_val_data = set(tuple(sorted(d.items())) for d in val_data)  # set(val_data)
+                # removing all the samples already present in validation set from test set
+                test = [i for i in list(loaded_dataset["test"]) if tuple(sorted(i.items())) not in set_val_data]
+                self.test_set = Dataset.from_list(self.sample_dataset(test,  # loaded_dataset["test"],
+                                                                      sample_size=min(self.test_samples, 500)))
+                del val_data, set_val_data
+            else:
+                self.validation_set = Dataset.from_list(self.sample_dataset(loaded_dataset["validation"],
+                                                                            sample_size=min(self.eval_samples,
+                                                                                            loaded_dataset["validation"].num_rows)))
+                self.test_set = Dataset.from_list(self.sample_dataset(loaded_dataset["test"],
+                                                                      sample_size=min(self.test_samples,
+                                                                                      loaded_dataset["test"].num_rows)))
 
             loaded_dataset = DatasetDict({
                 "train": self.train_set,
@@ -404,14 +422,14 @@ class SumDataLoader:
         loaded_dataset = loaded_dataset.map(lambda x: {"content_tokens": len(x["content"].split()),
                                                        "summary_tokens": len(x["summary"].split())})
 
-        if self.dataset_name != "mslr":
-            loaded_dataset = loaded_dataset.filter(lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
+        # if self.dataset_name != "mslr":
+        loaded_dataset = loaded_dataset.filter(lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
 
-        elif self.dataset_name != "mslr":
-            loaded_dataset["train"] = loaded_dataset["train"].filter(
-                lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
-            loaded_dataset["validation"] = loaded_dataset["validation"].filter(
-                lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
+        # elif self.dataset_name != "mslr":
+        # loaded_dataset["train"] = loaded_dataset["train"].filter(
+        #     lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
+        # loaded_dataset["validation"] = loaded_dataset["validation"].filter(
+        #     lambda x: (len(x["content"]) > 0 and len(x["summary"]) > 0))
 
         print("Min and Max number of tokens in articles in train dataset of {} are {} and {} "
               "respectively!".format(self.dataset_name, min(loaded_dataset["train"]["content_tokens"]),
@@ -438,6 +456,7 @@ class SumDataLoader:
         # return None, None, None
 
     def loading_dataset_splits(self):
+        print("Loading Data splits for Dataset: {} in Domain: {}".format(self.dataset_name, self.domain.name))
         if self.dataset_info.source in ["hugging_face", ".tar", ".zip", ".tar.gz"]:
             return self.loading_dataset_from_hf()
 
