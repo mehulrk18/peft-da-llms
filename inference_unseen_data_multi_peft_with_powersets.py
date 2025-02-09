@@ -510,15 +510,16 @@ if __name__ == "__main__":
         # data.train_set = None
         # data.validation_set = None
         from inference_unseen_data import unseen_test_data_inference
+        #TODO: do better nomenclature for the peft_full_name and col_name
         unseen_test_data_inference(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data_class=data_class,
                                    # peft_full_name=("multiple_"+"-".join(peft_names)+f"_{dataset_name}" if
                                    #                 len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
-                                   peft_full_name=("cross_domain_test_" + "-".join(peft_names) + f"_{dataset_name}" if
+                                   peft_full_name=("within_domain_test_" + "-".join(peft_names) + f"_{dataset_name}" if
                                                    len(peft_names) > 1 else peft_names[
                                                                                 0] + f"_{dataset_name}") if not zero_shot else "zero_shot",
                                    # col_name=("multiple_"+"-".join(peft_names)+f"_{dataset_name}" if
                                    #           len(peft_names) > 1 else peft_names[0]+f"_{dataset_name}") if not zero_shot else "zero_shot",
-                                   col_name=("cross_domain_test_" + "-".join(peft_names) + f"_{dataset_name}" if
+                                   col_name=("within_domain_test_" + "-".join(peft_names) + f"_{dataset_name}" if
                                              len(peft_names) > 1 else peft_names[
                                                                           0] + f"_{dataset_name}") if not zero_shot else "zero_shot",
                                    logger=logger, device=device, chat_template=chat_template, metric_name=metric)
