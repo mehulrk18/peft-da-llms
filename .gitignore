@@ -5,6 +5,7 @@ results/
 .DS_Store
 .env
 *.csv
+*.xlsx
 .idea/
 logs/
 wandb
