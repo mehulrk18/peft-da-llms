@@ -13,7 +13,7 @@ from huggingface_hub import login
 from transformers import TrainingArguments, DataCollatorForLanguageModeling, Trainer
 
 from dataset_lib import SumDataLoader, DEFAULT_DOMAIN_PROMPT, DEFAULT_SYSTEM_PROMPT
-from peft_module.ahub_pefts import pefts_configuration, PEFTEnum
+from peft_module.predefined_pefts import pefts_configuration, PEFTEnum
 from utils import read_yaml, LLaMAModelClass, generate_summary, convert_model_adapter_params_to_torch_dtype, \
     torch_dtypes_dict, WandBLogger
 

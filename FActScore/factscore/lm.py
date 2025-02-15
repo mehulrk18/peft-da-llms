@@ -55,6 +55,7 @@ class LM(object):
                     if not allow_retry:
                         assert False
                     print ("Pickle Error: Retry in 5sec... -> ", e)
+                    print("fname: ", self.cache_file)
                     time.sleep(5)        
         else:
             cache = {}

@@ -455,12 +455,6 @@ if __name__ == "__main__":
     parser.add_argument("--mlm", type=bool, default=False, help="Using attention mask")
     parser.add_argument("--overwrite_results", type=bool, default=False, help="Overwrite the results generated")
 
-    # try:
-    #     from google.colab import drive
-    #     drive.mount('/content/drive')
-    #     main_directory = "/content/drive/My Drive/Colab Notebooks/"
-    # except Exception as e:
-
     args = parser.parse_args()
     main_directory = ""
     peft_storage_dir = args.peft_dir if args.peft_dir else ""
@@ -523,29 +517,17 @@ if __name__ == "__main__":
 
     logger.info("Check point MODEL: \n{}".format(llama.model))
 
-    if provider == "hf":
+    # if provider == "hf":
         # Method 1 - HuggingFace
-        from peft import PeftModel
+        # from peft import PeftModel
 
-        # llama.model = PeftModel.from_pretrained(llama.model, trained_peft_path, adapter_name=adapter_name) #, use_safetensors=True)
-        # llama.model = llama.model.merge_and_unload()
-        llama.model.load_adapter(peft_storage_dir + trained_peft_path, adapter_name=adapter_name)
-        llama.model.set_adapter([adapter_name])
-        llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=adapter_name,
-                                                                  torch_dtype=torch_dtype)
-        llama.model = llama.model.to(torch_dtype)
-    else:
-        # Method 2 - AdapterHub
-        adapters.init(model=llama.model)
-        loaded_peft = llama.model.load_adapter(trained_peft_path, with_head=False)
-        llama.model.set_active_adapters([loaded_peft])
-        llama.model.adapter_to(loaded_peft, device=device)
-
-        llama.model = llama.model.to(torch.bfloat16)
-
-        llama.model.enable_input_require_grads()
-        llama.model.gradient_checkpointing_enable()
-        logger.info("\nMethod 2 LLaMA Model's Summary:\n{}\n\n\n".format(llama.model.adapter_summary()))
+    # llama.model = PeftModel.from_pretrained(llama.model, trained_peft_path, adapter_name=adapter_name) #, use_safetensors=True)
+    # llama.model = llama.model.merge_and_unload()
+    llama.model.load_adapter(peft_storage_dir + trained_peft_path, adapter_name=adapter_name)
+    llama.model.set_adapter([adapter_name])
+    llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=adapter_name,
+                                                              torch_dtype=torch_dtype)
+    llama.model = llama.model.to(torch_dtype)
 
     logger.info("Loaded MODEL: \n{}".format(llama.model))
 

@@ -43,16 +43,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     trained_peft_config_path = main_directory + args.multi_pefts_configs_file
     testing_configs = read_yaml(file_name=trained_peft_config_path)
-    # mlm = testing_configs["mlm"]
-    # training_samples = testing_configs["training_samples"]
-    # eval_samples = testing_configs["eval_samples"]
-    # test_samples = testing_configs["test_samples"]
-    # CHAT_TEMPLATE = testing_configs["chat_template"]
-    # use_instruct_model = testing_configs["instruct_mode"]
+
     provider = "hf"  # testing_configs["provider"]
-    # metric = testing_configs["metric"]
-    # torch_dtype = torch_dtypes_dict[testing_configs["torch_dtype"]]
-    # quantize = testing_configs.get("torch_dtype", False)
 
     mlm = True if args.mlm else False
     CHAT_TEMPLATE = args.chat_template
@@ -170,18 +162,6 @@ if __name__ == "__main__":
             # TODO: check if below commented line is required
             # llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name="trained_", torch_dtype=torch_dtype)
             llama.model = llama.model.to(torch_dtype)
-            # else:
-            #     # Method 2 - AdapterHub
-            #     adapters.init(model=llama.model)
-            #     loaded_peft = llama.model.load_adapter(trained_peft_path, with_head=False)
-            #     llama.model.set_active_adapters([loaded_peft])
-            #     llama.model.adapter_to(loaded_peft, device=device)
-            #
-            #     llama.model = llama.model.to(torch.bfloat16)
-            #
-            #     llama.model.enable_input_require_grads()
-            #     llama.model.gradient_checkpointing_enable()
-            #     logger.info("\nMethod 2 LLaMA Model's Summary:\n{}\n\n\n".format(llama.model.adapter_summary()))
 
             logger.info("Loaded MODEL: \n{}".format(llama.model))
 

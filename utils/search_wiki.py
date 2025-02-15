@@ -1,3 +1,7 @@
+# This file is taken from FActScore's code:
+# Source: https://github.com/shmsw25/FActScore
+# License: MIT License
+
 import requests
 import time
 import spacy
