@@ -71,7 +71,7 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     # col_name = col_name + "_shortprompt"
     # if col_name not in df_sum.columns:
     #TODO: Remove the below line and uncomment the above line
-    if col_name not in df_sum.columns or col_name == "legal_multilex_lora_legal":
+    if col_name not in df_sum.columns:
         logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data_class.name.upper()]))
         # articles = df_sum["article"] if "multiple" in peft_full_name or "25" in test_summaries_file_name or not df_sum.empty else data["content"]
         articles = df_sum["article"] if not df_sum.empty else data["content"]
