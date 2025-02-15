@@ -49,18 +49,6 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     logger.info("Original dataset len: {}".format(len(data))) #.num_rows
 
 
-
-    # if test_summaries_file_name is None:
-    #     test_summaries_file_name = "summaries/summaries_{}_{}_{}samples.csv".format(data.domain.name.lower(),
-    #                                                                                 data.dataset_name.lower(),
-    #                                                                                 min_samples)
-
-    # random_text = """
-    #         Rome had begun expanding shortly after the founding of the Republic in the 6th century BC, though it did not expand outside the Italian Peninsula until the 3rd century BC, during the Punic Wars, afterwhich the Republic expanded across the Mediterranean.[5][6][7][8] Civil war engulfed Rome in the mid-1st century BC, first between Julius Caesar and Pompey, and finally between Octavian (Caesar's grand-nephew) and Mark Antony. Antony was defeated at the Battle of Actium in 31 BC, leading to the annexation of Egypt. In 27 BC, the Senate gave Octavian the titles of Augustus ("venerated") and Princeps ("foremost"), thus beginning the Principate, the first epoch of Roman imperial history. Augustus' name was inherited by his successors, as well as his title of Imperator ("commander"), from which the term "emperor" is derived. Early emperors avoided any association with the ancient kings of Rome, instead presenting themselves as leaders of the Republic.\nThe success of Augustus in establishing principles of dynastic succession was limited by his outliving a number of talented potential heirs; the Julio-Claudian dynasty lasted for four more emperors—Tiberius, Caligula, Claudius, and Nero—before it yielded in AD 69 to the strife-torn Year of the Four Emperors, from which Vespasian emerged as victor. Vespasian became the founder of the brief Flavian dynasty, to be followed by the Nerva–Antonine dynasty which produced the "Five Good Emperors": Nerva, Trajan, Hadrian, Antoninus Pius and the philosophically inclined Marcus Aurelius. In the view of the Greek historian Cassius Dio, a contemporary observer, the accession of the emperor Commodus in AD 180 marked the descent "from a kingdom of gold to one of rust and iron"[9]—a famous comment which has led some historians, notably Edward Gibbon, to take Commodus' reign as the beginning of the decline of the Roman Empire.
-    #     """.strip()
-    #
-    # summ = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=random_text, device=device,
-    #                         chat_template=chat_template, prompt=DEFAULT_SYSTEM_PROMPT)
     # TODO: write the testing function with a metric.
     test_summaries = {
         # "article": [],
@@ -155,12 +143,6 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
 
     # TODO: Write Scores to a CSV file directly, without storing it in a txt file.
     if metric_name == "all":
-        from datetime import datetime
-        # with open("summaries/rouge_scores.txt", "a") as fp:
-        #     fp.write("[{}] Summaries of {} for {} samples has rouge Scores \n {} \n\n".format(datetime.today().date(),
-        #                                                                                       peft_full_name,
-        #                                                                                       min_samples,
-        #                                                                                       rouge_scores))
 
         # ROUGE
         f_name = "summaries/unseen_data_rouge_scores25.csv" if "multiple" in peft_full_name or "25" in test_summaries_file_name else "summaries/unseen_data_rouge_scores.csv"
@@ -275,30 +257,6 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         logger.info("\n\n\nSummaries with meteor Score {} saved to file {}!!!!".format(meteor_scores,
                                                                                        test_summaries_file_name))
 
-        # TODO: Add the scores to the bleu_scores.csv file
-        # BLEURT
-        # with open("summaries/bleurt_scores.txt", "a") as fp:
-        #     fp.write("[{}] Summaries of {} for {} samples has bleuRT Scores \n {} \n\n".format(datetime.today().date(),
-        #                                                                                      peft_full_name, min_samples,
-        #                                                                                      bleurt_scores))
-
-        # TODO: Uncomment After fixing
-        # logger.info("Writing BleuRT Scores {} to file: summaries/bleurt_scores.csv".format(bleurt_scores))
-        # bleurt_df = pd.read_csv("summaries/bleurt_scores.csv")
-        # new_row = {
-        #     "model": peft_full_name,
-        #     "mean": bleurt_scores["scores"]["mean"],
-        #     "median": bleurt_scores["scores"]["median"],
-        # }
-        # if peft_full_name in bleurt_df["model"].values:
-        #     # Update the existing row
-        #     bleurt_df.loc[bleurt_df["model"] == peft_full_name, list(new_row.keys())] = list(new_row.values())
-        # else:
-        #     # Add a new row
-        #     bleurt_df = pd.concat([bleurt_df, pd.DataFrame([new_row])], ignore_index=True)
-        # bleurt_df.to_csv("summaries/bleurt_scores.csv", index=False)
-        # logger.info("\n\n\nSummaries with bleuRT Score {} saved to file {}!!!!".format(scores,
-        #                                                                              test_summaries_file_name))
 
     else:
         # with open("summaries/{}_scores.txt".format(metric_name), "a") as fp:
@@ -492,9 +450,6 @@ if __name__ == "__main__":
     if chat_template:
         logger.info("****** RESULTS ARE GENERATED USING CHAT TEMPLATE ******")
 
-    # data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=training_samples,
-    #                      eval_samples=eval_samples, test_samples=test_samples, sort_dataset_on_article_len=sort_data,
-    #                      chat_template=chat_template)
 
     domain = SumDomains("unseen_test")
     data_class = datasets_info_dict[domain][dataset_name]
