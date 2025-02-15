@@ -73,7 +73,8 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     #TODO: Remove the below line and uncomment the above line
     if col_name not in df_sum.columns or col_name == "legal_multilex_lora_legal":
         logger.info("PROMPT in USE for Testing: \n'{}'".format(DEFAULT_DOMAIN_PROMPT[data_class.name.upper()]))
-        articles = df_sum["article"] if "multiple" in peft_full_name or "25" in test_summaries_file_name else data["content"]
+        # articles = df_sum["article"] if "multiple" in peft_full_name or "25" in test_summaries_file_name or not df_sum.empty else data["content"]
+        articles = df_sum["article"] if not df_sum.empty else data["content"]
         logger.info("Running infernce of {} on {} articles.".format(peft_full_name, len(articles)))
         i = 0
         for i, art in enumerate(articles):
@@ -89,7 +90,8 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         save_df = False
 
     scores, rouge_scores, bertscore_scores, bleu_scores, bleurt_scores, meteor_scores = 0, 0, 0, 0, 0, 0
-    truth = df_sum["truth"] if "multiple" in peft_full_name or "25" in test_summaries_file_name else data["summary"]
+    # truth = df_sum["truth"] if "multiple" in peft_full_name or "25" in test_summaries_file_name else data["summary"]
+    truth = df_sum["truth"] if not df_sum.empty else data["summary"]
         # metric = rouge_metric()
     if metric_name == "all":
         rouge_scores = rouge.compute(predictions=test_summaries[col_name], references=truth)

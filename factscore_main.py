@@ -49,66 +49,71 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
 
     for _peft in pefts:
         # skipping zero shot for now.
-        if _peft in columns_to_skip:
-            continue
-        print("Running FactScore for: Domain: {} - Dataset: {} - Peft: {}".format(domain, dataset_name, _peft))
-        new_df = df[["article", "truth", _peft]]  # summary
-        prediction_col_name = "data-{}_{}-peft-{}".format(domain, dataset_name, _peft)
+        try: 
+            # if _peft in columns_to_skip:
+            if _peft in columns_to_skip:
+                continue
+            print("Running FactScore for: Domain: {} - Dataset: {} - Peft: {}".format(domain, dataset_name, _peft))
+            new_df = df[["article", "truth", _peft]]  # summary
+            prediction_col_name = "data-{}_{}-peft-{}".format(domain, dataset_name, _peft)
 
-        # reading the file to check for values if they exist:
-        print("Checking for existing data - peft values")
-        fs_df = pd.read_csv(factscore_results_file)
-        if ((fs_df["test_domain_dataset"] == "{}_{}".format(domain, dataset_name)) & (
-                fs_df["peft_name"] == _peft)).any():
-            # ("{}_{}".format(domain, dataset_name) in fs_df["test_domain_dataset"].values
-            # and _peft in fs_df["peft_name"].values):
-            print("!!!! Skipping already calculated FactScore for: Domain: {} - Dataset: {} - Peft: {} !!!!".format(
-                domain, dataset_name, _peft))
-            continue
-        fs_df = None
+            # reading the file to check for values if they exist:
+            print("Checking for existing data - peft values")
+            fs_df = pd.read_csv(factscore_results_file)
+            if ((fs_df["test_domain_dataset"] == "{}_{}".format(domain, dataset_name)) & (
+                    fs_df["peft_name"] == _peft)).any():
+                # ("{}_{}".format(domain, dataset_name) in fs_df["test_domain_dataset"].values
+                # and _peft in fs_df["peft_name"].values):
+                print("!!!! Skipping already calculated FactScore for: Domain: {} - Dataset: {} - Peft: {} !!!!".format(
+                    domain, dataset_name, _peft))
+                continue
+            fs_df = None
 
-        new_df.rename(columns={_peft: prediction_col_name}, inplace=True)
+            new_df.rename(columns={_peft: prediction_col_name}, inplace=True)
 
-        jsonl_path = df_to_jsonl_for_factscore(df=new_df, predictions_col_name=prediction_col_name,
-                                               main_data_dir=STORE_DATA_DIR)
+            jsonl_path = df_to_jsonl_for_factscore(df=new_df, predictions_col_name=prediction_col_name,
+                                                main_data_dir=STORE_DATA_DIR)
 
-        arg_dict = {
-            "input_path": jsonl_path,
-            "model_name": model_name,
-            "grounding_provided": grounding_provided,
-            "openai_key": open_ai_key,
-        }
+            arg_dict = {
+                "input_path": jsonl_path,
+                "model_name": model_name,
+                "grounding_provided": grounding_provided,
+                "openai_key": open_ai_key,
+            }
 
-        result_scores = calc_factscore(arg_dict=arg_dict)
-        print("FACTSCORE for {}: {}".format(prediction_col_name, result_scores), "\n\n")
+            result_scores = calc_factscore(arg_dict=arg_dict)
+            print("FACTSCORE for {}: {}".format(prediction_col_name, result_scores), "\n\n")
 
-        res_obj = {
-            "test_domain_dataset": "{}_{}".format(domain, dataset_name),
-            "peft_name": _peft,
-            "score": result_scores["score"],
-            "num_atomic_facts": result_scores["num_atomic_facts"]
-        }
-        fs_df = pd.read_csv(factscore_results_file)
-        if ((fs_df["test_domain_dataset"] == res_obj["test_domain_dataset"]) & (
-                fs_df["peft_name"] == res_obj["peft_name"])).any():
-            if "test_domain_dataset" not in fs_df.columns:
-                fs_df["test_domain_dataset"] = None  # Add with default value if missing
+            res_obj = {
+                "test_domain_dataset": "{}_{}".format(domain, dataset_name),
+                "peft_name": _peft,
+                "score": result_scores["score"],
+                "num_atomic_facts": result_scores["num_atomic_facts"]
+            }
+            fs_df = pd.read_csv(factscore_results_file)
+            if ((fs_df["test_domain_dataset"] == res_obj["test_domain_dataset"]) & (
+                    fs_df["peft_name"] == res_obj["peft_name"])).any():
+                if "test_domain_dataset" not in fs_df.columns:
+                    fs_df["test_domain_dataset"] = None  # Add with default value if missing
 
-            # Ensure the column exists in obj
-            if "test_domain_dataset" in res_obj:
-                fs_df.loc[
-                    (fs_df["peft_name"] == res_obj["peft_name"]) & (
-                                fs_df["test_domain_dataset"] == res_obj["test_domain_dataset"]),
-                    list(res_obj.keys())
-                ] = list(res_obj.values())
-                fs_df.to_csv(factscore_results_file, index=False)
+                # Ensure the column exists in obj
+                if "test_domain_dataset" in res_obj:
+                    fs_df.loc[
+                        (fs_df["peft_name"] == res_obj["peft_name"]) & (
+                                    fs_df["test_domain_dataset"] == res_obj["test_domain_dataset"]),
+                        list(res_obj.keys())
+                    ] = list(res_obj.values())
+                    fs_df.to_csv(factscore_results_file, index=False)
+                else:
+                    print("'test_domain_dataset' is missing in obj")
             else:
-                print("'test_domain_dataset' is missing in obj")
-        else:
-            # Append the new row
-            fs_df = pd.concat([fs_df, pd.DataFrame([res_obj])], ignore_index=True)
-            fs_df.to_csv(factscore_results_file, index=False)
-        print("Writtent Obj: \n{}".format(res_obj))
+                # Append the new row
+                fs_df = pd.concat([fs_df, pd.DataFrame([res_obj])], ignore_index=True)
+                fs_df.to_csv(factscore_results_file, index=False)
+            print("Writtent Obj: \n{}".format(res_obj))
+        
+        except Exception as e:
+            print("Exception caught in {}: {} ".format(_peft, e))
 
         # fs_reslts.append(res_obj)
 
@@ -159,13 +164,23 @@ if __name__ == "__main__":
 
     # SUMMARIES for HUMAN EVAL
 
-    human_eval_files = glob.glob("summaries/human_eval/human_eval_summaries_*.*")
+    # human_eval_files = glob.glob("summaries/human_eval/human_eval_summaries_*.*")
 
-    for f_name in human_eval_files:
-        fs_results_file = "summaries/human_eval/human_eval_factscore_results_unseen_test_25samples.csv"
-        dataset_name = f_name.split("_25samples.")[0].split("_")[-1]
-        print("Calculating Factscore for Dataset Name: {} - {}".format(dataset_name, f_name))
-        generating_factscores_for_summaries(model_name, grounding_provided, openai_key, "unseen_data", dataset_name,
+    # for f_name in human_eval_files:
+    #     fs_results_file = "summaries/human_eval/human_eval_factscore_results_unseen_test_25samples.csv"
+    #     dataset_name = f_name.split("_25samples.")[0].split("_")[-1]
+    #     print("Calculating Factscore for Dataset Name: {} - {}".format(dataset_name, f_name))
+    #     generating_factscores_for_summaries(model_name, grounding_provided, openai_key, "unseen_data", dataset_name,
+    #                                         factscore_results_file=fs_results_file, summary_file_path=f_name)
+
+    hvd = ["news", "legal", "scientific", "medical"] if _domain is None else [_domain] # - rerun
+
+    for dd in hvd:
+        fs_results_file = "summaries/paper/factscore_results_hvd_{}.csv".format(dd)
+        # dataset_name = f_name.split("_25samples.")[0].split("_")[-1]
+        f_name = "summaries/summaries_unseen_test_{}.{}".format(dd, "xlsx" if dd in ["medical", "legal"] else "csv")
+        print("Calculating Factscore for Dataset Name: {} - {}".format(dd, f_name))
+        generating_factscores_for_summaries(model_name, grounding_provided, openai_key, "unseen_data", dd,
                                             factscore_results_file=fs_results_file, summary_file_path=f_name)
 
     # TODO: READING SUMMARIES Files from a YAML
