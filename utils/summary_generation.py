@@ -19,6 +19,7 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
         # with torch.inference_mode() and torch.cuda.amp.autocast():
         with torch.amp.autocast(device):  #torch.cuda.amp.autocast():
             if hasattr(model, "module"):
+                model.module = model.module.to(device)
                 summary_ids = model.module.generate(**inputs,
                                              # max_length=512,
                                              do_sample=True,  # Enable sampling
@@ -29,6 +30,7 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
                                              temperature=0.3,
                                              max_new_tokens=256) # 256
             else:
+                model = model.to(device)
                 summary_ids = model.generate(**inputs,
                                              # max_length=512,
                                              do_sample=True,  # Enable sampling
@@ -51,6 +53,7 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
 
         with torch.amp.autocast(device):
             if hasattr(model, "module"):
+                model.module = model.module.to(device)
                 summary_ids = model.module.generate(
                     input_ids,
                     max_new_tokens=256,
@@ -60,6 +63,7 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
                     top_p=0.9
                 )
             else:
+                model = model.to(device)
                 summary_ids = model.generate(
                     input_ids,
                     max_new_tokens=256,
