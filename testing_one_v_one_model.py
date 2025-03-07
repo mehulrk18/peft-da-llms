@@ -489,6 +489,7 @@ if __name__ == "__main__":
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
     wandb_api_key = os.getenv("WANDB_API_KEY")
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:true"
     run_name = 'testing_single_peft_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples)
     wnb_run = wandb.init(name=run_name)
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
