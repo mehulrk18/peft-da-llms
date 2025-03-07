@@ -38,15 +38,15 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
     else:
         raise ValueError("Invalid Metric")
 
-    rouge_score_file, bertscore_score_file, bleu_score_file, meteor_score_file = "summaries/rouge_scores{}.csv", \
-        "summaries/bertscore_scores{}.csv", \
-        "summaries/bleu_scores{}.csv", \
-        "summaries/meteor_scores{}.csv"
+    rouge_score_file, bertscore_score_file, bleu_score_file, meteor_score_file = "summaries/rouge_scores_{}.csv", \
+        "summaries/bertscore_scores_{}.csv", \
+        "summaries/bleu_scores_{}.csv", \
+        "summaries/meteor_scores_{}.csv"
 
     save_df = True
     min_samples = data.test_set.num_rows
     if test_summaries_file_name is None:
-        test_summaries_file_name = "summaries/summaries_{}_{}_{}samples.csv".format(data.domain.name.lower(),
+        test_summaries_file_name = "summaries/summaries_{}_{}_{}_samples.csv".format(data.domain.name.lower(),
                                                                                     data.dataset_name.lower(),
                                                                                     min_samples)
 
@@ -185,11 +185,11 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         #     df_sum = df_sum.remove_columns(["content", "truth"])
     # file_name = "summaries/summaries_{}_{}samples.csv".format(peft_full_name, min_samples)
 
-    if "multiple" in peft_full_name:
-        rouge_score_file = rouge_score_file.format("_{}samples".format(min_samples))
-        bertscore_score_file = bertscore_score_file.format("_{}samples".format(min_samples))
-        bleu_score_file = bleu_score_file.format("_{}samples".format(min_samples))
-        meteor_score_file = meteor_score_file.format("_{}samples".format(min_samples))
+    # if "multiple" in peft_full_name:
+    #     rouge_score_file = rouge_score_file.format("_{}samples".format(min_samples))
+    #     bertscore_score_file = bertscore_score_file.format("_{}samples".format(min_samples))
+    #     bleu_score_file = bleu_score_file.format("_{}samples".format(min_samples))
+    #     meteor_score_file = meteor_score_file.format("_{}samples".format(min_samples))
         # rouge_score_file = rouge_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
         #                                                                                  min_samples))
         # bertscore_score_file = bertscore_score_file.format(
@@ -200,11 +200,11 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
         # meteor_score_file = meteor_score_file.format("_multiple_pefts_{}_{}samples".format(data.domain.name.lower(),
         #                                                                                    min_samples))
 
-    else:
-        rouge_score_file = rouge_score_file.format("_{}samples".format(data.domain.name.lower(), min_samples))
-        bertscore_score_file = bertscore_score_file.format("_{}samples".format(data.domain.name.lower(), min_samples))
-        bleu_score_file = bleu_score_file.format("_{}samples".format(data.domain.name.lower(), min_samples))
-        meteor_score_file = meteor_score_file.format("_{}samples".format(data.domain.name.lower(), min_samples))
+    # else:
+    rouge_score_file = rouge_score_file.format("{}_{}_samples".format(data.domain.name.lower(), min_samples))
+    bertscore_score_file = bertscore_score_file.format("{}_{}_samples".format(data.domain.name.lower(), min_samples))
+    bleu_score_file = bleu_score_file.format("{}_{}_samples".format(data.domain.name.lower(), min_samples))
+    meteor_score_file = meteor_score_file.format("{}_{}_samples".format(data.domain.name.lower(), min_samples))
 
     if metric_name == "all":
         from datetime import datetime
@@ -489,9 +489,10 @@ if __name__ == "__main__":
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
     wandb_api_key = os.getenv("WANDB_API_KEY")
-    run_name = 'testing_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples)
+    run_name = 'testing_single_peft_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples)
     wnb_run = wandb.init(name=run_name)
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
+    
     logging.basicConfig(
         filename=main_directory + 'logs/{}'.format(run_name),  # The log file to write to
         filemode='w',  # Overwrite the log file each time the script runs
@@ -528,6 +529,10 @@ if __name__ == "__main__":
     llama.model = convert_model_adapter_params_to_torch_dtype(model=llama.model, peft_name=adapter_name,
                                                               torch_dtype=torch_dtype)
     llama.model = llama.model.to(torch_dtype)
+
+    if device == "cuda":
+        llama.model = torch.nn.DataParallel(llama.model, device_ids=[0, 1])
+        llama.model.to(device)
 
     logger.info("Loaded MODEL: \n{}".format(llama.model))
 
