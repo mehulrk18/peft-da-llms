@@ -48,6 +48,7 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
             conversation=content,
             add_generation_prompt=True,
             padding=True,
+            truncation=True,
             return_tensors="pt"
         ).to(device)
 
