@@ -63,7 +63,7 @@ def generate_summary(model, tokenizer, content, device, prompt, chat_template=Fa
                     top_p=0.9
                 )
             else:
-                model = model.to(device)
+                # model = model.to(device)
                 summary_ids = model.generate(
                     input_ids,
                     max_new_tokens=256,

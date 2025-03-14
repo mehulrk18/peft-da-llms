@@ -50,7 +50,7 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
                                                                                     data.dataset_name.lower(),
                                                                                     min_samples)
 
-    if data.domain.name.lower() == "legal":
+    if data.domain.name.lower() == "legal" or data.dataset_name.lower() == "mslr":
         test_summaries_file_name = test_summaries_file_name.replace(".csv", ".xlsx")
 
     # random_text = """
@@ -87,13 +87,23 @@ def testing_model(llama_model, llama_tokenizer, data, peft_full_name, device, lo
             # for i in range(min_samples):
             for i, _obj in enumerate(data.test_set):
                 logger.info("Summary for {} sample".format(i + 1))
-                summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=_obj["content"],
-                                           device=device,
-                                           chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
-                test_summaries["article"].append(_obj["content"])
-                test_summaries["truth"].append(_obj["summary"])
-                test_summaries[col_name].append(summary)
-                del summary
+                try:
+                    summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=_obj["content"],
+                                            device=device,
+                                            chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data.domain.name])
+                    test_summaries["article"].append(_obj["content"])
+                    test_summaries["truth"].append(_obj["summary"])
+                    test_summaries[col_name].append(summary)
+                    del summary
+                except Exception as e:
+                    # if "cuda out of memory" in e.lower():
+                    torch.cuda.empty_cache()
+                    # Collect garbage
+                    import gc
+                    gc.collect()
+                    logger.info("ERROR: {}".format(e))
+                    logger.info("EXCEPTION OCCURED !!!!Generation only for {} samples.!!!!".format(len(test_summaries[col_name])))
+                    break
 
         else:
             logger.info(
@@ -489,7 +499,7 @@ if __name__ == "__main__":
     load_dotenv(".env")
     hf_token = os.getenv("HF_TOKEN")
     wandb_api_key = os.getenv("WANDB_API_KEY")
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:true"
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     run_name = 'testing_single_peft_{}_{}samples.log'.format("_".join(peft_path_splits), test_samples)
     wnb_run = wandb.init(name=run_name)
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available else "cpu")
@@ -531,9 +541,9 @@ if __name__ == "__main__":
                                                               torch_dtype=torch_dtype)
     llama.model = llama.model.to(torch_dtype)
 
-    if device == "cuda":
-        llama.model = torch.nn.DataParallel(llama.model, device_ids=[0, 1])
-        llama.model.to(device)
+    # if device == "cuda":
+    #     llama.model = torch.nn.DataParallel(llama.model, device_ids=[0, 1])
+    #     llama.model.to(device)
 
     logger.info("Loaded MODEL: \n{}".format(llama.model))
 
