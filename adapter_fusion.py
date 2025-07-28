@@ -166,7 +166,7 @@ if device == "cuda":
 
 from huggingface_hub import login
 
-login(token="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")
+login(token="")
 
 """# LLama Model"""
 

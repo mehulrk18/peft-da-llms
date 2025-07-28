@@ -16,8 +16,6 @@ from together import Together
 from dataset_lib import datasets_info_dict, SumDomains, DEFAULT_DOMAIN_PROMPT
 from utils import rouge_metric, bertscore_metric, bleu_metric, meteor_metric, WandBLogger, check_and_return_df
 
-# together: fde6a03877504ef0eeccd9a67c867cb15f6be6586ac080b4f1ff3d1f1d414d6c; df491a9f1566b190b9ed8eda715fd1f32f15d89b73317746867599b305bad7f9; 55cb14a8e643601f56c6b0956ecef4aa7970f67a48feac81e101ad8637b06a34
-# openai: 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
 # DEFAULT_DOMAIN_PROMPT = {
 #     "scientific": """
 #         Summarize the provided scientific article in a clear and concise paragraph. Include the study's objective, 
