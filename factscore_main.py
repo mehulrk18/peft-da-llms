@@ -42,6 +42,8 @@ def generating_factscores_for_summaries(model_name, grounding_provided, open_ai_
     print("Data Directory: ", STORE_DATA_DIR)
 
     for _peft in pefts:
+        if not ("256" in _peft or "512" in _peft):
+            continue
         # skipping zero shot for now.
         try: 
             # if _peft in columns_to_skip:
@@ -139,19 +141,27 @@ if __name__ == "__main__":
     datasets_dict = {}
 
     did = datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
-    if _domain is None:
-        raise ValueError("Please provide a domain to calculate FactScore for, your options are: {} or pass 'all'".format(list(datasets_info_dict.keys())))
-    if _domain == "all":
-        datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
-        datasets_dict = datasets_info_dict
-    else:
-        datasets_dict[SumDomains(_domain)] = datasets_info_dict[SumDomains(_domain)]
+    # if _domain is None:
+    #     raise ValueError("Please provide a domain to calculate FactScore for, your options are: {} or pass 'all'".format(list(datasets_info_dict.keys())))
+    # if _domain == "all":
+    #     datasets_info_dict.pop(SumDomains.UNSEEN_TEST)
+    #     datasets_dict = datasets_info_dict
+    # else:
+    #     datasets_dict[SumDomains(_domain)] = datasets_info_dict[SumDomains(_domain)]
+
+    datasets_dict = {SumDomains.UNSEEN_TEST: did}
 
     for domain, datasets in datasets_dict.items():
         for dataset_name in datasets:
+            if dataset_name in ["scientific", "news"]:
+                continue
             print("Calculating FactScore for: Domain: {} - Dataset: {}".format(domain.name.lower(), dataset_name))
             if not "unseen_test" == domain.name.lower():
-                f_name = "summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name)
+                # f_name = "summaries/summaries_{}_{}_150samples.csv".format(domain.name.lower(), dataset_name)
+                f_name = "summaries/summaries_{}_{}.csv".format(domain.name.lower(), dataset_name)
+
+                if dataset_name in ["medical", "legal"]:
+                    f_name = f_name.replace(".csv", ".xlsx")
                 fs_results_file = factscore_results_file
             else:
                 f_name = "summaries/summaries_{}_{}.csv".format(domain.name.lower(), dataset_name)

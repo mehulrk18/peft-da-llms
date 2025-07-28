@@ -13,8 +13,14 @@ from inference_unseen_data import unseen_test_data_inference
 from utils import LLaMAModelClass, torch_dtypes_dict, WandBLogger
 
 
-def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metric, overwrite):
-    run_name = 'zero_shot_learning_{}{}_{}_{}samples.log'.format("instruct_" if instruct else "", domain, dataset_name, test_samples)
+kshot_dict = {
+    "zero": 0,
+    "one": 1,
+    "two": 2
+}
+
+def k_shot_baseline(kshot, llama, domain, dataset_name, test_samples, instruct, metric, overwrite):
+    run_name = '{}_shot_learning_{}{}_{}_{}samples.log'.format(kshot, "instruct_" if instruct else "", domain, dataset_name, test_samples)
     logging.basicConfig(
         filename='logs/{}'.format(run_name),
         # The log file to write to
@@ -34,8 +40,8 @@ def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metr
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     logger.addHandler(wnb)
-    logger.info("Running Zero Shot Baseline experiments for dataset {} in domain {} for {} "
-                "test samples.".format(dataset_name, domain, test_samples))
+    logger.info("Running {} Shot Baseline experiments for dataset {} in domain {} for {} "
+                "test samples.".format(kshot, dataset_name, domain, test_samples))
     # data.loading_dataset_splits()
 
 
@@ -43,10 +49,10 @@ def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metr
         domain_sum= SumDomains("unseen_test")
         data_class = datasets_info_dict[domain_sum][dataset_name]
         unseen_test_data_inference(llama_model=llama.model, llama_tokenizer=llama.tokenizer, data_class=data_class, 
-                                   peft_full_name="zero_shot_{}_{}_results".format(domain, dataset_name), 
+                                   peft_full_name="{}_shot_{}_{}_results".format(kshot, domain, dataset_name),
                                    device=device, logger=logger, chat_template=instruct, 
-                                   col_name="zero_shot_instruct" if instruct else "zero_shot",
-                                   metric_name=metric)
+                                   col_name="{}_shot_instruct".format(kshot) if instruct else "{}_shot".format(kshot),
+                                   metric_name=metric, kshot=kshot)
     else:
         data = SumDataLoader(domain=domain, dataset_name=dataset_name, training_samples=1, eval_samples=1,
                             test_samples=test_samples, sort_dataset_on_article_len=True)
@@ -61,6 +67,9 @@ def zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metr
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argument parser for Zero Shot Baseline")
 
+    parser.add_argument("--shot", type=str, help="K-shot ICL", choices=["zero", "one", "two"],
+                        required=True)
+
     parser.add_argument("--domain", type=str, help="Domain name for dataset", choices=["scientific", "medical", "legal",
                                                                                        "news", "unseen_test"], required=True)
     parser.add_argument("--dataset_name", type=str, help="Dataset to be used for training", required=True)
@@ -73,6 +82,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    kshot = args.shot
     domain = args.domain
     dataset_name = args.dataset_name
     test_samples = args.test_samples
@@ -97,6 +107,6 @@ if __name__ == "__main__":
 
     # for domain, datasets in domains_datasets.items(): #zip(domains, datasets):
     #     for dataset_name in datasets:
-    print("** Generating Zero SHot results from {} in domain {} for {} samples with "
-          "domain specific prompts".format(dataset_name, domain, test_samples))
-    zero_shot_baseline(llama, domain, dataset_name, test_samples, instruct, metric, overwrite)
+    print("** Generating {} SHot results from {} in domain {} for {} samples with "
+          "domain specific prompts".format(kshot, dataset_name, domain, test_samples))
+    k_shot_baseline(kshot, llama, domain, dataset_name, test_samples, instruct, metric, overwrite)
