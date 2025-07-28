@@ -17,7 +17,7 @@ from utils import generate_summary, rouge_metric, LLaMAModelClass, \
 
 
 def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_full_name, device, logger, chat_template,
-                               col_name, metric_name):
+                               col_name, metric_name, kshot=""):
     if metric_name == "rouge":
         metric = rouge_metric()
     elif metric_name == "bertscore":
@@ -48,6 +48,28 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
     data = pd.read_excel(data_class.local_path) if ".xlsx" in data_class.local_path else pd.read_csv(data_class.local_path)
     logger.info("Original dataset len: {}".format(len(data))) #.num_rows
 
+    samples = ""
+    if kshot:
+        n = 0
+        if kshot == "zero":
+            n = 0
+        elif kshot == "one":
+            n = 1
+            samples = "Here is one example for you to follow for the given task:\n"
+        elif kshot == "two":
+            n = 2
+            samples = "Here are two examples for you to follow for the given task:\n"
+
+        if n > 0:
+            sample_domain = data_class.name.lower()
+            sample_dataset = list(datasets_info_dict[SumDomains(sample_domain)].keys())[0]
+            icl_dataset = SumDataLoader(domain=sample_domain, dataset_name=sample_dataset, training_samples=n,
+                                        eval_samples=1, test_samples=1, sort_dataset_on_article_len=True)
+
+            for i in range(n):
+                samples += "Example {}:\nArticle{}: \nSummary:{}\n".format(i + 1,
+                                                                           icl_dataset.train_set[i]["content"],
+                                                                           icl_dataset.train_set[i]["summary"])
 
     # TODO: write the testing function with a metric.
     test_summaries = {
@@ -67,8 +89,8 @@ def unseen_test_data_inference(llama_model, llama_tokenizer, data_class, peft_fu
         i = 0
         for i, art in enumerate(articles):
             logger.info("Summary for {} sample".format(i+1))
-            summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=art,
-                                       device=device,
+            summary = generate_summary(model=llama_model, tokenizer=llama_tokenizer, content=art, kshot=kshot,
+                                       samples=samples, device=device,
                                        chat_template=chat_template, prompt=DEFAULT_DOMAIN_PROMPT[data_class.name.upper()])
             test_summaries[col_name].append(summary)
             del summary

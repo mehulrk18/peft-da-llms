@@ -29,6 +29,18 @@ def llama3_testing_prompt(content: str, system_prompt: str = DEFAULT_SYSTEM_PROM
     return prompt.strip()
 
 
+def llama3_testing_prompt_icl(content: str, samples: str = "", system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    # This done after reading from the chat_template using tokenize=False
+    system_prompt += samples
+    prompt = """
+            <|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{}<|eot_id|>\n
+            <|start_header_id|>user<|end_header_id|>\nPlease provide the summary for the article:\n{}<|eot_id|>\n
+            <|start_header_id|>assistant<|end_header_id|>\nHere is your Summary:\n
+            """.format(system_prompt, content)
+
+    return prompt.strip()
+
+
 def chat_template_prompt_training(content: str, summary: str, system_prompt: str = DEFAULT_SYSTEM_PROMPT) -> list:
     messages = [
         {"role": "system", "content": system_prompt.strip()},
@@ -45,6 +57,16 @@ def chat_template_prompt_inference(content: str, system_prompt: str = DEFAULT_SY
     ]
 
     return messages
+
+def chat_template_prompt_inference_icl(content: str, samples: str = "", system_prompt: str = DEFAULT_SYSTEM_PROMPT):
+    system_prompt += samples
+    messages = [
+        {"role": "system", "content": system_prompt.strip()},
+        {"role": "user", "content": "Article:\n{}".format(content)}
+    ]
+
+    return messages
+
 
 
 def preprocessing_data_with_chat_format(sample):
